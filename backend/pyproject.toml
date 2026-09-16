@@ -1,0 +1,12 @@
+[tool.ruff]
+required-version = "==0.16.7"
+target-version = "py313"
+unsafe-fixes = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint.flake8-bugbear]
+# Match the source repository: FastAPI descriptors declare dependencies.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Security", "fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi.Header", "fastapi.Cookie", "fastapi.Form", "fastapi.File"]

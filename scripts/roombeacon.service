@@ -1,0 +1,23 @@
+[Unit]
+Description=RoomBeacon meeting room signage
+After=network-online.target redis-server.service
+Wants=network-online.target
+Requires=redis-server.service
+
+[Service]
+User=roombeacon
+Group=roombeacon
+WorkingDirectory=/opt/roombeacon/backend
+EnvironmentFile=/etc/roombeacon/service.env
+EnvironmentFile=/etc/roombeacon/feishu.env
+EnvironmentFile=-/etc/roombeacon/control.env
+ExecStart=/opt/roombeacon-venv/bin/uvicorn app.room_display_main:app --host 127.0.0.1 --port 8088 --no-access-log
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

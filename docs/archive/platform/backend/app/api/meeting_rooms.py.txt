@@ -1,0 +1,55 @@
+from datetime import UTC, datetime, timedelta
+
+from fastapi import APIRouter, Depends, Query, Response
+
+from ..core.dependencies import (
+    block_writes_in_readonly,
+    get_current_user,
+    require_admin,
+)
+from ..core.exceptions import ForbiddenError, NotFoundError
+from ..core.response import R, ok
+from ..core.room_devices import DEVICE_TTL, issue_device, revoke_device
+from ..schemas.meeting_room import DeviceRequest, Room, RoomSchedule
+from ..services import meeting_rooms
+
+router = APIRouter()
+
+
+@router.get("", response_model=R[list[Room]])
+async def rooms(user: dict = Depends(require_admin)):
+    return ok(await meeting_rooms.list_rooms())
+
+
+@router.get("/display", response_model=R[RoomSchedule])
+async def display(
+    response: Response,
+    room_id: str | None = Query(None, pattern=r"^omm_[a-zA-Z0-9]+$", max_length=100),
+    user: dict = Depends(get_current_user),
+):
+    response.headers["Cache-Control"] = "no-store"
+    if user.get("role") == "room_display":
+        if room_id and room_id != user["room_id"]:
+            raise ForbiddenError("门牌只能访问绑定会议室")
+        room_id = user["room_id"]
+    elif user.get("role") != "super_admin":
+        raise ForbiddenError("仅管理员可预览会议门牌")
+    if not room_id:
+        raise NotFoundError("请选择会议室")
+    snapshot = await meeting_rooms.schedule_for(room_id)
+    return ok(snapshot.model_copy(update={"server_time": datetime.now(UTC)}))
+
+
+@router.post("/device", dependencies=[Depends(block_writes_in_readonly)])
+async def bind_device(body: DeviceRequest, response: Response, user: dict = Depends(require_admin)):
+    if not any(room.room_id == body.room_id for room in await meeting_rooms.list_rooms()):
+        raise NotFoundError("会议室不存在")
+    response.headers["Cache-Control"] = "no-store"
+    return ok({"token": await issue_device(body.room_id),
+               "expires_at": (datetime.now(UTC) + timedelta(seconds=DEVICE_TTL)).isoformat()})
+
+
+@router.post("/device/revoke", dependencies=[Depends(block_writes_in_readonly)])
+async def unbind_device(body: DeviceRequest, user: dict = Depends(require_admin)):
+    await revoke_device(body.room_id)
+    return ok()

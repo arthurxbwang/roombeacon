@@ -1,0 +1,51 @@
+import hashlib
+import json
+from unittest.mock import MagicMock
+
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport
+
+from app.api.webhooks import router
+from app.core.config import settings
+from app.core.dependencies import get_db
+from app.services import meeting_room_events
+from tests.fixtures.meeting_rooms import HttpClient
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('room_id', ['', 'bad', None, 'omm_a:other'])
+async def test_invalid_event_id_does_not_touch_redis(world, room_id):
+    await meeting_room_events.invalidate_room(room_id)
+    assert not world.cache.set.called
+
+
+def test_ws_event_invalidates_shared_cache(monkeypatch):
+    client = MagicMock()
+    client.__enter__.return_value = client
+    monkeypatch.setattr(meeting_room_events.redis.Redis, 'from_url', lambda *a, **k: client)
+    meeting_room_events.handle_room_event({'event': {'room_id': 'omm_one'}})
+    assert client.set.call_args.args[0] == 'rooms:dirty:omm_one'
+    assert client.set.call_args.kwargs['ex'] == 600
+    client.delete.assert_called_once_with('rooms:catalog')
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('valid_signature', [True, False])
+async def test_webhook_room_event_requires_signature(world, monkeypatch, valid_signature):
+    monkeypatch.setattr(settings, 'FEISHU_ENCRYPT_KEY', 'test-event-key')
+    app = FastAPI()
+    app.include_router(router, prefix='/api/webhooks')
+
+    async def no_database():
+        yield None
+
+    app.dependency_overrides[get_db] = no_database
+    body = json.dumps({'header': {'event_type': meeting_room_events.EVENT_TYPE}, 'event': {'room_id': 'omm_one'}})
+    signature = hashlib.sha256(('123' + 'nonce' + 'test-event-key' + body).encode()).hexdigest()
+    headers = {'X-Lark-Request-Timestamp': '123', 'X-Lark-Request-Nonce': 'nonce',
+               'X-Lark-Signature': signature if valid_signature else 'invalid'}
+    async with HttpClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+        response = await client.post('/api/webhooks/feishu/approval', content=body, headers=headers)
+    assert response.status_code == (200 if valid_signature else 403)
+    assert ('rooms:dirty:omm_one' in world.values) is valid_signature

@@ -1,0 +1,315 @@
+{
+  "source_repository": "https://github.com/arthurxbwang/argus",
+  "source_branch": "codex/meeting-room-standalone",
+  "source_commit": "c34a5614bdb5e86305e40deb0d5c36807ccd0b03",
+  "destination_repository": "https://github.com/arthurxbwang/roombeacon",
+  "files": [
+    {
+      "source": "backend/app/room_display_main.py",
+      "destination": "backend/app/room_display_main.py",
+      "source_sha256": "21888f74fdfda9a350b8fa947653072e1db84e8da5cd52cb8e304a55ae5874cf",
+      "destination_sha256": "21888f74fdfda9a350b8fa947653072e1db84e8da5cd52cb8e304a55ae5874cf"
+    },
+    {
+      "source": "backend/app/core/room_devices.py",
+      "destination": "backend/app/core/room_devices.py",
+      "source_sha256": "4747dc9a704a9b0cd112f92021aafdb90cc26c20a5743e898db67bdd3bd92ba5",
+      "destination_sha256": "4747dc9a704a9b0cd112f92021aafdb90cc26c20a5743e898db67bdd3bd92ba5"
+    },
+    {
+      "source": "backend/app/core/exceptions.py",
+      "destination": "backend/app/core/exceptions.py",
+      "source_sha256": "b8ffe0f7bf72506daa49198c03ae3c9ceff2718a5c4e838cba7f70711a2340d7",
+      "destination_sha256": "b8ffe0f7bf72506daa49198c03ae3c9ceff2718a5c4e838cba7f70711a2340d7"
+    },
+    {
+      "source": "backend/app/core/response.py",
+      "destination": "backend/app/core/response.py",
+      "source_sha256": "edd54f2d4820896a234800633204d7dfa5413529579c584c475cafbe81572cbb",
+      "destination_sha256": "edd54f2d4820896a234800633204d7dfa5413529579c584c475cafbe81572cbb"
+    },
+    {
+      "source": "backend/app/connectors/feishu/rooms.py",
+      "destination": "backend/app/connectors/feishu/rooms.py",
+      "source_sha256": "b2b1005c57dcae4b19ce3e6fcaef0a8f4e42191882d33c9cd1d614779414d2c1",
+      "destination_sha256": "b2b1005c57dcae4b19ce3e6fcaef0a8f4e42191882d33c9cd1d614779414d2c1"
+    },
+    {
+      "source": "backend/app/schemas/meeting_room.py",
+      "destination": "backend/app/schemas/meeting_room.py",
+      "source_sha256": "0a21e68326b5a28ab2ceed41b5b78e12e890acd706e14551ebc5e36dd77faae3",
+      "destination_sha256": "0a21e68326b5a28ab2ceed41b5b78e12e890acd706e14551ebc5e36dd77faae3"
+    },
+    {
+      "source": "backend/app/services/room_checkin.py",
+      "destination": "backend/app/services/room_checkin.py",
+      "source_sha256": "801821159ae96ab041dc314732e8fdcffbfcd18f0c0e99f00aeac18ec29f6482",
+      "destination_sha256": "801821159ae96ab041dc314732e8fdcffbfcd18f0c0e99f00aeac18ec29f6482"
+    },
+    {
+      "source": "backend/app/services/room_checkin_art.py",
+      "destination": "backend/app/services/room_checkin_art.py",
+      "source_sha256": "225f764558373a8312199b31d78c37fcc4f44fb9d1950d4519bb7b3617f51c2d",
+      "destination_sha256": "225f764558373a8312199b31d78c37fcc4f44fb9d1950d4519bb7b3617f51c2d"
+    },
+    {
+      "source": "backend/app/services/room_display_collector.py",
+      "destination": "backend/app/services/room_display_collector.py",
+      "source_sha256": "6fa4ce24c4545a23a2205dcf178afddc0ecc4f8236274de18b56e71f49454f66",
+      "destination_sha256": "6fa4ce24c4545a23a2205dcf178afddc0ecc4f8236274de18b56e71f49454f66"
+    },
+    {
+      "source": "backend/app/services/room_daylight.py",
+      "destination": "backend/app/services/room_daylight.py",
+      "source_sha256": "fbadcdcaafda5334bcdfebc7baa9c9d5bfb02f731e0cf9af40c888b8e30b3688",
+      "destination_sha256": "fbadcdcaafda5334bcdfebc7baa9c9d5bfb02f731e0cf9af40c888b8e30b3688"
+    },
+    {
+      "source": "backend/app/services/room_display_directory.py",
+      "destination": "backend/app/services/room_display_directory.py",
+      "source_sha256": "722b64940dab764deaf368da23df08e52a33abcec0ce5eaedf2401684b01f259",
+      "destination_sha256": "722b64940dab764deaf368da23df08e52a33abcec0ce5eaedf2401684b01f259"
+    },
+    {
+      "source": "backend/app/services/room_display_admin.py",
+      "destination": "backend/app/services/room_display_admin.py",
+      "source_sha256": "1e7ca1d8e9198cac509b23f15d7f4b8a96ae4d0a80de42083e01024dae6733c9",
+      "destination_sha256": "1e7ca1d8e9198cac509b23f15d7f4b8a96ae4d0a80de42083e01024dae6733c9"
+    },
+    {
+      "source": "backend/app/services/meeting_rooms.py",
+      "destination": "backend/app/services/meeting_rooms.py",
+      "source_sha256": "089f0a503d08a0725c243d01b9eda6eaeb91fa4ee4f7fa5ba35bc3bcc2f3d320",
+      "destination_sha256": "089f0a503d08a0725c243d01b9eda6eaeb91fa4ee4f7fa5ba35bc3bcc2f3d320"
+    },
+    {
+      "source": "backend/app/services/meeting_room_events.py",
+      "destination": "backend/app/services/meeting_room_events.py",
+      "source_sha256": "0e570ce62ee5f9670b4529134997b116a5ca5d2d65d4c310624e98c79338a716",
+      "destination_sha256": "0e570ce62ee5f9670b4529134997b116a5ca5d2d65d4c310624e98c79338a716"
+    },
+    {
+      "source": "backend/tests/services/test_room_checkin.py",
+      "destination": "backend/tests/services/test_room_checkin.py",
+      "source_sha256": "d98ea90e4dcd159d669fbce2f63a331fa27642c41b6a5d4ce7e8b2436df081e2",
+      "destination_sha256": "d98ea90e4dcd159d669fbce2f63a331fa27642c41b6a5d4ce7e8b2436df081e2"
+    },
+    {
+      "source": "backend/tests/services/test_room_display_collector.py",
+      "destination": "backend/tests/services/test_room_display_collector.py",
+      "source_sha256": "c40d77ccdc010fd4c1189e6473b949b955c1833bff98121d30d067ea36937db2",
+      "destination_sha256": "c40d77ccdc010fd4c1189e6473b949b955c1833bff98121d30d067ea36937db2"
+    },
+    {
+      "source": "backend/tests/services/test_room_daylight.py",
+      "destination": "backend/tests/services/test_room_daylight.py",
+      "source_sha256": "12236dce0711fadd49addeba3895fc96ee4f1b9e3660324951ffbe29e1df1272",
+      "destination_sha256": "12236dce0711fadd49addeba3895fc96ee4f1b9e3660324951ffbe29e1df1272"
+    },
+    {
+      "source": "backend/tests/services/test_room_display_directory.py",
+      "destination": "backend/tests/services/test_room_display_directory.py",
+      "source_sha256": "7d5d7e481dd791e50541fb161482cf1c71d853b95f171ebd521ed28492236b9d",
+      "destination_sha256": "7d5d7e481dd791e50541fb161482cf1c71d853b95f171ebd521ed28492236b9d"
+    },
+    {
+      "source": "backend/tests/services/test_meeting_room_schedules.py",
+      "destination": "backend/tests/services/test_meeting_room_schedules.py",
+      "source_sha256": "7f409547e1f456b02ce141cf282699d867ee732065c82730bc6fb8f78fc2194d",
+      "destination_sha256": "7f409547e1f456b02ce141cf282699d867ee732065c82730bc6fb8f78fc2194d"
+    },
+    {
+      "source": "backend/tests/api/test_room_display_standalone.py",
+      "destination": "backend/tests/api/test_room_display_standalone.py",
+      "source_sha256": "4411ab6607ac467d4e140c29589db9023e76c3b49c0be641a65321eae7b737ea",
+      "destination_sha256": "add7cdbfc606676ce35ac7bc5a01b35b03001e4f7c4bb88a2fae243bdad86941"
+    },
+    {
+      "source": "backend/tests/fixtures/meeting_rooms.py",
+      "destination": "backend/tests/fixtures/meeting_rooms.py",
+      "source_sha256": "ff5c1025d8f41cebff1a86a3819feaaf99633d5969aae754b4685668a1046a35",
+      "destination_sha256": "ff5c1025d8f41cebff1a86a3819feaaf99633d5969aae754b4685668a1046a35"
+    },
+    {
+      "source": "frontend/src/pages/RoomDisplay.vue",
+      "destination": "frontend/src/pages/RoomDisplay.vue",
+      "source_sha256": "9bb228ef99f8e3524eb59ed4642e177b499c7b453c056f352ef9e1b8ef0388ff",
+      "destination_sha256": "7caa037d290b171cc361adbcfd4075dd0df0c24a15bac1d40f5b9254a987e2db"
+    },
+    {
+      "source": "frontend/src/pages/roomDisplayV2.css",
+      "destination": "frontend/src/pages/roomDisplayV2.css",
+      "source_sha256": "5bc2ff5d9128845745a3e86de326bf5fc7fc653a6ec4b5387137a8ac716ec523",
+      "destination_sha256": "5bc2ff5d9128845745a3e86de326bf5fc7fc653a6ec4b5387137a8ac716ec523"
+    },
+    {
+      "source": "frontend/src/pages/RoomControl.vue",
+      "destination": "frontend/src/pages/RoomControl.vue",
+      "source_sha256": "ed97ac475093e4e7d0c2ffdcd35d54aac95594c225ce5298bc3091c6a59a65cb",
+      "destination_sha256": "ed97ac475093e4e7d0c2ffdcd35d54aac95594c225ce5298bc3091c6a59a65cb"
+    },
+    {
+      "source": "frontend/src/components/RoomCheckinCard.vue",
+      "destination": "frontend/src/components/RoomCheckinCard.vue",
+      "source_sha256": "c3bb36de0e6aec279372515bf26fa90d19965fc4816714fb995d078ed0e69c9d",
+      "destination_sha256": "c3bb36de0e6aec279372515bf26fa90d19965fc4816714fb995d078ed0e69c9d"
+    },
+    {
+      "source": "frontend/src/assets/room-checkin-brand.gif",
+      "destination": "frontend/src/assets/room-checkin-brand.gif",
+      "source_sha256": "4a6d1d11abd6682c187453930ea21cb651e4ebc3feace1a83671e0753ad487d9",
+      "destination_sha256": "4a6d1d11abd6682c187453930ea21cb651e4ebc3feace1a83671e0753ad487d9"
+    },
+    {
+      "source": "frontend/src/style.css",
+      "destination": "frontend/src/style.css",
+      "source_sha256": "73ec3599d9249de69796b8f23d393c8c2c9e2c223a84acceb281a1fa9be22477",
+      "destination_sha256": "73ec3599d9249de69796b8f23d393c8c2c9e2c223a84acceb281a1fa9be22477"
+    },
+    {
+      "source": "frontend/src/main-room-display.ts",
+      "destination": "frontend/src/main-room-display.ts",
+      "source_sha256": "1fdd25c734b443268ba84c4fc97299776484933a7f6f2fa733836e23f7068d15",
+      "destination_sha256": "34c6a0e47dc179aecca95b50ac830965d30a952eb83c28b4acf99ceceda5159e"
+    },
+    {
+      "source": "frontend/src/api/meetingRooms.ts",
+      "destination": "frontend/src/api/meetingRooms.ts",
+      "source_sha256": "21c67a9119a2040ca433c97ff9b4788ec17e7a0094294d7e0ffaca9c794e3f46",
+      "destination_sha256": "6b152570bb34af6e6559263bdb2b3ecea453fbb76b1ee3f5c364b90a95bd684e"
+    },
+    {
+      "source": "frontend/tsconfig.json",
+      "destination": "frontend/tsconfig.json",
+      "source_sha256": "d088ea206f8866ce590591a22195f4ca74c4d51534a0a2879244383e80c9b533",
+      "destination_sha256": "d088ea206f8866ce590591a22195f4ca74c4d51534a0a2879244383e80c9b533"
+    },
+    {
+      "source": "frontend/env.d.ts",
+      "destination": "frontend/env.d.ts",
+      "source_sha256": "cb3a8a70a87f0b1872244cd0bbe5bb5ddd602d820b7766a4d515b04eab8c40c7",
+      "destination_sha256": "cb3a8a70a87f0b1872244cd0bbe5bb5ddd602d820b7766a4d515b04eab8c40c7"
+    },
+    {
+      "source": "frontend/tailwind.config.js",
+      "destination": "frontend/tailwind.config.js",
+      "source_sha256": "e4367707c0899c3216aed2eba1b39fefcaa409a58eb8da2010b7f143cd4b72f5",
+      "destination_sha256": "e4367707c0899c3216aed2eba1b39fefcaa409a58eb8da2010b7f143cd4b72f5"
+    },
+    {
+      "source": "frontend/postcss.config.js",
+      "destination": "frontend/postcss.config.js",
+      "source_sha256": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27",
+      "destination_sha256": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27"
+    },
+    {
+      "source": "frontend/room-display.html",
+      "destination": "frontend/room-display.html",
+      "source_sha256": "e622a002f7dafbb7d4143412d7931a05fdc8127f33619004a6ee576d8a10a8b4",
+      "destination_sha256": "e622a002f7dafbb7d4143412d7931a05fdc8127f33619004a6ee576d8a10a8b4"
+    },
+    {
+      "source": "frontend/tests/meeting-rooms.spec.ts",
+      "destination": "frontend/tests/meeting-rooms.spec.ts",
+      "source_sha256": "48935be87ef6c19fee43edd58ae0389517c80c52c5c15204dbdbb5b87239e25f",
+      "destination_sha256": "8078d52db812dad7c5106d1cb2efd9c500782995fe11f0ac3255772cc0184f59"
+    },
+    {
+      "source": "frontend/tests/meeting-room-v2.spec.ts",
+      "destination": "frontend/tests/meeting-room-v2.spec.ts",
+      "source_sha256": "f6374f209d50d57c49bc9898514ac7e018df2403580a2da62f8c09018082f0fc",
+      "destination_sha256": "f6374f209d50d57c49bc9898514ac7e018df2403580a2da62f8c09018082f0fc"
+    },
+    {
+      "source": "scripts/room-display-admin",
+      "destination": "scripts/room-display-admin",
+      "source_sha256": "0e0dfeb3d096fdf44bbb777015230e16d26fcc88a98290af9ce772b5a9f77415",
+      "destination_sha256": "0e0dfeb3d096fdf44bbb777015230e16d26fcc88a98290af9ce772b5a9f77415"
+    },
+    {
+      "source": "scripts/room-display.service",
+      "destination": "scripts/room-display.service",
+      "source_sha256": "1abc4f8f3553f09930ecc1ceec9158cdfe8ee0a2e403183b8f6352263230c61e",
+      "destination_sha256": "1abc4f8f3553f09930ecc1ceec9158cdfe8ee0a2e403183b8f6352263230c61e"
+    },
+    {
+      "source": "scripts/room-display-standalone.nginx.conf",
+      "destination": "scripts/room-display-standalone.nginx.conf",
+      "source_sha256": "dc3944e5de26cd1a9220abfc9559757b470c7dc01d22886951fe76b49e758426",
+      "destination_sha256": "dc3944e5de26cd1a9220abfc9559757b470c7dc01d22886951fe76b49e758426"
+    },
+    {
+      "source": "plan/meeting-room-terminal-comparison.md",
+      "destination": "plan/meeting-room-terminal-comparison.md",
+      "source_sha256": "a4f6d04e44ef20c7ded373f5489601324b58442b83ceba2434c037fc48262d03",
+      "destination_sha256": "7677ea7b672aa74733daaf4a106dee280860c4f21fbb91f80a55f0e1b0679dc2"
+    },
+    {
+      "source": "backend/requirements-room-display.txt",
+      "destination": "backend/requirements.txt",
+      "source_sha256": "6462746253f2af4b17d259f6280cd88623be6b424e3b43a233930ffba620fd47",
+      "destination_sha256": "6462746253f2af4b17d259f6280cd88623be6b424e3b43a233930ffba620fd47"
+    },
+    {
+      "source": "handbook/meeting-room-display-operations.md",
+      "destination": "docs/archive/argus-operations.md",
+      "source_sha256": "cab626399839639b2fa9c8beb64d99393b2d9e04aec98020bb7cdb4533d65048",
+      "destination_sha256": "cab626399839639b2fa9c8beb64d99393b2d9e04aec98020bb7cdb4533d65048"
+    },
+    {
+      "source": "docs/adr/0020-meeting-room-display.md",
+      "destination": "docs/archive/argus-adr-0020.md",
+      "source_sha256": "24a888a46ccf4f1e7054489ef1c2e5c92bcb732e29d3d6348a85fc76318742df",
+      "destination_sha256": "24a888a46ccf4f1e7054489ef1c2e5c92bcb732e29d3d6348a85fc76318742df"
+    },
+    {
+      "source": "backend/tests/api/test_meeting_rooms.py",
+      "destination": "docs/archive/platform/backend/tests/api/test_meeting_rooms.py.txt",
+      "source_sha256": "17222fa2122dcf1478e0d5c0be2ae14e226dd3b96e440154eb1241a5f63d7a09",
+      "destination_sha256": "17222fa2122dcf1478e0d5c0be2ae14e226dd3b96e440154eb1241a5f63d7a09"
+    },
+    {
+      "source": "backend/tests/services/test_meeting_room_events.py",
+      "destination": "docs/archive/platform/backend/tests/services/test_meeting_room_events.py.txt",
+      "source_sha256": "e8438f077f9d64f8dbf3d78b4c218ee2e7cda4c430d46a6f578985d34da4c995",
+      "destination_sha256": "e8438f077f9d64f8dbf3d78b4c218ee2e7cda4c430d46a6f578985d34da4c995"
+    },
+    {
+      "source": "backend/app/api/meeting_rooms.py",
+      "destination": "docs/archive/platform/backend/app/api/meeting_rooms.py.txt",
+      "source_sha256": "cfe522c742a53c43f7b91aa9f4231bbc9f19df52aa2ece888625669eee8ae784",
+      "destination_sha256": "cfe522c742a53c43f7b91aa9f4231bbc9f19df52aa2ece888625669eee8ae784"
+    },
+    {
+      "source": "frontend/src/pages/MeetingRooms.vue",
+      "destination": "docs/archive/platform/frontend/src/pages/MeetingRooms.vue.txt",
+      "source_sha256": "b4842ebcdcf0746d27eb2087a821ee11dad41fcf2dac35299c18be627d4f6425",
+      "destination_sha256": "b4842ebcdcf0746d27eb2087a821ee11dad41fcf2dac35299c18be627d4f6425"
+    },
+    {
+      "source": "backend/app/connectors/feishu/client.py",
+      "destination": "backend/app/connectors/feishu/client.py",
+      "source_sha256": "cda365932736a8cf428ec524897d05954d7fb37d573ccc84e993786a716380a1",
+      "change": "Extract tenant token, request/retry and health methods only; sanitize upstream error logs.",
+      "destination_sha256": "c677048d3d99f7fa3357a3584f3e9d358b53f95ea5f2582a3ea5624effe47765"
+    },
+    {
+      "source": "frontend/package-lock.json",
+      "destination": "frontend/package-lock.json",
+      "source_sha256": "bed04dfac7db8e6a48feb641c24a6129ee19e6fad2300e1fe3f0e3582825d424",
+      "destination_sha256": "6d1e798e1e72220959e04c76c870f02b84c11adcad9ccc2177fe06f846dbb955"
+    },
+    {
+      "source": "frontend/room-display.html",
+      "destination": "frontend/index.html",
+      "source_sha256": "e622a002f7dafbb7d4143412d7931a05fdc8127f33619004a6ee576d8a10a8b4",
+      "destination_sha256": "e622a002f7dafbb7d4143412d7931a05fdc8127f33619004a6ee576d8a10a8b4"
+    },
+    {
+      "source": "frontend/tests/meeting-rooms.spec.ts",
+      "destination": "docs/archive/platform/frontend-tests-meeting-rooms.spec.ts.txt",
+      "source_sha256": "48935be87ef6c19fee43edd58ae0389517c80c52c5c15204dbdbb5b87239e25f",
+      "destination_sha256": "48935be87ef6c19fee43edd58ae0389517c80c52c5c15204dbdbb5b87239e25f"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[Unit]
+Description=Standalone Feishu meeting room display
+After=network-online.target redis-server.service
+Wants=network-online.target
+Requires=redis-server.service
+
+[Service]
+User=room-display
+Group=room-display
+WorkingDirectory=/opt/argus-room-display/backend
+EnvironmentFile=/etc/argus-room-display/service.env
+EnvironmentFile=/etc/argus-room-display/feishu.env
+EnvironmentFile=-/etc/argus-room-display/control.env
+ExecStart=/opt/argus-room-display-venv/bin/uvicorn app.room_display_main:app --host 127.0.0.1 --port 8088 --no-access-log
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

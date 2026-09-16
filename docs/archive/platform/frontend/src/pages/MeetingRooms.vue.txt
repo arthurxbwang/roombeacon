@@ -1,0 +1,98 @@
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import { meetingRoomsApi, type MeetingRoom } from '@/api/meetingRooms'
+import { useToast } from '@/composables/useToast'
+import { isCancelled } from '@/utils/http'
+
+const rooms = ref<MeetingRoom[]>([])
+const loading = ref(true)
+const busy = ref(false)
+const error = ref('')
+const credential = ref('')
+const expires = ref('')
+const selected = ref<MeetingRoom | null>(null)
+const confirmRoom = ref<MeetingRoom | null>(null)
+const action = ref<'issue' | 'revoke'>('issue')
+const abort = new AbortController()
+const toast = useToast()
+
+async function load() {
+  loading.value = true; error.value = ''
+  try { rooms.value = (await meetingRoomsApi.list(abort.signal)).data.data ?? [] }
+  catch (err) { if (!isCancelled(err)) { error.value = '会议室加载失败，请检查飞书权限及连接'; console.warn('Room catalog failed', err) } }
+  finally { loading.value = false }
+}
+function confirm(room: MeetingRoom, operation: 'issue' | 'revoke') {
+  confirmRoom.value = room; action.value = operation
+}
+async function execute() {
+  if (!confirmRoom.value || busy.value) return
+  busy.value = true
+  try {
+    if (action.value === 'issue') {
+      const data = (await meetingRoomsApi.issue(confirmRoom.value.room_id, abort.signal)).data.data
+      if (!data) throw new Error('Missing credential')
+      selected.value = confirmRoom.value; credential.value = data.token
+      expires.value = new Date(data.expires_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      toast.success('门牌凭证已生成')
+    } else {
+      await meetingRoomsApi.revoke(confirmRoom.value.room_id, abort.signal)
+      if (selected.value?.room_id === confirmRoom.value.room_id) credential.value = ''
+      toast.success('该会议室的门牌凭证已撤销')
+    }
+    confirmRoom.value = null
+  } catch (err) { if (!isCancelled(err)) { console.warn('Room credential operation failed', err); toast.error('操作失败，请稍后重试') } }
+  finally { busy.value = false }
+}
+async function copy() {
+  try { await navigator.clipboard.writeText(credential.value); toast.success('已复制门牌凭证') }
+  catch (err) { console.warn('Clipboard unavailable', err); toast.error('无法自动复制，请手动选择凭证复制') }
+}
+onMounted(load)
+onUnmounted(() => abort.abort())
+</script>
+
+<template>
+  <div class="p-6 max-w-7xl mx-auto space-y-6">
+    <header class="flex justify-between items-center">
+      <div><h1 class="text-2xl font-bold text-gray-900">会议室门牌</h1><p class="text-sm text-gray-500 mt-1">飞书日程 · iPad 独立展示 · 每 5 分钟同步</p></div>
+      <button class="px-4 py-2 rounded-lg border bg-white disabled:opacity-50" :disabled="loading" @click="load">刷新列表</button>
+    </header>
+    <div class="bg-indigo-50 text-indigo-900 rounded-xl p-4 text-sm leading-7">
+      在 iPad 上打开 <strong>/room-display</strong>，输入下方生成的凭证即可绑定。凭证有效期 30 天，仅可查看指定会议室。
+      重新生成会替换该会议室的旧凭证。预览无需生成凭证。
+    </div>
+    <p v-if="loading" class="text-gray-500">正在读取会议室…</p>
+    <p v-else-if="error" role="alert" class="text-red-600">{{ error }}</p>
+    <p v-else-if="!rooms.length" class="text-gray-500">飞书暂未返回会议室。</p>
+    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <article v-for="room in rooms" :key="room.room_id" class="bg-white rounded-xl border p-5 space-y-4">
+        <h2 class="text-lg font-semibold">{{ room.name }}</h2>
+        <p class="text-gray-500 text-sm">{{ room.capacity }} 人 · {{ room.enabled ? '已启用' : '已停用' }}</p>
+        <div class="flex flex-wrap gap-3 text-sm">
+          <RouterLink :to="{ path: '/room-display', query: { preview: room.room_id } }" class="px-3 py-2 bg-indigo-600 text-white rounded-lg shadow-md">预览门牌</RouterLink>
+          <button class="px-3 py-2 border rounded-lg" @click="confirm(room, 'issue')">生成凭证</button>
+          <button class="px-3 py-2 text-red-600" @click="confirm(room, 'revoke')">撤销凭证</button>
+        </div>
+      </article>
+    </div>
+    <section v-if="credential" class="bg-white rounded-xl border p-5 space-y-3">
+      <h2 class="font-semibold">{{ selected?.name }} · 门牌凭证</h2>
+      <p class="text-sm text-gray-500">到期时间：{{ expires }}。请仅交付给该会议室的设备管理员。</p>
+      <textarea aria-label="门牌凭证" readonly :value="credential" class="w-full border rounded-lg p-3 font-mono text-sm" />
+      <button class="px-4 py-2 rounded-lg bg-indigo-600 text-white" @click="copy">复制凭证</button>
+      <button class="ml-3 px-4 py-2 border rounded-lg" @click="credential = ''">隐藏凭证</button>
+    </section>
+    <div v-if="confirmRoom" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <section role="alertdialog" aria-label="确认门牌凭证操作" aria-modal="true" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
+        <h2 class="font-bold text-lg">{{ action === 'issue' ? '生成 / 替换' : '撤销' }}门牌凭证</h2>
+        <p>{{ confirmRoom.name }} 的旧凭证会立即失效，已有门牌将需要重新绑定。</p>
+        <div class="flex justify-end gap-3">
+          <button :disabled="busy" class="px-4 py-2 border rounded-lg" @click="confirmRoom = null">取消</button>
+          <button :disabled="busy" class="px-4 py-2 bg-indigo-600 text-white rounded-lg" @click="execute">{{ busy ? '处理中…' : '确认' }}</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>

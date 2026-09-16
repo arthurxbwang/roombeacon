@@ -1,0 +1,23 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secret/
+local.properties
+*.keystore
+*.jks
+# Generated files
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+.gradle/
+build/

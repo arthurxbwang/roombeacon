@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'Run as root to manage local display credentials.' >&2
+    exit 1
+fi
+set -a
+. /etc/argus-room-display/service.env
+. /etc/argus-room-display/feishu.env
+set +a
+cd /opt/argus-room-display/backend
+exec /opt/argus-room-display-venv/bin/python -m app.services.room_display_admin "$@"

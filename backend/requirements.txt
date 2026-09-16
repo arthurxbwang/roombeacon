@@ -1,0 +1,15 @@
+# Isolated subset of requirements.txt; no new package versions.
+fastapi==0.135.2
+uvicorn==0.42.0
+pydantic==2.12.5
+pydantic-settings==2.13.1
+redis==7.4.0
+httpx==0.28.1
+structlog==25.5.0
+tenacity==9.1.4
+
+# Offline per-city sunrise/sunset calculations for room themes
+astral==3.2
+
+# Offline QR generation for official room check-in links
+qrcode==8.2
