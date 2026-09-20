@@ -105,10 +105,18 @@ async def tick_room(store, client, room_id, epoch, now=None):
             return
         # Never backfill missed windows, including following data loss.
         epoch_start = await store.get('epoch-start:' + epoch)
-        first_seen = await store.cache.set(PREFIX + 'seen:' + ident, '1', nx=True, ex=7 * 86400)
-        pending = (now < occurrence.start_time and healthy and first_seen
-                   and epoch_start is not None and epoch_start <= opens.timestamp())
         heartbeat = await store.get('heartbeat:' + room_id, {})
+        before_start = now < occurrence.start_time
+        epoch_ready = epoch_start is not None and epoch_start <= opens.timestamp()
+        previously_seen = await store.cache.exists(PREFIX + 'seen:' + ident)
+        matching_page = heartbeat.get('occurrence_id') == ident
+        # New cache data can arrive before the page's next heartbeat. Do not enroll
+        # against the previous booking and then immediately flag an interruption.
+        # Wait only before start; missing history/restarts retain fail-closed behavior.
+        if before_start and epoch_ready and not previously_seen and not (healthy and matching_page):
+            return
+        first_seen = await store.cache.set(PREFIX + 'seen:' + ident, '1', nx=True, ex=7 * 86400)
+        pending = before_start and healthy and matching_page and first_seen and epoch_ready
         record = {'id': ident, 'room_id': room_id, 'occurrence': occurrence.model_dump(mode='json'),
                   'opens_at': opens.isoformat(), 'deadline': deadline.isoformat(), 'epoch': epoch,
                   'policy_revision': policy['revision'], 'state': 'pending' if pending else 'blocked',
