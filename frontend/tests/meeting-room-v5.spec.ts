@@ -335,3 +335,28 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
   await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
   expect(confirmations).toBe(1)
 })
+
+for (const height of [720, 800]) test(`V5 三列标题与内容下沿对齐 ${height}`, async ({ page }, testInfo) => {
+  await display(page)
+  await page.setViewportSize({ width: 1280, height })
+  const usage = fixture()
+  usage.policy.mode = 'auto'; usage.paused = false
+  usage.record.state = 'blocked'; usage.record.reason = 'missed_window'; usage.can_confirm = false
+  usage.record.deadline = '2026-09-20T08:00:00Z'
+  await mockUsage(page, usage)
+  await page.goto('/room-display.html?version=v5')
+  await expect(page.getByText('自动释放已暂停', { exact: true })).toBeVisible()
+  await expect(page.getByText('未在截止前确认，将按规则释放预约')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  const geometry = await page.evaluate(() => {
+    const rect = (s: string) => document.querySelector(s)!.getBoundingClientRect()
+    const headers = ['.status-text', '.usage-heading', '.agenda-header'].map(s => rect(s).bottom)
+    const panels = ['.primary-body', '.usage-body', '.agenda-body'].map(s => rect(s).bottom)
+    return { headers: Math.max(...headers) - Math.min(...headers), panels: Math.max(...panels) - Math.min(...panels),
+      overflow: ['.door', '.usage-body'].map(s => { const e = document.querySelector(s)!; return e.scrollHeight - e.clientHeight }) }
+  })
+  expect(geometry.headers).toBeLessThanOrEqual(1)
+  expect(geometry.panels).toBeLessThanOrEqual(1)
+  expect(geometry.overflow).toEqual([0, 0])
+  await page.screenshot({ path: testInfo.outputPath(`v5-aligned-${height}.png`) })
+})
