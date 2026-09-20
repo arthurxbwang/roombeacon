@@ -54,7 +54,7 @@ async def execute_release(store, client, room_id, record, policy, epoch):
             terminal_ok = await healthy_terminal(store, room_id, now, record, policy)
             actor_ok = record.get('release_kind') != 'end' or record.get('actor') == await store.cache.get(KEY + room_id)
             safe = (await store.cache.get(LEASE) == epoch and terminal_ok and actor_ok
-                    and await policy_for(store, room_id) == policy and await write_allowed(store, policy)
+                    and await policy_for(store, room_id) == policy and await write_allowed(store, policy, room_id)
                     and occurrence.start_time <= now < occurrence.end_time and acknowledged(record, now))
             # Revalidate cache as well: a room can be deleted or disabled during preflight.
             current = await fresh_target(room_id, now)
@@ -127,7 +127,7 @@ async def tick_room(store, client, room_id, epoch, now=None):
         await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'monitoring_interrupted'}, room_id)
         return
     if old['state'] in {'waiting', 'checking', 'end_requested'}:
-        if not old['verified'] or not await write_allowed(store, policy):
+        if not old['verified'] or not await write_allowed(store, policy, room_id):
             await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'release_not_enabled'}, room_id)
             return
         if old['state'] == 'checking':
@@ -150,7 +150,7 @@ async def tick_room(store, client, room_id, epoch, now=None):
     if old['state'] == 'end_requested' or now >= deadline:
         if policy['mode'] == 'observe' and old['state'] == 'pending':
             await store.cas(key, old, {**old, 'state': 'observed', 'reason': 'would_release'}, room_id, policy=policy)
-        elif old['verified'] and await write_allowed(store, policy):
+        elif old['verified'] and await write_allowed(store, policy, room_id):
             waiting = {**old, 'state': 'waiting', 'reason': 'grace_before_release', 'last_seen': now.timestamp(),
                        'release_at': min(occurrence.end_time, now + timedelta(seconds=policy['release_delay_seconds'])).isoformat()}
             await store.cas(key, old, waiting, room_id, policy=policy)

@@ -15,7 +15,14 @@ from .schemas.room_usage import (
     VerifiedOccurrence,
 )
 from .services.room_display_collector import cached_schedule
-from .services.room_usage import command, conflict, save_policy, verify_occurrence, view
+from .services.room_usage import (
+    command,
+    conflict,
+    room_writes_enabled,
+    save_policy,
+    verify_occurrence,
+    view,
+)
 from .services.room_usage_health import heartbeat
 from .services.room_usage_store import UsageStore
 
@@ -55,7 +62,7 @@ def usage_router(require_admin):
     async def inspect(room_id: str = Path(pattern=ROOM_PATTERN), admin=Depends(require_admin), store=Depends(store_dep)):
         return ok({'usage': await view(store, room_id), 'audit': await store.audit(room_id),
                    'global_audit': await store.audit('global'),
-                   'writes_enabled': settings.ROOM_DISPLAY_USAGE_WRITES_ENABLED})
+                   'writes_enabled': room_writes_enabled(room_id)})
 
     @router.put('/api/room-control/usage/{room_id}/policy')
     async def policy(body: UsagePolicy, room_id: str = Path(pattern=ROOM_PATTERN),

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ROOM_DISPLAY_CONTROL_TOKEN_SECONDARY: str = ""
     ROOM_DISPLAY_USAGE_ENABLED: bool = False
     ROOM_DISPLAY_USAGE_WRITES_ENABLED: bool = False
+    ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS: set[str] = Field(default_factory=set)
 
 
 settings = Settings()

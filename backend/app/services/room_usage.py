@@ -47,8 +47,12 @@ async def save_policy(store, room_id, policy):
     return new
 
 
-async def write_allowed(store, policy):
-    return (settings.ROOM_DISPLAY_USAGE_WRITES_ENABLED and policy.get('owner') == 'v5' and policy['mode'] == 'auto'
+def room_writes_enabled(room_id):
+    return settings.ROOM_DISPLAY_USAGE_WRITES_ENABLED and room_id in settings.ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS
+
+
+async def write_allowed(store, policy, room_id):
+    return (room_writes_enabled(room_id) and policy.get('owner') == 'v5' and policy['mode'] == 'auto'
             and policy['native_policy_cleared'] and policy['release_verified']
             and not await store.get('paused', True))
 
@@ -78,7 +82,7 @@ async def view(store, room_id, now=None):
     result['can_confirm'] = valid and inside and record['state'] in {'pending', 'waiting', 'blocked'}
     result['can_end'] = (valid and record['state'] in {'pending', 'confirmed', 'observed'}
                          and target.start_time <= now < target.end_time and record['verified']
-                         and await write_allowed(store, policy))
+                         and await write_allowed(store, policy, room_id))
     return result
 
 

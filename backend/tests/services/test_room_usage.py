@@ -62,6 +62,7 @@ async def setup_usage(redis_socket, monkeypatch):
     monkeypatch.setattr(settings, 'REDIS_URL', 'unix://' + redis_socket)
     monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_ENABLED', True)
     monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_WRITES_ENABLED', False)
+    monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS', {'omm_one'})
     monkeypatch.setattr(settings, 'ROOM_DISPLAY_CONTROL_TOKEN', 'admin-' + 'a' * 40)
     cache = redis.Redis(unix_socket_path=redis_socket, decode_responses=True)
     await cache.flushdb()  # Disposable process owned by this fixture, never a runtime Redis.

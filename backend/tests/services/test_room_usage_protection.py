@@ -142,7 +142,7 @@ async def test_official_owner_and_legacy_policy_cannot_release(setup_usage, monk
     await store.put('policy:omm_one', policy)
     await worker.tick_room(store, client, 'omm_one', epoch, now)
     assert (await service.view(store, 'omm_one', now))['policy']['owner'] == 'official'
-    assert not await service.write_allowed(store, policy)
+    assert not await service.write_allowed(store, policy, 'omm_one')
     client.release.assert_not_called()
     await service.save_policy(store, 'omm_one', UsagePolicy(owner='v5', mode='observe'))
     monkeypatch.setattr('app.room_display_main.checkin_qr', lambda _: 'fixture-qr')
@@ -167,3 +167,50 @@ async def test_heartbeat_endpoint_auth_validation_and_read_isolation(setup_usage
         before = await store.get('heartbeat:omm_one')
         await http.get('/api/meeting-rooms/usage', headers=headers)
         assert await store.get('heartbeat:omm_one') == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('allowed', [set(), {'omm_other'}, {'omm_onex'}, {'*'}])
+async def test_server_allowlist_blocks_even_fully_authorized_auto_policy(setup_usage, monkeypatch, allowed):
+    store, client, key, _, _, now, _, epoch = await make_due(setup_usage, monkeypatch)
+    monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS', allowed)
+    await worker.tick_room(store, client, 'omm_one', epoch, now)
+    assert (await store.get(key))['state'] == 'blocked'
+    client.release.assert_not_called()
+    assert not (await service.view(store, 'omm_one', now))['can_end']
+
+
+@pytest.mark.asyncio
+async def test_allowlist_revocation_during_preflight_blocks_write(setup_usage, monkeypatch):
+    store, client, key, _, _, now, _, epoch = await make_due(setup_usage, monkeypatch)
+    async def revoke(*args):
+        monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS', set())
+        return client.freebusy.return_value
+    client.freebusy.side_effect = revoke
+    await worker.tick_room(store, client, 'omm_one', epoch, now)
+    assert (await store.get(key))['state'] == 'blocked'
+    client.release.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_control_reports_write_availability_per_room(setup_usage, monkeypatch):
+    await make_due(setup_usage, monkeypatch)
+    headers = {'Authorization': 'Bearer ' + settings.ROOM_DISPLAY_CONTROL_TOKEN}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as http:
+        for room, expected in [('omm_one', True), ('omm_other', False)]:
+            response = await http.get('/api/room-control/usage/' + room, headers=headers)
+            assert response.status_code == 200
+            assert response.json()['data']['writes_enabled'] is expected
+
+
+@pytest.mark.asyncio
+async def test_allowlist_also_blocks_manual_early_end(setup_usage, monkeypatch):
+    store, client, key, old, _, now, _, _ = await make_due(setup_usage, monkeypatch)
+    await store.put(key, {**old, 'state': 'confirmed'})
+    monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS', {'omm_other'})
+    request = await request_for(store, now)
+    assert not (await service.view(store, 'omm_one', now))['can_end']
+    with pytest.raises(AppError):
+        await service.command(store, 'omm_one', setup_usage[3], request, 'end', now)
+    assert (await store.get(key))['state'] == 'confirmed'
+    client.release.assert_not_called()

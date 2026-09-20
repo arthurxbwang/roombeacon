@@ -38,3 +38,7 @@
 - `IT灯塔-Test` 当前 owner=v5、mode=observe；`ROOM_DISPLAY_USAGE_ENABLED=true`、`ROOM_DISPLAY_USAGE_WRITES_ENABLED=false`，全局暂停有效。未签发或轮换操作凭证，没有真实飞书释放写入。
 
 用户访问原 Control 地址，搜索测试房间，点击「预览门牌」，在「门牌版本」选择 V4 或 V5；若仍看到旧菜单，强制刷新页面。V5 规则可查看／调整观察设置；Control 预览始终只读，实际平板确认还需独立操作凭证绑定，观察模式不自动释放。
+
+## 单房间释放追加部署
+
+用户随后明确授权仅为 IT灯塔-Test 开放释放。追加服务器端 `ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS` 白名单，内容仅为 `omm_d42ad8a9e50c5ddf9d60fe3d3bc6473b`，再开启写入并解除全局暂停。其余房间即使误改自动规则也不能获得写入资格；实际启用结果在生效核验后记录。保留用户已保存的测试房间规则，不重置或代替每场实例登记。
