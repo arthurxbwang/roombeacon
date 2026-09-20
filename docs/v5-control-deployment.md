@@ -23,4 +23,18 @@
 
 失败时恢复备份的 Nginx 配置、删除本次创建的服务 drop-in 并 reload/restart，恢复原目录；不清空 Redis、不轮换凭证。仅恢复本次专用房间策略变更，不改动其他房间。自动释放保持关闭，已发出的请求仍不能通过代码回滚撤回。
 
-发布结果、实际 SHA 和备份位置在现场验证完成后追加；真实日程创建及释放由用户后续测试，本次不宣称通过。
+真实日程创建及释放由用户后续测试，本次不宣称通过。
+
+## 已部署结果
+
+- 运行代码 SHA：`4ba9d3836ba3de86db608b800661989037775cf4`；来自 GitHub `codex/v5-control-release`，未推送 main。
+- 服务工作目录：`/opt/roombeacon-releases/4ba9d3836ba3de86db608b800661989037775cf4/backend`；Nginx 静态根指向同一发布目录的 `frontend/dist`。
+- 服务覆盖配置：`/etc/systemd/system/room-display.service.d/50-roombeacon-v5.conf`；V5 标志文件：`/etc/argus-room-display/v5-preview.env`。原有密钥配置内容未修改。
+- 回退备份：`/var/backups/roombeacon-control/20260920-4ba9d38/`，含原 Nginx 配置和仅管理员可读的目标策略基线。
+- 发布前：冻结发布工作区 Ruff 0.16.7、后端 129 项、前端构建及 Chromium 63 项通过；服务器固定依赖版本核对、ASGI 导入、npm ci/build 通过。
+- 发布后：实际 `/control` 返回 HTTP 200 和对应 SHA；脚本与服务器构建文件哈希一致，包含 V1–V5 全部菜单项。带认证的主控目录返回 343 间房，V5 规则及预览返回成功，未授权 V5 读写请求均为 401。
+- 设备凭证摘要集合与部署前一致；原飞书应用、主控凭证、Redis 配置和二维码私有配置一致。北京 201、205 仍为官方方案，二维码状态与原配置一致。
+- 新服务首轮采集于北京时间 18:37:49 开始、18:38:48 完成：343 间房全部刷新，18 个批次完成，失败批次为 0。
+- `IT灯塔-Test` 当前 owner=v5、mode=observe；`ROOM_DISPLAY_USAGE_ENABLED=true`、`ROOM_DISPLAY_USAGE_WRITES_ENABLED=false`，全局暂停有效。未签发或轮换操作凭证，没有真实飞书释放写入。
+
+用户访问原 Control 地址，搜索测试房间，点击「预览门牌」，在「门牌版本」选择 V4 或 V5；若仍看到旧菜单，强制刷新页面。V5 规则可查看／调整观察设置；Control 预览始终只读，实际平板确认还需独立操作凭证绑定，观察模式不自动释放。

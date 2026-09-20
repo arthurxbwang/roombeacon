@@ -50,3 +50,5 @@ npm run dev
 ## V4 / V5 测试版本
 
 Control 的门牌版本选择支持 V1–V5。V4 保留官方签到；V5 使用独立确认与保护协议，飞书写入默认关闭。启用和隔离验证见 [V5 说明](docs/v5-usage-verification.md)，部署回退见 [Control 更新](docs/v5-control-deployment.md)。
+
+2026-09-20：现有 Control 已部署代码 `4ba9d38`，IT灯塔-Test 为观察模式，飞书写入保持关闭；运行验收与备份信息见上述部署记录。
