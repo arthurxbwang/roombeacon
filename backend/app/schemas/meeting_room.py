@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,6 +41,7 @@ class RoomSchedule(BaseModel):
     server_time: datetime | None = None
     daylight: DaylightPlan | None = None
     checkin_qr: str | None = None
+    usage_owner: Literal['official', 'v5'] = 'official'
 
 
 class DeviceRequest(BaseModel):

@@ -27,5 +27,10 @@ defineProps<{ qr: string; roomName: string; dark: boolean }>()
 strong{display:block;font-size:clamp(18px,2cqw,26px);font-weight:600;color:var(--text)}
 p:not(.checkin-eyebrow){font-size:13px;color:var(--muted);margin-top:6px}small{display:block;font-size:10px;color:var(--subtle);line-height:1.5;margin-top:10px}
 .dark-brand .brand-art{mix-blend-mode:screen}.dark-brand .brand-art>img{filter:invert(1) hue-rotate(180deg) saturate(.4)}
+/* Let the decoration rise above the content panel without taking space from the QR. */
+@media(min-width:701px) and (min-height:701px) and (orientation:landscape){
+  .checkin-card{overflow:visible}
+  .brand-art{position:absolute;bottom:100%;left:0;z-index:3;pointer-events:none}
+}
 @media(prefers-reduced-motion:reduce){.brand-art>img{visibility:hidden}.brand-art:after{content:'ThunderSoft';position:absolute;inset:0;display:grid;place-items:center;font-size:22px;font-weight:700;font-style:italic;color:#8f4b52}}
 </style>

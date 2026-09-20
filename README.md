@@ -2,7 +2,11 @@
 
 面向飞书会议室的独立门牌系统。服务器集中采集并缓存日程，终端显示会议状态、时间、组织者、后续会议与官方签到二维码。
 
-**当前：Web V1/V2/V3 已迁入；Android APK 与 ESP32-P4 仅规划。** 软件仓库版本暂为 0.1.0，界面 V1/V2/V3 是另一套选择，不表示发布版本。
+**当前：Web V4 汇总现有门牌功能，V1/V2/V3 保留兼容；Android 0.2.3 按型号匹配两套样机的侧灯接线，ESP32-P4 仍仅规划。** 软件仓库版本暂为 0.1.0，界面版本与 APK 版本分别管理。
+
+V5 确认使用版本已实现，通过 `/?version=v5` 显式选择；配置默认关闭。现有 Control 已按用户要求部署 V4/V5，专用测试房间开启观察模式，飞书写入仍关闭；默认 V4 保持兼容。部署与回退见 [Control 更新](docs/v5-control-deployment.md)，验证范围见 [V5 说明](docs/v5-usage-verification.md)。
+
+V5 已增加平板主动保活、操作异常保护、待释放补确认和发送前核验；服务器逐房间选择官方／V5 方案，切页面不切换后台规则。专用虚拟房间已完成真实读取检查，预约释放尚待验收，见 [测试记录](docs/v5-test-room-verification.md)。
 
 ## 快速开始
 
@@ -27,7 +31,7 @@ npm ci
 npm run dev
 ```
 
-打开 Vite 给出的本地地址 `/control`，输入已配置主控凭证。设备端 `/?version=v3`；未指定时仍默认 V2。首次采集完成前会提示等待。
+打开 Vite 给出的本地地址 `/control`，输入已配置主控凭证。设备端 `/?version=v4`；未指定时采用已保存的版本选择，没有保存选择则默认 V4。首次采集完成前会提示等待。
 
 ## 文档
 
@@ -37,6 +41,11 @@ npm run dev
 - [开发与检查](handbook/development.md)
 - [运行环境与部署迁移边界](handbook/operations.md)
 - [Android / ESP 对照规划](plan/meeting-room-terminal-comparison.md)
+- [Android 外壳构建与样机测试](android/README.md)
+- [Android 样机验证记录](docs/android-sample-verification.md)
+- [Android 型号与灯控接线](docs/android-device-profiles.md)
+- [北京-203 / 1080P 样机记录](docs/android-203-1080p-verification.md)
+- [2026-09-20 源码备份说明](docs/source-backup-2026-09-20.md)
 - [源代码出处清单](docs/migration-manifest.json)
 - [迁移验证](docs/migration-verification.md)
 

@@ -20,4 +20,5 @@ dist/
 frontend/test-results/
 frontend/playwright-report/
 .gradle/
+.local-tools/
 build/

@@ -1,0 +1,4 @@
+<resources>
+    <string name="room_light">同步侧边灯（已验证的 RK3568 样机接线）</string>
+    <string name="owner_required">尚未配置 Device Owner；普通全屏不等于系统锁定。</string>
+</resources>

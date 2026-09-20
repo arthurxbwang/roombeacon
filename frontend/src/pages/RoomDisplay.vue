@@ -3,14 +3,18 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import RoomCheckinCard from '@/components/RoomCheckinCard.vue'
+import RoomUsageCard from '@/components/RoomUsageCard.vue'
 import { meetingRoomsApi, type RoomSchedule, type RoomEvent } from '@/api/meetingRooms'
+import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
 const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string }>()
 const route = useRoute()
-const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v2')
+const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
-const isV3 = computed(() => version.value === 'v3')
+const isV3 = computed(() => ['v3', 'v4', 'v5'].includes(version.value))
+const isV4 = computed(() => ['v4', 'v5'].includes(version.value))
+const isV5 = computed(() => version.value === 'v5')
 const storageKey = 'argus_room_display'
 const token = ref(localStorage.getItem(storageKey) || '')
 const input = ref('')
@@ -31,6 +35,7 @@ let monotonicBase = performance.now()
 const tick = () => { now.value = serverBase + performance.now() - monotonicBase }
 let poll: ReturnType<typeof setInterval> | undefined
 let clock: ReturnType<typeof setInterval> | undefined
+let stopReleaseWatch: (() => void) | undefined
 const bound = computed(() => !!token.value || !!props.controlRoom)
 const fresh = computed(() => !failed.value && snapshot.value && now.value < Date.parse(snapshot.value.valid_until))
 const allEvents = computed(() => snapshot.value?.events ?? [])
@@ -53,6 +58,7 @@ const next = computed(() => isV3.value ? futureEvents.value[0] : events.value.fi
 const disabled = computed(() => snapshot.value?.room.enabled === false)
 const state = computed(() => !fresh.value ? '状态暂不可确认' : disabled.value ? '会议室已停用' : current.value ? (isV3.value ? '使用中' : '正在使用') : next.value && Date.parse(next.value.start_time) - now.value <= 15 * 60000 ? '即将开始' : '空闲可用')
 const accent = computed(() => !fresh.value || disabled.value ? '#94a3b8' : current.value ? '#EF4444' : state.value === '即将开始' ? '#F59E0B' : isLight.value ? '#059669' : '#34D399')
+const terminalState = computed(() => props.controlRoom || !bound.value || !fresh.value || disabled.value ? 'unknown' : current.value ? 'busy' : state.value === '即将开始' ? 'soon' : 'free')
 const active = computed(() => current.value ?? next.value)
 const minutes = computed(() => active.value ? Math.max(0, Math.ceil((Date.parse(current.value ? active.value.end_time : active.value.start_time) - now.value) / 60000)) : 0)
 const remainingEvents = computed(() => events.value.filter(e => Date.parse(e.end_time) > now.value))
@@ -99,17 +105,19 @@ function bind() {
 }
 function visibility() { if (!document.hidden) { tick(); refresh() } }
 onMounted(() => {
+  if (!props.controlRoom) stopReleaseWatch = watchPageRelease(() => bound.value && !pending.value)
   refresh(); poll = setInterval(refresh, 15000); clock = setInterval(tick, 1000)
   document.addEventListener('visibilitychange', visibility)
 })
 onUnmounted(() => {
+  stopReleaseWatch?.()
   abort.abort(); clearInterval(poll); clearInterval(clock)
   document.removeEventListener('visibilitychange', visibility)
 })
 </script>
 
 <template>
-  <main class="door" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3 }]" :style="{ '--accent': accent }">
+  <main class="door" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5 }]" :style="{ '--accent': accent }">
     <form v-if="!bound" class="binding" @submit.prevent="bind">
       <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>绑定会议门牌</h1>
       <p>请输入管理员为这间会议室生成的设备凭证。</p>
@@ -125,7 +133,7 @@ onUnmounted(() => {
       </header>
       <p v-if="snapshot && !fresh" class="history-warning" role="status">历史日程 · 最后同步 {{ lastSynced }} · 正在重试，当前状态待确认</p>
       <div class="content">
-        <section class="current" :class="{ 'is-free': fresh && !disabled && !current, 'is-soon': state === '即将开始', 'with-checkin': isV3 && !!snapshot?.checkin_qr && !disabled }">
+        <section class="current" :class="{ 'is-free': fresh && !disabled && !current, 'is-soon': state === '即将开始', 'with-checkin': (isV5 || (isV3 && !!snapshot?.checkin_qr)) && !disabled }">
           <div class="primary-info">
             <span class="status" :class="{ 'large-status': isV3 && ['使用中', '即将开始', '空闲可用'].includes(state) }" role="status"><i aria-hidden="true" /><span class="status-text">{{ state }}</span></span>
             <template v-if="snapshot && !disabled">
@@ -148,7 +156,9 @@ onUnmounted(() => {
             </template>
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? '暂不可使用' : '等待日程同步' }}</h2><p class="organizer">{{ message || '正在确认最新预约状态' }}</p></template>
           </div>
-          <RoomCheckinCard v-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
+          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" @changed="refresh" />
+          <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">本房间使用 V5 确认，请切换到 V5 页面</p>
+          <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
         <section class="agenda">
           <header class="agenda-header"><h3>{{ isV3 ? '后续会议' : isV2 ? '本场与下一场' : '今日安排' }} <span v-if="!fresh">· 上次同步数据</span></h3><span v-if="!isV2 && fresh && remainingEvents.length" class="agenda-count">{{ remainingEvents.length }} 场待完成</span></header>
@@ -202,4 +212,28 @@ onUnmounted(() => {
 /* Keep the existing status bottom edge and the following content in place. */
 .v3 .current{border-left-color:transparent}.v3 .large-status{height:calc(clamp(28px,3.4cqw,44px) * 1.2);flex-shrink:0;align-items:flex-end;overflow:visible}.v3 .large-status .status-text{font-size:clamp(42px,6cqw,90px);line-height:1.2;font-weight:600;white-space:nowrap}.v3 .large-status i{margin-bottom:calc(clamp(42px,6cqw,90px) * .6 - 6px)}.v3 .countdown strong,.v3 .available-until{font-size:clamp(42px,6cqw,90px)}
 @media(max-width:600px){.v3 .primary-info{padding-top:24px}}
+/* Landscape terminals fit the viewport; inner panels retain their own scrolling. */
+@media(min-width:701px) and (min-height:701px) and (orientation:landscape){
+  .v3 .content{min-height:0}
+  .v3:not(.v5) .current.with-checkin{overflow:visible}
+}
+</style>
+
+<style scoped>
+/* V4 retains the V3 feature set; physical side lights replace the perimeter frame. */
+.door.v4:after{content:none;border:0}
+@media(min-width:701px) and (orientation:landscape){
+  .v4 .agenda-header{margin-bottom:10px}
+  .v4 .agenda-body{gap:12px}
+  .v4 .agenda article{padding:12px 20px;border-radius:14px}
+  .v4 .event-top p{font-size:28px;line-height:1.2}
+  .v4 .event-day{font-size:13px;line-height:16px;margin-bottom:4px}
+  .v4 .agenda h4{font-size:26px;line-height:1.25;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .v4 .event-organizer{font-size:18px;line-height:1.3;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+/* 1080p at Android density 240 has a 1280×720 CSS viewport. */
+@media(min-width:701px) and (min-height:701px) and (max-height:760px) and (orientation:landscape){
+  .v4 .agenda-body{gap:8px}
+  .v4 .agenda article{padding-top:8px;padding-bottom:8px}
+}
 </style>

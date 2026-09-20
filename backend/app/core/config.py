@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     ROOM_DISPLAY_SYNC_SECONDS: int = Field(default=300, ge=120, le=3600)
     ROOM_DISPLAY_CONTROL_TOKEN: str = ""
     ROOM_DISPLAY_CONTROL_TOKEN_SECONDARY: str = ""
+    ROOM_DISPLAY_USAGE_ENABLED: bool = False
+    ROOM_DISPLAY_USAGE_WRITES_ENABLED: bool = False
+    ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS: set[str] = Field(default_factory=set)
 
 
 settings = Settings()

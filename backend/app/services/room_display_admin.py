@@ -11,6 +11,7 @@ import structlog
 
 from ..core.exceptions import NotFoundError
 from ..core.room_devices import issue_device, revoke_device
+from ..core.room_usage_auth import issue_usage, revoke_usage
 from .meeting_rooms import list_rooms
 from .room_display_directory import directory
 
@@ -68,6 +69,11 @@ async def run(args: argparse.Namespace) -> None:
         raise NotFoundError("请选择有效会议室 ID")
     if args.action == "issue":
         print(await issue_device(args.room_id))
+    elif args.action == 'issue-usage':
+        print(await issue_usage(args.room_id))
+    elif args.action == 'revoke-usage':
+        await revoke_usage(args.room_id)
+        print('usage revoked')
     else:
         await revoke_device(args.room_id)
         print("revoked")
@@ -92,7 +98,7 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--page-size", type=int, choices=range(1, 101), metavar="1-100", default=20)
             command.add_argument("--all", action="store_true", help="显示全部匹配结果")
             command.add_argument("--json", action="store_true", help="输出完整名称、位置和 ID")
-    for action in ["issue", "revoke"]:
+    for action in ["issue", "revoke", 'issue-usage', 'revoke-usage']:
         commands.add_parser(action).add_argument("room_id")
     return result
 

@@ -9,22 +9,30 @@ from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from .core.config import settings
 from .core.exceptions import AppError, UnauthorizedError, app_error_handler
 from .core.response import R, ok
-from .core.room_devices import authenticate_device
+from .core.room_devices import authenticate_device, room_cache
+from .room_usage_routes import usage_router
 from .schemas.meeting_room import RoomSchedule
 from .services.room_checkin import checkin_qr
 from .services.room_display_collector import cached_directory as directory
 from .services.room_display_collector import cached_schedule as schedule_for
 from .services.room_display_collector import collector_loop
+from .services.room_usage import policy_for
+from .services.room_usage_store import UsageStore
+from .services.room_usage_worker import usage_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     worker = asyncio.create_task(collector_loop())
+    usage_worker = asyncio.create_task(usage_loop()) if settings.ROOM_DISPLAY_USAGE_ENABLED else None
     try:
         yield
     finally:
         worker.cancel()
         await asyncio.gather(worker, return_exceptions=True)
+        if usage_worker:
+            usage_worker.cancel()
+            await asyncio.gather(usage_worker, return_exceptions=True)
 
 
 app = FastAPI(lifespan=lifespan, title="Meeting room display", docs_url=None, redoc_url=None, openapi_url=None)
@@ -36,11 +44,20 @@ async def get_current_user(request: Request, authorization: str = Header(default
     return await authenticate_device(token, request.url.path, request.method)
 
 
+async def decorate(snapshot):
+    owner = 'official'
+    if settings.ROOM_DISPLAY_USAGE_ENABLED:
+        async with room_cache() as cache:
+            owner = (await policy_for(UsageStore(cache), snapshot.room.room_id))['owner']
+    return snapshot.model_copy(update={'server_time': datetime.now(UTC), 'usage_owner': owner,
+                                       'checkin_qr': checkin_qr(snapshot.room.room_id) if owner == 'official' else None})
+
+
 @app.get("/api/meeting-rooms/display", response_model=R[RoomSchedule])
 async def display(response: Response, user: dict = Depends(get_current_user)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(user["room_id"])
-    return ok(snapshot.model_copy(update={"server_time": datetime.now(UTC), "checkin_qr": checkin_qr(snapshot.room.room_id)}))
+    return ok(await decorate(snapshot))
 
 
 async def require_admin(authorization: str = Header(default="")) -> dict:
@@ -67,4 +84,7 @@ async def control_preview(response: Response,
                           user: dict = Depends(require_admin)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(room_id)
-    return ok(snapshot.model_copy(update={"server_time": datetime.now(UTC), "checkin_qr": checkin_qr(snapshot.room.room_id)}))
+    return ok(await decorate(snapshot))
+
+
+app.include_router(usage_router(require_admin))

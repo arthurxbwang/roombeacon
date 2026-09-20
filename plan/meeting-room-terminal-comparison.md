@@ -1,5 +1,7 @@
 # 会议室 Android 与 ESP32-P4 终端对照研发计划
 
+> 2026-09-20 状态更新：用户已启动 Android 外壳实施，首轮使用到位的 RK3568 / Android 11 / 2GB / 1280×800 / WebView 106 门牌样机。三星仍可作为后续对照设备。实施见 [Android README](../android/README.md)；本文其他“仅规划”描述保留历史背景，ESP 未启动。
+
 > 版本: 0.1 | 作者: RoomBeacon Team | 更新日期: 2026-09-16
 
 ## 1. 目标与当前状态
