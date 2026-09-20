@@ -9,6 +9,7 @@ export interface RoomEvent {
 export interface RoomSchedule {
   room: MeetingRoom; events: RoomEvent[]; synced_at: string; valid_until: string
   checkin_qr?: string | null
+  usage_owner?: 'official' | 'v5'
   titles_available: boolean
   server_time: string
   daylight?: { city: string | null; timezone: string; windows: { start: string; end: string }[]; valid_until: string }

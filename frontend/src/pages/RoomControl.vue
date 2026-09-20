@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RoomUsageControl from '@/components/RoomUsageControl.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import axios from 'axios'
 import RoomDisplay from './RoomDisplay.vue'
@@ -6,8 +7,9 @@ interface Room { room_id: string; name: string; region: string; location: string
 const previewTheme = ref('dark')
 const themeMode = ref('auto')
 const savedVersion = localStorage.getItem('argus_room_version')
-const displayVersion = ref(savedVersion && ['v1', 'v2', 'v3'].includes(savedVersion) ? savedVersion : 'v2')
-watch(displayVersion, value => localStorage.setItem('argus_room_version', value))
+const displayVersion = ref(savedVersion && ['v1', 'v2', 'v3', 'v4'].includes(savedVersion) ? savedVersion : 'v4')
+watch(displayVersion, value => { if (value !== 'v5') localStorage.setItem('argus_room_version', value) })
+const usageRoom = ref('')
 const fullscreen = ref(false)
 const fullscreenError = ref('')
 function syncFullscreen() { fullscreen.value = !!document.fullscreenElement }
@@ -52,7 +54,7 @@ onUnmounted(() => { abort.abort(); document.removeEventListener('fullscreenchang
 </script>
 <template>
   <div v-if="selected && ready" class="preview-shell" :class="{ 'preview-v2': displayVersion !== 'v1' }">
-    <nav class="preview-tools" :class="{ light: previewTheme === 'light' }" aria-label="预览切换"><button @click="selected = ''">← 返回主控</button><span>测试预览 · {{ index+1 }} / {{ filtered.length }}</span><select v-model="displayVersion" aria-label="门牌版本" class="version-switch"><option value="v1">V1 经典版</option><option value="v2">V2 自适应</option><option value="v3">V3 扫码签到</option></select><button @click="toggleFullscreen">{{ fullscreen ? '退出全屏' : '全屏' }}</button><div class="theme-switch" role="group" aria-label="日出日落测试"><button v-for="mode in [{id: 'auto', label: '自动'}, {id: 'light', label: '☀ 日间'}, {id: 'dark', label: '☾ 夜间'}]" :key="mode.id" :aria-pressed="themeMode === mode.id" @click="themeMode = mode.id">{{ mode.label }}</button></div><button :disabled="index <= 0" @click="move(-1)">上一间</button><button :disabled="index >= filtered.length-1" @click="move(1)">下一间</button><p v-if="fullscreenError" class="fullscreen-error" role="status">{{ fullscreenError }}</p></nav>
+    <nav class="preview-tools" :class="{ light: previewTheme === 'light' }" aria-label="预览切换"><button @click="selected = ''">← 返回主控</button><span>测试预览 · {{ index+1 }} / {{ filtered.length }}</span><select v-model="displayVersion" aria-label="门牌版本" class="version-switch"><option value="v1">V1 经典版</option><option value="v2">V2 自适应</option><option value="v3">V3 扫码签到</option><option value="v4">V4 灯控门牌</option><option value="v5">V5 确认使用</option></select><button @click="toggleFullscreen">{{ fullscreen ? '退出全屏' : '全屏' }}</button><div class="theme-switch" role="group" aria-label="日出日落测试"><button v-for="mode in [{id: 'auto', label: '自动'}, {id: 'light', label: '☀ 日间'}, {id: 'dark', label: '☾ 夜间'}]" :key="mode.id" :aria-pressed="themeMode === mode.id" @click="themeMode = mode.id">{{ mode.label }}</button></div><button :disabled="index <= 0" @click="move(-1)">上一间</button><button :disabled="index >= filtered.length-1" @click="move(1)">下一间</button><p v-if="fullscreenError" class="fullscreen-error" role="status">{{ fullscreenError }}</p></nav>
     <RoomDisplay :key="selected" :control-room="selected" :control-token="credential" :control-theme="themeMode" :display-version="displayVersion" @theme-change="previewTheme = $event" />
   </div>
   <main v-else class="control">
@@ -60,7 +62,8 @@ onUnmounted(() => { abort.abort(); document.removeEventListener('fullscreenchang
     <form v-if="!ready" class="login" @submit.prevent="login"><label for="control-token">测试主控凭证</label><input id="control-token" v-model="input" type="password" autocomplete="off" placeholder="粘贴主控凭证" required /><button :disabled="loading">{{ loading ? '正在读取目录…' : '进入主控' }}</button><p role="alert">{{ error }}</p></form>
     <template v-else>
       <section class="filters"><label>地区 / 园区<select v-model="region"><option value="">全部地区</option><option v-for="item in regions" :key="item">{{ item }}</option></select></label><label>会议室 / 楼栋<input v-model="search" placeholder="输入名称或位置关键词" /></label><span>{{ filtered.length }} 间会议室</span></section>
-      <div class="table-wrap"><table><thead><tr><th>地区 / 园区</th><th>会议室</th><th>楼层</th><th>容量</th><th>操作</th></tr></thead><tbody><tr v-for="room in filtered" :key="room.room_id"><td>{{ room.region }}</td><td><strong>{{ room.name }}</strong><small>{{ room.location }}</small></td><td>{{ room.floor }}</td><td>{{ room.capacity }} 人</td><td><button @click="selected = room.room_id">预览门牌</button></td></tr></tbody></table><p v-if="!filtered.length" class="empty">没有匹配的会议室，请调整筛选条件。</p></div>
+      <div class="table-wrap"><table><thead><tr><th>地区 / 园区</th><th>会议室</th><th>楼层</th><th>容量</th><th>操作</th></tr></thead><tbody><tr v-for="room in filtered" :key="room.room_id"><td>{{ room.region }}</td><td><strong>{{ room.name }}</strong><small>{{ room.location }}</small></td><td>{{ room.floor }}</td><td>{{ room.capacity }} 人</td><td><button @click="selected = room.room_id">预览门牌</button> <button @click="usageRoom = room.room_id">V5 规则</button></td></tr></tbody></table><p v-if="!filtered.length" class="empty">没有匹配的会议室，请调整筛选条件。</p></div>
+      <RoomUsageControl v-if="usageRoom" :key="usageRoom" :room-id="usageRoom" :room-name="rooms.find(room => room.room_id === usageRoom)?.name || usageRoom" :token="credential" />
     </template>
   </main>
 </template>

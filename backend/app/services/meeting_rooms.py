@@ -12,6 +12,7 @@ from ..connectors.feishu.rooms import FeishuRoomsClient
 from ..core.exceptions import ExternalAPIError, NotFoundError
 from ..core.room_devices import room_cache
 from ..schemas.meeting_room import Room, RoomEvent, RoomSchedule
+from .room_organizers import complete_organizers
 
 logger = structlog.get_logger(__name__)
 ZONE = ZoneInfo("Asia/Shanghai")
@@ -85,6 +86,10 @@ async def refresh_batch(cache, client, rooms: list[Room], now: datetime, *,
             # Do not expose a title for an occurrence with hidden organizer data.
             if event.organizer:
                 event.summary = titles.get((event.uid, event.original_time)) or None
+    await complete_organizers(cache, client, busy, parsed)
+    for room in rooms:
+        if room.room_id not in parsed:
+            continue
         schedule = RoomSchedule(
             room=room, events=parsed[room.room_id], synced_at=now,
             valid_until=min(now + timedelta(seconds=fresh_seconds), start + timedelta(days=1)),

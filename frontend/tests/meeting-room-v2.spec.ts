@@ -7,7 +7,7 @@ const data = { room: { room_id: 'omm_one', name: '207', capacity: 9, enabled: tr
   { ...event, uid: 'later', summary: '更晚的会议', start_time: '2026-09-16T18:00:00+08:00', end_time: '2026-09-16T19:00:00+08:00' },
 ] }
 async function control(page: Page, schedule = data) {
-  await page.addInitScript(() => sessionStorage.setItem('argus_room_control', 'fixture'))
+  await page.addInitScript(() => { sessionStorage.setItem('argus_room_control', 'fixture'); if (!localStorage.getItem('argus_room_version')) localStorage.setItem('argus_room_version', 'v2') })
   await page.route('**/control', async route => route.fulfill({ response: await route.fetch({ url: new URL('/room-display.html', route.request().url()).href }) }))
   await page.route('**/api/room-control/rooms', route => route.fulfill({ json: { data: [{ ...data.room, region: '北京', location: '北京', floor: '2F' }] } }))
   await page.route('**/api/room-control/preview?*', route => route.fulfill({ json: { data: schedule } }))
@@ -115,6 +115,46 @@ test('V3 签到卡片随版本切换，取消预约占位，未配置时隐藏',
   await page.getByRole('button', { name: '预览门牌' }).click()
   await expect(page.locator('.current')).toContainText('产品设计评审')
   await expect(page.locator('.checkin-card')).toHaveCount(0)
+})
+
+test('V3 1280×800 签到布局上滑不滚动整页或移走状态边框', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.addInitScript(() => localStorage.setItem('argus_room_display', 'fixture'))
+  const checkin_qr = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"/>').toString('base64')
+  await page.route('**/api/meeting-rooms/display', route => route.fulfill({ json: { data: { ...data, checkin_qr } } }))
+  await page.goto('/room-display.html?version=v3')
+  await expect(page.locator('.checkin-qr')).toBeVisible()
+  const door = page.locator('.door')
+  expect(await door.evaluate(el => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1)
+  await page.mouse.move(640, 780)
+  await page.mouse.wheel(0, 400)
+  await expect.poll(() => door.evaluate(el => el.scrollTop)).toBe(0)
+  await expect(page.locator('.door-header')).toBeInViewport({ ratio: 1 })
+  await expect(page.locator('footer')).toBeInViewport({ ratio: 1 })
+})
+
+test('V3 轮询自动新增、更换和移除签到码，无需刷新页面', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('argus_room_display', 'fixture'))
+  await page.clock.install()
+  const qr = (color: string) => 'data:image/svg+xml;base64,' + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="${color}"/></svg>`).toString('base64')
+  let currentQr: string | null = null
+  await page.route('**/api/meeting-rooms/display', route => route.fulfill({ json: { data: { ...data, checkin_qr: currentQr } } }))
+  await page.goto('/room-display.html?version=v3')
+  await expect(page.locator('.room-identity h1')).toHaveText('207')
+  await expect(page.locator('.checkin-card')).toHaveCount(0)
+  let navigations = 0
+  page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations++ })
+  for (const color of ['black', 'blue']) {
+    currentQr = qr(color)
+    await page.clock.fastForward(16000)
+    await expect(page.locator('.checkin-qr')).toHaveAttribute('src', currentQr)
+    await expect(page.locator('.checkin-card')).toBeVisible()
+  }
+  currentQr = null
+  await page.clock.fastForward(16000)
+  await expect(page.locator('.checkin-card')).toHaveCount(0)
+  expect(navigations).toBe(0)
+  expect(await page.evaluate(() => localStorage.getItem('argus_room_display'))).toBe('fixture')
 })
 
 test('V3 后续会议跨日期取最近两场，不包含本场，状态外框跟随占用', async ({ page }) => {

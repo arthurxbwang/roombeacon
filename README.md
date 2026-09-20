@@ -46,3 +46,7 @@ npm run dev
 
 已有服务没有随仓库迁移而切换。历史目录、服务名和浏览器存储键保留兼容；详见交接文档。
 公司提供的 ThunderSoft 品牌素材仅用于本项目，未新增开源许可证或第三方再授权承诺。
+
+## V4 / V5 测试版本
+
+Control 的门牌版本选择支持 V1–V5。V4 保留官方签到；V5 使用独立确认与保护协议，飞书写入默认关闭。启用和隔离验证见 [V5 说明](docs/v5-usage-verification.md)，部署回退见 [Control 更新](docs/v5-control-deployment.md)。

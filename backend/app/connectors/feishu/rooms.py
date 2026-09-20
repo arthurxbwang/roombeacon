@@ -1,4 +1,5 @@
 """Read-only meeting room queries using the existing Feishu credentials."""
+import re
 from datetime import datetime
 
 from ...core.exceptions import ExternalAPIError
@@ -54,3 +55,16 @@ class FeishuRoomsClient(FeishuClient):
         return (await self._api("POST", "/meeting_room/summary/batch_get", json={
             "EventUids": events,
         }))["data"]
+
+    async def organizer_name(self, open_id: str) -> str | None:
+        if not isinstance(open_id, str) or not re.fullmatch(r"ou_[A-Za-z0-9_-]{1,128}", open_id):
+            raise ValueError("Invalid organizer open_id")
+        data = await self._api("GET", f"/contact/v3/users/{open_id}",
+                               params={"user_id_type": "open_id"})
+        user = data["data"]["user"]
+        if not isinstance(user, dict):
+            raise TypeError("Invalid organizer response")
+        name = user.get("name")
+        if name is not None and not isinstance(name, str):
+            raise ValueError("Invalid organizer name")
+        return name.strip() or None if name else None
