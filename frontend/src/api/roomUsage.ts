@@ -14,6 +14,7 @@ export interface UsageState {
   room_id: string; enabled: boolean; policy: UsagePolicy; paused: boolean
   server_time: string; valid_until: string; record: UsageRecord | null; can_confirm: boolean; can_end: boolean
   target_id: string | null
+  monitored_occurrence_ids?: string[]
 }
 export const usageLabels: Record<string, string> = {
   pending: '请确认使用', confirmed: '已确认使用', observed: '已超时 · 仅记录',

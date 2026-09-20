@@ -1,15 +1,27 @@
-"""Protocol 2 health reports come from the active page, never from GET polling."""
+"""Protocol 2 reports explicitly cover each booking; GET never renews health."""
 from datetime import UTC, datetime
 
 from ..core.room_usage_auth import KEY
-from .room_usage import conflict, fresh_target, policy_for
+from .room_usage import conflict, fresh_monitor_targets, fresh_target, policy_for
 
 ACTIVE = {'pending', 'waiting', 'checking', 'end_requested'}
 
 
+def covers_occurrence(hb, ident):
+    return hb.get('occurrence_id') == ident or ident in hb.get('monitored_occurrence_ids', [])
+
+
+def operation_ready(hb, ident=None):
+    # Submitting a confirmation for the current booking does not interrupt the
+    # next booking. An uncertain page, however, protects every monitored booking.
+    return hb.get('operation_state') == 'ready' or (
+        ident is not None and hb.get('operation_state') == 'submitting'
+        and ident != hb.get('occurrence_id') and covers_occurrence(hb, ident))
+
+
 async def healthy_terminal(store, room_id, now, record=None, policy=None):
     hb = await store.get('heartbeat:' + room_id)
-    if not hb or hb.get('protocol') != 2 or hb.get('operation_state') != 'ready':
+    if not hb or hb.get('protocol') != 2 or not operation_ready(hb, record['id'] if record else None):
         return False
     if not 0 <= now.timestamp() - hb['time'] < 45:
         return False
@@ -17,7 +29,7 @@ async def healthy_terminal(store, room_id, now, record=None, policy=None):
         return False
     if policy and hb['policy_revision'] != policy['revision']:
         return False
-    return not record or (hb['session_id'] == record.get('session_id') and hb['occurrence_id'] == record['id'])
+    return not record or (hb['session_id'] == record.get('session_id') and covers_occurrence(hb, record['id']))
 
 
 async def heartbeat(store, room_id, actor, request, now=None):
@@ -29,6 +41,9 @@ async def heartbeat(store, room_id, actor, request, now=None):
     ident = target.identity(room_id) if target else None
     if request.occurrence_id != ident:
         raise conflict('预约已变化')
+    eligible = {e.identity(room_id) for e in await fresh_monitor_targets(room_id, now, policy)}
+    if not set(request.monitored_occurrence_ids) <= eligible:
+        raise conflict('待监控预约已变化')
     name = 'heartbeat:' + room_id
     old = await store.get(name)
     if (old and old['actor'] == actor and old.get('session_id') != request.session_id
@@ -37,18 +52,21 @@ async def heartbeat(store, room_id, actor, request, now=None):
     new = {**request.model_dump(), 'actor': actor, 'time': now.timestamp()}
     if not await store.cas(name, old, new, room_id, policy=policy, action='monitor'):
         raise conflict('健康状态已变化，请重试')
-    record = await store.get('record:' + ident) if ident else None
-    if not record or record['state'] not in ACTIVE:
-        return
-    interrupted = (request.operation_state != 'ready' or record.get('session_id') != request.session_id)
-    if interrupted:
-        await store.cas('record:' + ident, record,
-                        {**record, 'state': 'blocked', 'reason': 'terminal_operation_uncertain'}, room_id)
-        return
-    if request.challenge_id:
-        if (record['state'] != 'checking' or request.challenge_id != record.get('challenge_id')
-                or not record['challenge_started'] <= now.timestamp() < record['challenge_expires']
-                or record['epoch'] != await store.cache.get('rooms:usage:v1:lease')):
-            raise conflict('释放前核验已失效')
-        await store.cas('record:' + ident, record, {**record, 'ack_at': now.timestamp()},
-                        room_id, policy=policy, action='monitor')
+    covered = set(request.monitored_occurrence_ids) | ({ident} if ident else set())
+    for current_id in covered:
+        record = await store.get('record:' + current_id)
+        if not record or record['state'] not in ACTIVE:
+            continue
+        interrupted = not operation_ready(new, current_id) or record.get('session_id') != request.session_id
+        if interrupted:
+            await store.cas('record:' + current_id, record,
+                            {**record, 'state': 'blocked', 'reason': 'terminal_operation_uncertain'}, room_id)
+            continue
+        # Challenges are only answered for the displayed/current occurrence.
+        if request.challenge_id and current_id == ident:
+            if (record['state'] != 'checking' or request.challenge_id != record.get('challenge_id')
+                    or not record['challenge_started'] <= now.timestamp() < record['challenge_expires']
+                    or record['epoch'] != await store.cache.get('rooms:usage:v1:lease')):
+                raise conflict('释放前核验已失效')
+            await store.cas('record:' + current_id, record, {**record, 'ack_at': now.timestamp()},
+                            room_id, policy=policy, action='monitor')

@@ -360,3 +360,28 @@ for (const height of [720, 800]) test(`V5 三列标题与内容下沿对齐 ${he
   expect(geometry.overflow).toEqual([0, 0])
   await page.screenshot({ path: testInfo.outputPath(`v5-aligned-${height}.png`) })
 })
+
+test('当前会议确认时也为下一场独立上报监控，确认只提交当前实例', async ({ page }) => {
+  await display(page)
+  const next = 'b'.repeat(64)
+  const usage = { ...fixture(), monitored_occurrence_ids: [id, next] }
+  const reports: { occurrence_id: string; monitored_occurrence_ids: string[]; operation_state: string }[] = []
+  const confirmed: string[] = []
+  await mockUsage(page, usage)
+  await page.route('**/api/meeting-rooms/usage/heartbeat', route => {
+    reports.push(route.request().postDataJSON())
+    return route.fulfill({ json: { data: usage } })
+  })
+  await page.route('**/api/meeting-rooms/usage/confirm', route => {
+    confirmed.push(route.request().postDataJSON().occurrence_id)
+    usage.record.state = 'confirmed'; usage.can_confirm = false
+    return route.fulfill({ json: { data: usage } })
+  })
+  await page.goto('/room-display.html?version=v5')
+  await expect.poll(() => reports.length).toBeGreaterThan(0)
+  expect(reports[0]).toMatchObject({ occurrence_id: id, monitored_occurrence_ids: [id, next], operation_state: 'ready' })
+  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
+  expect(reports.some(r => r.operation_state === 'submitting' && r.monitored_occurrence_ids.includes(next))).toBe(true)
+  expect(confirmed).toEqual([id])
+})

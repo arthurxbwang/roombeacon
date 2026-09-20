@@ -2,7 +2,7 @@
 import hashlib
 import json
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -48,6 +48,7 @@ class UsageHeartbeat(BaseModel):
     policy_revision: str
     operation_state: Literal['ready', 'submitting', 'uncertain']
     challenge_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+    monitored_occurrence_ids: list[Annotated[str, Field(pattern=r'^[a-f0-9]{64}$')]] = Field(default_factory=list, max_length=64)
 
 
 class VerifiedOccurrence(UsageCommand):

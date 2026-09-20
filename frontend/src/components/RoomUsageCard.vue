@@ -49,6 +49,7 @@ async function health(operation?: 'submitting' | 'uncertain') {
   const status = operation || (unresolved.value === state.value.target_id ? 'uncertain' : 'ready')
   const result = await usageRequest<UsageState>('POST', '/api/meeting-rooms/usage/heartbeat', token.value, abort.signal, {
     protocol: 2, session_id: sessionId, occurrence_id: state.value.target_id, policy_revision: state.value.policy.revision,
+    monitored_occurrence_ids: state.value.monitored_occurrence_ids || [],
     operation_state: status, challenge_id: status === 'ready' && record.value?.state === 'checking' ? record.value.challenge_id : null,
   })
   accept(result)

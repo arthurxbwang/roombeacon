@@ -32,6 +32,22 @@ async def fresh_target(room_id, now):
     return Occurrence.model_validate(target.model_dump()) if target else None
 
 
+async def fresh_monitor_targets(room_id, now, policy):
+    """Only fresh, non-overlapping bookings whose advance windows have opened."""
+    snapshot = await cached_schedule(room_id)
+    if not snapshot.room.enabled or snapshot.valid_until <= now or snapshot.synced_at > now + timedelta(seconds=10):
+        raise conflict('会议室状态待核实，请等待同步')
+    limit = now + timedelta(minutes=policy['early_minutes'])
+    events = sorted((e for e in snapshot.events if e.end_time > now), key=lambda e: e.start_time)
+    candidates = [e for e in events if e.start_time <= limit]
+    if len(candidates) > 64:
+        raise conflict('待监控预约过多，请核对日程')
+    for candidate in candidates:
+        if sum(e.start_time < candidate.end_time and e.end_time > candidate.start_time for e in events) != 1:
+            raise conflict('存在重叠预约，暂停操作')
+    return [Occurrence.model_validate(event.model_dump()) for event in candidates]
+
+
 async def save_policy(store, room_id, policy):
     if policy.owner == 'official' and policy.mode != 'off':
         raise conflict('官方方案必须关闭 RoomBeacon 确认与释放')
@@ -65,9 +81,11 @@ async def view(store, room_id, now=None):
               'server_time': now.isoformat(), 'valid_until': (now + timedelta(seconds=30)).isoformat(),
               'record': None, 'can_confirm': False, 'can_end': False}
     result['target_id'] = None
+    result['monitored_occurrence_ids'] = []
     if not settings.ROOM_DISPLAY_USAGE_ENABLED or policy.get('owner') != 'v5' or policy['mode'] == 'off':
         return result
     target = await fresh_target(room_id, now)
+    result['monitored_occurrence_ids'] = [e.identity(room_id) for e in await fresh_monitor_targets(room_id, now, policy)]
     if not target:
         return result
     key = target.identity(room_id)

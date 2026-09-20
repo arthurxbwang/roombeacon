@@ -9,8 +9,8 @@ from ..connectors.feishu.room_release import FeishuRoomReleaseClient, ReleaseRej
 from ..core.room_devices import room_cache
 from ..core.room_usage_auth import KEY
 from ..schemas.room_usage import Occurrence
-from .room_usage import fresh_target, policy_for, write_allowed
-from .room_usage_health import healthy_terminal
+from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
+from .room_usage_health import covers_occurrence, healthy_terminal
 from .room_usage_store import PREFIX, UsageStore
 
 logger = structlog.get_logger()
@@ -87,13 +87,22 @@ async def execute_release(store, client, room_id, record, policy, epoch):
 
 
 async def tick_room(store, client, room_id, epoch, now=None):
+    live_clock = now is None
     now = now or datetime.now(UTC)
     policy = await policy_for(store, room_id)
     if policy.get('owner') != 'v5' or policy['mode'] == 'off':
         return
-    occurrence = await fresh_target(room_id, now)
-    if not occurrence:
-        return
+    for index, occurrence in enumerate(await fresh_monitor_targets(room_id, now, policy)):
+        at = datetime.now(UTC) if live_clock else now
+        if index:
+            # An earlier release can invalidate the cache or cross a start boundary.
+            eligible = await fresh_monitor_targets(room_id, at, policy)
+            if not any(e.identity(room_id) == occurrence.identity(room_id) for e in eligible):
+                continue
+        await tick_occurrence(store, client, room_id, epoch, at, policy, occurrence)
+
+
+async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence):
     ident = occurrence.identity(room_id)
     key = 'record:' + ident
     old = await store.get(key)
@@ -109,7 +118,7 @@ async def tick_room(store, client, room_id, epoch, now=None):
         before_start = now < occurrence.start_time
         epoch_ready = epoch_start is not None and epoch_start <= opens.timestamp()
         previously_seen = await store.cache.exists(PREFIX + 'seen:' + ident)
-        matching_page = heartbeat.get('occurrence_id') == ident
+        matching_page = covers_occurrence(heartbeat, ident)
         # New cache data can arrive before the page's next heartbeat. Do not enroll
         # against the previous booking and then immediately flag an interruption.
         # Wait only before start; missing history/restarts retain fail-closed behavior.
