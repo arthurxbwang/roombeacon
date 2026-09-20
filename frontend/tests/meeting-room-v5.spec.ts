@@ -252,3 +252,49 @@ test('日程查询短暂失败后仍保持本次预约保护', async ({ page }) 
   await expect(page.locator('.status-text')).toHaveText('状态暂不可确认')
   expect(await page.evaluate(() => localStorage.getItem('argus_room_usage_v5:omm_fixture:unresolved'))).toBe(id)
 })
+
+for (const scenario of ['success', 'denied', 'failed'] as const) {
+  test(`主控显式签到测试隔离：${scenario}`, async ({ page }) => {
+    await control(page)
+    const usage = fixture()
+    let confirmations = 0, terminalRequests = 0
+    await page.route('**/api/meeting-rooms/usage**', route => { terminalRequests++; return route.abort() })
+    await page.route('**/api/room-control/preview*', route => route.fulfill({ json: { data: {
+      room: { room_id: 'omm_fixture', name: 'IT灯塔-Test · 模拟', capacity: 4, enabled: true },
+      server_time: '2026-09-20T08:01:00Z', synced_at: '2026-09-20T08:01:00Z', valid_until: '2026-09-20T08:20:00Z',
+      titles_available: true, events: [{ ...usage.record.occurrence, summary: '测试会议' }],
+    } } }))
+    await page.route('**/api/room-control/usage/omm_fixture', route => route.fulfill({ json: { data: {
+      usage, control_confirm_enabled: scenario !== 'denied', writes_enabled: scenario !== 'denied', audit: [], global_audit: [],
+    } } }))
+    await page.route('**/api/room-control/usage/omm_fixture/confirm', route => {
+      expect(route.request().headers().authorization).toBe('Bearer fixture-admin')
+      expect(route.request().postDataJSON()).toMatchObject({ occurrence_id: id, policy_revision: 'rev1' })
+      confirmations++
+      if (scenario === 'failed') return route.fulfill({ status: 409, json: {} })
+      usage.record.state = 'confirmed'; usage.can_confirm = false
+      return route.fulfill({ json: { data: usage } })
+    })
+    await page.goto('/control')
+    await page.getByRole('button', { name: '预览门牌', exact: true }).click()
+    await page.getByLabel('门牌版本').selectOption('v5')
+    await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
+    if (scenario === 'denied') {
+      await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
+    } else {
+      await page.getByRole('button', { name: '进入签到测试' }).click()
+      await expect(page.getByText('主控签到测试 · 仅记录确认；自动释放仍需平板在线')).toBeVisible()
+      expect(confirmations).toBe(0)
+      await page.getByRole('button', { name: '确认使用', exact: true }).click()
+      if (scenario === 'success') await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
+      else {
+        await expect(page.getByText('预约或规则已变化，请刷新后核对')).toBeVisible()
+        await expect(page.getByText('已确认使用', { exact: true })).toHaveCount(0)
+      }
+      expect(confirmations).toBe(1)
+    }
+    await expect(page.getByRole('button', { name: '提前结束', exact: true })).toHaveCount(0)
+    expect(terminalRequests).toBe(0)
+    expect(await page.evaluate(() => localStorage.getItem('argus_room_usage_v5:omm_fixture'))).toBe('usage:omm_fixture:' + 'a'.repeat(43))
+  })
+}

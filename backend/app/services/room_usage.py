@@ -121,3 +121,26 @@ async def verify_occurrence(store, room_id, request):
                            policy=state['policy'], action='verify_non_recurring'):
         raise conflict('预约状态已变化')
     return await view(store, room_id)
+
+
+async def confirm_from_control(store, room_id, request, now=None):
+    """Explicit admin confirmation does not grant heartbeat, session or release rights."""
+    if room_id not in settings.ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS:
+        raise AppError(403, '本房间未开放主控签到测试', 403)
+    now = now or datetime.now(UTC)
+    state = await view(store, room_id, now)
+    record, policy = state['record'], state['policy']
+    if not record or record['id'] != request.occurrence_id or policy['revision'] != request.policy_revision:
+        raise conflict('预约或规则已变化，请刷新后重试')
+    old = await store.get('record:' + record['id'])
+    if old is None or old['state'] != record['state']:
+        raise conflict('操作状态已变化，请刷新')
+    if old['state'] == 'confirmed':
+        return state
+    if not state['can_confirm']:
+        raise conflict('当前不在签到窗口内，或预约已进入释放流程')
+    updated = {**old, 'state': 'confirmed', 'actor': 'control',
+               'updated_at': now.isoformat(), 'reason': 'control_confirm'}
+    if not await store.cas('record:' + old['id'], old, updated, room_id, policy=policy, action='control_confirm'):
+        raise conflict('预约状态或规则已变化，请重新查询')
+    return await view(store, room_id, now)

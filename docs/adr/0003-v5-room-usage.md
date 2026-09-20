@@ -31,3 +31,6 @@
 - 真实 P0 预约及重复实例验证尚未执行，默认开关保持关闭，不将隔离测试宣称为线上验收。
 
 依据：[接口文档](https://open.feishu.cn/document/server-docs/calendar-v4/meeting-room-event/reply-meeting-room-event-instance)、[迭代计划](../../plan/checkin-release-iteration.md)、[V5 验证与运维](../v5-usage-verification.md)。
+
+
+13. Control 可由管理员显式进入白名单房间的签到测试；独立管理确认接口允许在有效窗口内确认 blocked 实例，不冒充平板会话，不改 heartbeat、verified、session_id 或 last_seen。仅解除本次未确认状态；释放权限和协议 2 全部条件保持不变。

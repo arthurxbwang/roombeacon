@@ -156,7 +156,7 @@ onUnmounted(() => {
             </template>
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? '暂不可使用' : '等待日程同步' }}</h2><p class="organizer">{{ message || '正在确认最新预约状态' }}</p></template>
           </div>
-          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" @changed="refresh" />
+          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" @changed="refresh" />
           <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">本房间使用 V5 确认，请切换到 V5 页面</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>

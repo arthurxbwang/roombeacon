@@ -10,6 +10,7 @@ from .schemas.room_usage import (
     ROOM_PATTERN,
     PauseCommand,
     TerminalCommand,
+    UsageCommand,
     UsageHeartbeat,
     UsagePolicy,
     VerifiedOccurrence,
@@ -17,6 +18,7 @@ from .schemas.room_usage import (
 from .services.room_display_collector import cached_schedule
 from .services.room_usage import (
     command,
+    confirm_from_control,
     conflict,
     room_writes_enabled,
     save_policy,
@@ -62,7 +64,13 @@ def usage_router(require_admin):
     async def inspect(room_id: str = Path(pattern=ROOM_PATTERN), admin=Depends(require_admin), store=Depends(store_dep)):
         return ok({'usage': await view(store, room_id), 'audit': await store.audit(room_id),
                    'global_audit': await store.audit('global'),
-                   'writes_enabled': room_writes_enabled(room_id)})
+                   'writes_enabled': room_writes_enabled(room_id),
+                   'control_confirm_enabled': room_id in settings.ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS})
+
+    @router.post('/api/room-control/usage/{room_id}/confirm')
+    async def control_confirm(body: UsageCommand, room_id: str = Path(pattern=ROOM_PATTERN),
+                              admin=Depends(require_admin), store=Depends(store_dep)):
+        return ok(await confirm_from_control(store, room_id, body))
 
     @router.put('/api/room-control/usage/{room_id}/policy')
     async def policy(body: UsagePolicy, room_id: str = Path(pattern=ROOM_PATTERN),
