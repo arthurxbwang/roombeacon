@@ -278,11 +278,11 @@ for (const scenario of ['success', 'denied', 'failed'] as const) {
     await page.goto('/control')
     await page.getByRole('button', { name: '预览门牌', exact: true }).click()
     await page.getByLabel('门牌版本').selectOption('v5')
-    await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
     if (scenario === 'denied') {
-      await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
+      await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
+      await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
     } else {
-      await page.getByRole('button', { name: '进入签到测试' }).click()
+      await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
       await expect(page.getByText('主控签到测试 · 仅记录确认；自动释放仍需平板在线')).toBeVisible()
       expect(confirmations).toBe(0)
       await page.getByRole('button', { name: '确认使用', exact: true }).click()
@@ -298,3 +298,40 @@ for (const scenario of ['success', 'denied', 'failed'] as const) {
     expect(await page.evaluate(() => localStorage.getItem('argus_room_usage_v5:omm_fixture'))).toBe('usage:omm_fixture:' + 'a'.repeat(43))
   })
 }
+
+test('白名单主控单次点击就提交签到，并保留服务器回执', async ({ page }) => {
+  await control(page)
+  const usage = fixture()
+  const receiptTime = '2026-09-20T08:02:00Z'
+  let confirmations = 0
+  let ended = false
+  await page.route('**/api/room-control/preview*', route => route.fulfill({ json: { data: {
+    room: { room_id: 'omm_fixture', name: 'IT灯塔-Test · 模拟', capacity: 4, enabled: true },
+    server_time: '2026-09-20T08:01:00Z', synced_at: '2026-09-20T08:01:00Z', valid_until: '2026-09-20T08:20:00Z',
+    titles_available: true, events: ended ? [] : [{ ...usage.record.occurrence, summary: '测试会议' }],
+  } } }))
+  await page.route('**/api/room-control/usage/omm_fixture', route => route.fulfill({ json: { data: {
+    usage: ended ? { ...usage, record: null, target_id: null, can_confirm: false } : usage,
+    control_confirm_enabled: true, writes_enabled: true,
+    audit: confirmations ? [{ time: receiptTime, action: 'control_confirm', state: 'confirmed' }] : [],
+  } } }))
+  await page.route('**/api/room-control/usage/omm_fixture/confirm', route => {
+    confirmations++; usage.record.state = 'confirmed'; usage.can_confirm = false
+    return route.fulfill({ json: { data: usage } })
+  })
+  await page.goto('/control')
+  await page.getByRole('button', { name: '预览门牌', exact: true }).click()
+  await page.getByLabel('门牌版本').selectOption('v5')
+  await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
+  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
+  expect(confirmations).toBe(1)
+  ended = true
+  await page.reload()
+  await page.getByRole('button', { name: '预览门牌', exact: true }).click()
+  await page.getByLabel('门牌版本').selectOption('v5')
+  await expect(page.getByText('当前没有可签到的预约', { exact: true })).toBeVisible()
+  await expect(page.getByText(/最近一次签到成功/)).toContainText('16:02')
+  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  expect(confirmations).toBe(1)
+})

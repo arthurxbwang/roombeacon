@@ -13,7 +13,8 @@ const sessionId = sessionStorage.getItem(sessionKey) || Array.from(crypto.getRan
 if (!props.preview) sessionStorage.setItem(sessionKey, sessionId)
 const unresolved = ref(localStorage.getItem(pendingKey) || '')
 const token = ref(props.preview ? props.controlToken || '' : localStorage.getItem(storageKey) || '')
-const testing = ref(false), testAllowed = ref(false)
+const testAllowed = ref(false), receipt = ref('')
+const testing = computed(() => props.preview && testAllowed.value)
 const input = ref(''), error = ref('')
 const state = ref<UsageState | null>(null)
 const pending = ref(false), failed = ref(false), ending = ref(false)
@@ -28,7 +29,7 @@ const fresh = computed(() => props.fresh && matches.value && !failed.value && !!
 const canConfirm = computed(() => fresh.value && state.value?.policy.owner === 'v5' && state.value?.can_confirm && record.value && props.now < Date.parse(record.value.release_at || record.value.deadline))
 const label = computed(() => props.preview && !testing.value ? 'V5 预览 · 操作不可用' : !token.value ? '确认使用尚未配置' :
   !fresh.value ? '确认状态待同步' : state.value?.policy.owner !== 'v5' ? '本房间使用官方方案，请切换到 V4' : state.value?.policy.mode === 'off' ? '确认使用已关闭' :
-  record.value ? usageLabels[record.value.state] || '状态待核实' : '等待下一场确认窗口')
+  record.value ? usageLabels[record.value.state] || '状态待核实' : props.preview && !state.value?.target_id ? '当前没有可签到的预约' : '等待下一场确认窗口')
 const clock = (value: string) => new Date(value).toLocaleTimeString('zh-CN', { timeZone: props.timezone, hour: '2-digit', minute: '2-digit', hour12: false })
 function markUnresolved(id: string) {
   unresolved.value = id
@@ -57,7 +58,8 @@ async function refresh() {
   pending.value = true
   try {
     if (props.preview) {
-      const result = await usageRequest<{ usage: UsageState; control_confirm_enabled: boolean }>('GET', `/api/room-control/usage/${props.roomId}`, token.value, abort.signal)
+      const result = await usageRequest<{ usage: UsageState; control_confirm_enabled: boolean; audit?: { time: string; action: string; state: string }[] }>('GET', `/api/room-control/usage/${props.roomId}`, token.value, abort.signal)
+      receipt.value = result.audit?.find(item => ['control_confirm', 'confirm'].includes(item.action) && item.state === 'confirmed' && Number.isFinite(Date.parse(item.time)))?.time || ''
       accept(result.usage); testAllowed.value = result.control_confirm_enabled === true && result.usage.policy.owner === 'v5' && result.usage.policy.mode !== 'off'
     } else {
       const result = await usageRequest<UsageState>('GET', '/api/meeting-rooms/usage', token.value, abort.signal)
@@ -108,10 +110,12 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
   <aside class="usage-card" aria-label="V5 确认使用">
     <p class="eyebrow">ROOMBEACON · V5</p>
     <h3 role="status">{{ label }}</h3>
-    <button v-if="preview && !testing && testAllowed && fresh" @click="testing = true">进入签到测试</button>
     <p v-if="preview && testing" class="notice">主控签到测试 · 仅记录确认；自动释放仍需平板在线</p>
     <template v-if="(!preview || testing) && token && fresh && state?.policy.owner === 'v5' && state?.policy.mode !== 'off'">
-      <p v-if="preview">请在签到窗口内点击确认使用</p>
+      <p v-if="preview && record && canConfirm">点击「确认使用」后提交签到，显示「已确认使用」即成功</p>
+      <p v-else-if="preview && !record">有预约且进入签到窗口后，才会显示签到按钮</p>
+      <p v-else-if="preview && record?.state === 'confirmed'">服务器已保存本次签到</p>
+      <p v-else-if="preview">当前预约不可签到，请核对下方状态</p>
       <p v-else-if="state?.policy.mode === 'observe'" class="notice">观察模式 · 仅记录，不自动释放</p>
       <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
       <p v-else class="notice">未在截止前确认，将按规则释放预约</p>
@@ -127,6 +131,7 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
         <button class="secondary" @click="ending = false">取消</button>
       </div>
     </template>
+    <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
     <details v-if="!preview && !token"><summary>管理员配置</summary><form @submit.prevent="bind">
       <input v-model="input" type="password" autocomplete="off" aria-label="V5 操作凭证" placeholder="本房间操作凭证" />
