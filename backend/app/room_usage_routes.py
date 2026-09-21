@@ -14,6 +14,7 @@ from .schemas.room_usage import (
     UsageHeartbeat,
     UsagePolicy,
     VerifiedOccurrence,
+    VerifiedRecurringOccurrence,
 )
 from .services.room_display_collector import cached_schedule
 from .services.room_usage import (
@@ -79,7 +80,7 @@ def usage_router(require_admin):
         return ok(await save_policy(store, room_id, body))
 
     @router.post('/api/room-control/usage/{room_id}/verify')
-    async def verify(body: VerifiedOccurrence, room_id: str = Path(pattern=ROOM_PATTERN),
+    async def verify(body: VerifiedOccurrence | VerifiedRecurringOccurrence, room_id: str = Path(pattern=ROOM_PATTERN),
                      admin=Depends(require_admin), store=Depends(store_dep)):
         return ok(await verify_occurrence(store, room_id, body))
 

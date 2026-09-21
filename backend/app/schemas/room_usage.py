@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ROOM_PATTERN = r'^omm_[A-Za-z0-9]{1,96}$'
 
@@ -53,6 +53,18 @@ class UsageHeartbeat(BaseModel):
 
 class VerifiedOccurrence(UsageCommand):
     non_recurring_verified: Literal[True]
+
+    @model_validator(mode='before')
+    @classmethod
+    def reject_mixed_scope(cls, value):
+        if isinstance(value, dict) and 'recurring_verified' in value:
+            raise ValueError('Conflicting verification scopes')
+        return value
+
+
+class VerifiedRecurringOccurrence(UsageCommand):
+    model_config = ConfigDict(extra='forbid')
+    recurring_verified: Literal[True]
 
 
 class PauseCommand(BaseModel):

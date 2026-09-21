@@ -22,7 +22,7 @@ async def expire_older_snapshot(cache, room_id, now):
         1, key, raw, snapshot.model_dump_json())
 
 
-async def read_after_release(cache, client, room_id, occurrence):
+async def read_after_release(cache, client, room_id, occurrence, *, expected_future=()):
     now = datetime.now(UTC)
     day = now.astimezone(ZONE).replace(hour=0, minute=0, second=0, microsecond=0)
     try:
@@ -32,6 +32,11 @@ async def read_after_release(cache, client, room_id, occurrence):
             raise ValueError('Incomplete release readback')
         events = parse_events(data['free_busy'][room_id])
         remaining = [Occurrence.model_validate(event.model_dump()) for event in events]
+        # Only compare future instances covered by this exact readback window.
+        remaining_ids = {e.identity(room_id) for e in remaining}
+        if any(e.start_time < day + timedelta(days=2) and e.end_time > day - timedelta(days=1)
+               and e.identity(room_id) not in remaining_ids for e in expected_future):
+            raise ValueError('Future recurring instance missing after release')
         still_busy = any(e.uid == occurrence.uid and e.start_time < occurrence.end_time
                          and e.end_time > now for e in remaining)
         raw = await cache.get('rooms:snapshot:' + room_id)

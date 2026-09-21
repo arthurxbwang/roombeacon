@@ -11,6 +11,7 @@ from ..schemas.room_usage import Occurrence
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
 from .room_usage_health import covers_occurrence, healthy_terminal
 from .room_usage_readback import read_after_release
+from .room_usage_recurrence import release_target
 from .room_usage_store import PREFIX, UsageStore
 
 logger = structlog.get_logger()
@@ -58,9 +59,12 @@ async def execute_release(store, client, room_id, record, policy, epoch):
             # Revalidate cache as well: a room can be deleted or disabled during preflight.
             current = await fresh_target(room_id, now)
             if safe and current and current.identity(room_id) == record['id'] and acknowledged(record, datetime.now(UTC)):
+                target = release_target(record, occurrence, events)
+                later = [e for e in events if e.uid == occurrence.uid and e.start_time >= occurrence.end_time]
                 sent = True
-                await client.release(room_id, occurrence, 'NOT_CHECK_IN')
-                remaining = await read_after_release(store.cache, client, room_id, occurrence)
+                await client.release(room_id, target, 'NOT_CHECK_IN')
+                remaining = await read_after_release(store.cache, client, room_id, occurrence,
+                                                     expected_future=later)
                 # A shortened or otherwise transformed instance cannot prove release; leave it for review.
                 same_uid = any(e.uid == occurrence.uid and e.start_time < occurrence.end_time
                                and e.end_time > now for e in remaining)

@@ -4,8 +4,9 @@ from datetime import UTC, datetime, timedelta
 
 from ..core.config import settings
 from ..core.exceptions import AppError
-from ..schemas.room_usage import Occurrence, UsagePolicy
+from ..schemas.room_usage import Occurrence, UsagePolicy, VerifiedRecurringOccurrence
 from .room_display_collector import cached_schedule
+from .room_usage_recurrence import is_recurring, recurring_time
 
 
 def conflict(message):
@@ -134,8 +135,25 @@ async def verify_occurrence(store, room_id, request):
     old = await store.get('record:' + record['id'])
     if not old or old['state'] not in {'pending', 'confirmed', 'observed'}:
         raise conflict('当前实例不可登记')
-    if not await store.cas('record:' + old['id'], old, {**old, 'verified': True}, room_id,
-                           policy=state['policy'], action='verify_non_recurring'):
+    occurrence = Occurrence.model_validate(old['occurrence'])
+    snapshot = await cached_schedule(room_id)
+    if snapshot.valid_until <= datetime.now(UTC):
+        raise conflict('日程已过期，请等待同步')
+    updated = {**old, 'verified': True}
+    if isinstance(request, VerifiedRecurringOccurrence):
+        try:
+            original = recurring_time(occurrence, snapshot.events)
+        except ValueError as exc:
+            raise conflict('无法核实重复实例，保留预约') from exc
+        updated.update(release_scope='recurring_instance', release_original_time=original)
+        action = 'verify_recurring_instance'
+    else:
+        if is_recurring(occurrence, snapshot.events):
+            raise conflict('重复预约不能按非重复登记')
+        updated.update(release_scope='non_recurring', release_original_time=occurrence.original_time)
+        action = 'verify_non_recurring'
+    if not await store.cas('record:' + old['id'], old, updated, room_id,
+                           policy=state['policy'], action=action):
         raise conflict('预约状态已变化')
     return await view(store, room_id)
 
