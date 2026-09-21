@@ -50,3 +50,10 @@ issue 会在终端显示一次设备凭证，属于管理员有意操作；不�
 5. 失败时停止新应用，恢复旧目录/服务配置和基线 SHA；不清空 Redis。
 
 保持浏览器 origin 和 API 路径可减少重新绑定；若更换域名/协议，设备需重新输入凭证。迁移到新仓库不表示此切换已获批准或执行。
+
+
+## 重复实例试点登记（2026-09-21）
+
+仅对白名单V5房间，通过既有管理员认证POST `/api/room-control/usage/{room_id}/verify`，请求包含当前`occurrence_id`、`policy_revision`及`recurring_verified: true`。与`non_recurring_verified`不能同时提交；旧非重复登记仍兼容。登记只对当前实例有效，不授权整个系列。未知单条0实例不能凭开始时间直接认定重复，必须有快照重复依据；发送前重复核对。Control现有非重复勾选不能用于重复预约，本轮由有截止时间的测试脚本调用新登记类型。
+
+重复记录可能包含`release_scope=recurring_instance`和`release_original_time`。回退到不识别这些字段的旧版时，保持全局暂停，核对在途请求和记录后再决定恢复；不能把新版已登记记录交给旧版直接发送。部署、真实结果和回退目录见[重复实例验证](../docs/v5-recurring-release-verification.md)。

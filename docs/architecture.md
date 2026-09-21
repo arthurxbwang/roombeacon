@@ -1,6 +1,6 @@
 # RoomBeacon 架构与接口
 
-> 重复实例增补：管理员verify接口支持互斥的recurring_verified登记，发送前将普通实例0转换为已核对开始时刻Unix秒，例外保留原始时间；后续实例读回核验。未登记未来实例不自动获释放资格，见[重复测试](v5-recurring-release-verification.md)。
+> 当前后端7deb6ba（前端da63152）每日重复单实例释放已实测、后续日期保留。重复实例增补：管理员verify接口支持互斥的recurring_verified登记，发送前将普通实例0转换为已核对开始时刻Unix秒，例外保留原始时间；后续实例读回核验。未登记未来实例不自动获释放资格，见[重复测试](v5-recurring-release-verification.md)。
 
 > 2026-09-21 当前后端374db89、静态da63152。门牌提前结束已关闭，忙闲GET有限重试，非重复连续签到与两次自动释放已实测通过；其他342间官方方案。准确版本与范围见[连续三场验收](v5-retest-acceptance.md)，下方旧版本说明为历史记录。
 
