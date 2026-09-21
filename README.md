@@ -33,6 +33,8 @@ npm run dev
 
 ## 文档
 
+- [独立飞书应用：11项权限与迁移清单](docs/feishu-permissions.md)
+
 - [项目交接：先读](docs/handoff.md)
 - [系统架构与 API](docs/architecture.md)
 - [界面与历史设计决策](docs/design.md)
