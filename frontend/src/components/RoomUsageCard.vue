@@ -17,7 +17,7 @@ const testAllowed = ref(false), receipt = ref('')
 const testing = computed(() => props.preview && testAllowed.value)
 const input = ref(''), error = ref('')
 const state = ref<UsageState | null>(null)
-const pending = ref(false), failed = ref(false), ending = ref(false)
+const pending = ref(false), failed = ref(false)
 const abort = new AbortController()
 let timer: ReturnType<typeof setInterval> | undefined
 const record = computed(() => state.value?.record)
@@ -85,19 +85,18 @@ function bind() {
   }
   token.value = value; localStorage.setItem(storageKey, value); input.value = ''; refresh()
 }
-async function act(action: 'confirm' | 'end') {
-  if (pending.value || !fresh.value || !record.value || !state.value || (props.preview && (!testing.value || !testAllowed.value || action !== 'confirm'))) return
-  if (action === 'confirm' ? !canConfirm.value : !state.value.can_end) return
-  pending.value = true; error.value = ''; ending.value = false
+async function confirm() {
+  if (pending.value || !fresh.value || !record.value || !state.value || (props.preview && (!testing.value || !testAllowed.value))) return
+  if (!canConfirm.value) return
+  pending.value = true; error.value = ''
   markUnresolved(record.value.id)
   try {
     // A submitting/uncertain page cannot approve a release challenge.
-    if (action === 'confirm') await health('submitting')
-    const path = props.preview ? `/api/room-control/usage/${props.roomId}/confirm` : `/api/meeting-rooms/usage/${action}`
+    await health('submitting')
+    const path = props.preview ? `/api/room-control/usage/${props.roomId}/confirm` : '/api/meeting-rooms/usage/confirm'
     const result = await usageRequest<UsageState>('POST', path, token.value, abort.signal,
       { occurrence_id: record.value!.id, policy_revision: state.value!.policy.revision, session_id: sessionId })
     accept(result)
-    if (action === 'end' && result.record?.state === 'end_requested') markUnresolved('')
     failed.value = false; emit('changed')
   } catch (err) {
     if (!axios.isCancel(err)) { failed.value = true; error.value = usageError(err) }
@@ -109,32 +108,24 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
 
 <template>
   <aside class="usage-card" aria-label="V5 确认使用">
-    <header class="usage-heading"><h3>签到与释放</h3></header>
     <div class="usage-body">
-    <p class="eyebrow">ROOMBEACON · V5</p>
     <h4 class="usage-state" :class="record?.state" role="status">{{ label }}</h4>
     <p v-if="preview && testing" class="notice">主控签到测试 · 仅记录确认；自动释放仍需平板在线</p>
     <template v-if="(!preview || testing) && token && fresh && state?.policy.owner === 'v5' && state?.policy.mode !== 'off'">
-      <p v-if="preview && record && canConfirm">点击「确认使用」后提交签到，显示「已确认使用」即成功</p>
+      <p v-if="preview && record && canConfirm">点击签到，成功后显示「已确认使用」</p>
       <p v-else-if="preview && !record">有预约且进入签到窗口后，才会显示签到按钮</p>
       <p v-else-if="preview && record?.state === 'confirmed'">服务器已保存本次签到</p>
       <p v-else-if="preview">当前预约不可签到，请核对下方状态</p>
       <p v-else-if="record?.state === 'blocked'" class="notice">本次预约受保护，不会自动释放</p>
-      <p v-else-if="record?.state === 'confirmed'" class="notice">已记录使用，本场不会因未签到释放</p>
+      <p v-else-if="record?.state === 'confirmed'" class="notice">本场预约已保留</p>
       <p v-else-if="state?.policy.mode === 'observe'" class="notice">观察模式 · 仅记录，不自动释放</p>
       <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
       <p v-else-if="record && !record.verified" class="notice">自动释放待管理员登记本次预约</p>
-      <p v-else class="notice">未确认时，系统将核验条件后释放预约</p>
-      <p v-if="record">确认截止 {{ clock(record.deadline) }}</p>
+      <p v-else-if="record" class="notice">未签到将按规则释放预约</p>
+      <p v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
       <p v-if="record?.state === 'waiting' && record.release_at">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
       <p v-if="record && now >= Date.parse(record.release_at || record.deadline) && ['pending', 'blocked'].includes(record.state)">已过确认截止时间，请使用下一场预约测试</p>
-      <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" @click="act('confirm')">{{ pending ? '正在提交…' : '确认使用' }}</button>
-      <button v-if="!preview && state?.can_end && !ending" class="secondary" :disabled="pending" @click="ending = true">提前结束</button>
-      <div v-if="ending && record" class="end-confirm" role="group" aria-label="确认提前结束">
-        <p>释放 {{ roomName }} 本次 {{ clock(record.occurrence.start_time) }}—{{ clock(record.occurrence.end_time) }} 的预约？</p>
-        <button :disabled="pending || !state?.can_end" @click="act('end')">确认释放本次预约</button>
-        <button class="secondary" @click="ending = false">取消</button>
-      </div>
+      <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? '正在提交…' : '签到' }}</span></button>
     </template>
     <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
@@ -142,20 +133,18 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <input v-model="input" type="password" autocomplete="off" aria-label="V5 操作凭证" placeholder="本房间操作凭证" />
       <button>启用确认操作</button>
     </form></details>
-    <p class="footnote">确认结果由 RoomBeacon 记录</p>
     </div>
   </aside>
 </template>
 
 <style scoped>
 .usage-card{width:100%;min-width:0;max-height:100%;display:flex;flex-direction:column;gap:14px;color:var(--text);align-self:center}
-.usage-heading h3{font-size:24px;line-height:1.2;font-weight:600}
 .usage-body{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-sizing:border-box}
-.eyebrow,.footnote,small{font-size:11px;color:var(--muted);letter-spacing:.5px}.footnote{margin-top:auto;padding-top:10px}
 .usage-state{font-size:19px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}.usage-state:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#8ba8df;margin-right:8px;vertical-align:middle}.usage-state.blocked:before{background:#d6a352}.usage-state.confirmed:before{background:#34c89e}
 p{font-size:14px;line-height:1.5}.notice{color:var(--muted)}
-button{width:100%;background:#2563eb;color:#fff;border:1px solid transparent;border-radius:12px;padding:12px 14px;font-size:17px;line-height:1.3;font-weight:600;min-height:48px;flex-shrink:0}
-button:disabled{color:var(--subtle);background:transparent;border-color:var(--line);cursor:not-allowed}
-.secondary{background:transparent;color:var(--text);border-color:var(--line)}form,.end-confirm{display:grid;gap:10px}input{width:100%;color:var(--text);background:transparent;border:1px solid var(--line);padding:10px;border-radius:8px}summary{font-size:12px;cursor:pointer}details form{margin-top:10px}[role=alert]{color:#e88862}
-@media(min-width:1000px) and (max-height:760px) and (orientation:landscape){.usage-body{padding:16px;gap:10px}.usage-state{font-size:18px}.footnote{padding-top:6px}}
+button{width:100%;background:#2563eb;color:#fff;border:1px solid transparent;border-radius:999px;padding:14px 22px;font-size:17px;line-height:1.3;font-weight:600;min-height:48px;flex-shrink:0}
+.checkin-button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;margin-top:auto;box-shadow:0 5px 14px #2563eb24;cursor:pointer}.checkin-button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}button:focus-visible{outline:3px solid #93b4ff;outline-offset:3px}.checkin-button:not(:disabled):active{background:#1d4ed8;box-shadow:none}
+button:disabled{box-shadow:none;color:var(--subtle);background:transparent;border-color:var(--line);cursor:not-allowed}
+form{display:grid;gap:10px}input{width:100%;color:var(--text);background:transparent;border:1px solid var(--line);padding:10px;border-radius:8px}summary{font-size:12px;cursor:pointer}details form{margin-top:10px}[role=alert]{color:#e88862}
+@media(min-width:1000px) and (max-height:760px) and (orientation:landscape){.usage-body{padding:16px;gap:10px}.usage-state{font-size:18px}}
 </style>

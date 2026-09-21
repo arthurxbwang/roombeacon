@@ -98,13 +98,12 @@ async def view(store, room_id, now=None):
     limit = record.get('release_at', record['deadline'])
     inside = datetime.fromisoformat(record['opens_at']) <= now < min(datetime.fromisoformat(limit), target.end_time)
     result['can_confirm'] = valid and inside and record['state'] in {'pending', 'waiting', 'blocked'}
-    result['can_end'] = (valid and record['state'] in {'pending', 'confirmed', 'observed'}
-                         and target.start_time <= now < target.end_time and record['verified']
-                         and await write_allowed(store, policy, room_id))
     return result
 
 
 async def command(store, room_id, actor, request, action, now=None):
+    if action != 'confirm':
+        raise AppError(403, '门牌不支持提前结束会议', 403)
     now = now or datetime.now(UTC)
     state = await view(store, room_id, now)
     record, policy = state['record'], state['policy']
@@ -120,7 +119,7 @@ async def command(store, room_id, actor, request, action, now=None):
         return state
     if not state['can_' + action]:
         raise conflict('当前不可执行该操作，请核对确认窗口与释放开关')
-    updated = {**old, 'state': 'confirmed' if action == 'confirm' else 'end_requested',
+    updated = {**old, 'state': 'confirmed',
                'actor': actor, 'updated_at': now.isoformat(), 'last_seen': now.timestamp(), 'reason': action}
     if not await store.cas('record:' + old['id'], old, updated, room_id, policy=policy, action=action):
         raise conflict('预约状态或规则已变化，请重新查询')

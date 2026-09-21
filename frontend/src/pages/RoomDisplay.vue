@@ -252,8 +252,7 @@ onUnmounted(() => {
   .v5 .primary-body .countdown strong,.v5 .primary-body .available-until{font-size:clamp(42px,5.4cqw,72px)}
   .v5 .primary-body .meeting-detail h2{font-size:clamp(22px,2.4cqw,32px)}
   .v5 :deep(.usage-card){display:contents}
-  .v5 :deep(.usage-heading){grid-column:2;grid-row:1;align-self:end}
-  .v5 :deep(.usage-heading h3),.v5 .agenda-header h3{font-size:clamp(22px,2.3cqw,30px);line-height:1.2;font-weight:600}
+    .v5 .agenda-header h3{font-size:clamp(22px,2.3cqw,30px);line-height:1.2;font-weight:600}
   .v5 :deep(.usage-body){grid-column:2;grid-row:2;align-self:stretch;min-height:0;height:100%}
   .v5 .agenda-header{grid-column:3;grid-row:1;align-self:end;margin:0;line-height:1.2}
   .v5 .agenda-body{grid-column:3;grid-row:2;align-self:stretch;min-height:0}

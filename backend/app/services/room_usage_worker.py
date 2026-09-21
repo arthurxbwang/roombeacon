@@ -7,7 +7,6 @@ import structlog
 
 from ..connectors.feishu.room_release import FeishuRoomReleaseClient, ReleaseRejected
 from ..core.room_devices import room_cache
-from ..core.room_usage_auth import KEY
 from ..schemas.room_usage import Occurrence
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
 from .room_usage_health import covers_occurrence, healthy_terminal
@@ -35,7 +34,7 @@ async def upstream_events(client, room_id, occurrence):
 
 
 async def execute_release(store, client, room_id, record, policy, epoch):
-    if not acknowledged(record, datetime.now(UTC)):
+    if record.get('release_kind') == 'end' or not acknowledged(record, datetime.now(UTC)):
         return
     occurrence = Occurrence.model_validate(record['occurrence'])
     key = 'record:' + record['id']
@@ -53,16 +52,14 @@ async def execute_release(store, client, room_id, record, policy, epoch):
         else:
             now = datetime.now(UTC)
             terminal_ok = await healthy_terminal(store, room_id, now, record, policy)
-            actor_ok = record.get('release_kind') != 'end' or record.get('actor') == await store.cache.get(KEY + room_id)
-            safe = (await store.cache.get(LEASE) == epoch and terminal_ok and actor_ok
+            safe = (await store.cache.get(LEASE) == epoch and terminal_ok
                     and await policy_for(store, room_id) == policy and await write_allowed(store, policy, room_id)
                     and occurrence.start_time <= now < occurrence.end_time and acknowledged(record, now))
             # Revalidate cache as well: a room can be deleted or disabled during preflight.
             current = await fresh_target(room_id, now)
             if safe and current and current.identity(room_id) == record['id'] and acknowledged(record, datetime.now(UTC)):
                 sent = True
-                await client.release(room_id, occurrence,
-                                     'ENDED_BEFORE_DUE' if record.get('release_kind') == 'end' else 'NOT_CHECK_IN')
+                await client.release(room_id, occurrence, 'NOT_CHECK_IN')
                 remaining = await read_after_release(store.cache, client, room_id, occurrence)
                 # A shortened or otherwise transformed instance cannot prove release; leave it for review.
                 same_uid = any(e.uid == occurrence.uid and e.start_time < occurrence.end_time
@@ -128,13 +125,16 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
         if old['epoch'] != epoch or now.timestamp() - old.get('claimed_at', 0) > 30:
             await store.cas(key, old, {**old, 'state': 'uncertain', 'reason': 'worker_restarted'}, room_id)
         return
-    if old['state'] not in {'pending', 'waiting', 'checking', 'end_requested'}:
+    if old['state'] == 'end_requested' or (old['state'] == 'checking' and old.get('release_kind') == 'end'):
+        await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'early_end_disabled'}, room_id)
+        return
+    if old['state'] not in {'pending', 'waiting', 'checking'}:
         return
     continuous = old['epoch'] == epoch and 0 <= now.timestamp() - old['last_seen'] < 45
     if not continuous or not healthy or old['policy_revision'] != policy['revision']:
         await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'monitoring_interrupted'}, room_id)
         return
-    if old['state'] in {'waiting', 'checking', 'end_requested'}:
+    if old['state'] in {'waiting', 'checking'}:
         if not old['verified'] or not await write_allowed(store, policy, room_id):
             await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'release_not_enabled'}, room_id)
             return
@@ -146,16 +146,16 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
             else:
                 await store.cas(key, old, {**old, 'last_seen': now.timestamp()}, room_id, policy=policy, action='monitor')
             return
-        if old['state'] == 'end_requested' or now >= datetime.fromisoformat(old['release_at']):
+        if now >= datetime.fromisoformat(old['release_at']):
             check = {**old, 'state': 'checking', 'reason': 'terminal_check', 'challenge_id': secrets.token_hex(16),
                      'challenge_started': now.timestamp(), 'challenge_expires': now.timestamp() + 15,
                      'ack_at': None, 'last_seen': now.timestamp(),
-                     'release_kind': 'end' if old['state'] == 'end_requested' else 'no_show'}
+                     'release_kind': 'no_show'}
             await store.cas(key, old, check, room_id, policy=policy)
         else:
             await store.cas(key, old, {**old, 'last_seen': now.timestamp()}, room_id, policy=policy, action='monitor')
         return
-    if old['state'] == 'end_requested' or now >= deadline:
+    if now >= deadline:
         if policy['mode'] == 'observe' and old['state'] == 'pending':
             await store.cas(key, old, {**old, 'state': 'observed', 'reason': 'would_release'}, room_id, policy=policy)
         elif old['verified'] and await write_allowed(store, policy, room_id):

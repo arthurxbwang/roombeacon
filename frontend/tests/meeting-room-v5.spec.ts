@@ -43,7 +43,7 @@ test('V5 观察确认、刷新恢复且保留 V4 默认与灯控', async ({ page
   await expect(page.locator('.door')).toHaveClass(/v5/)
   await expect(page.getByText('观察模式 · 仅记录，不自动释放')).toBeVisible()
   await expect(page.locator('.door')).toHaveAttribute('data-terminal-state', 'busy')
-  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await page.getByRole('button', { name: '签到', exact: true }).click()
   await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
   await page.reload()
   await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
@@ -62,7 +62,7 @@ test('旧服务器和功能关闭时 V5 保持预约展示', async ({ page }) =>
   await page.goto('/room-display.html?version=v5')
   await expect(page.getByText('当前服务器尚未支持 V5，预约展示不受影响')).toBeVisible()
   await expect(page.locator('.status-text')).toHaveText('使用中')
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
 })
 
 test('凭证撤销只清除操作绑定，不清除现有展示绑定', async ({ page }) => {
@@ -84,31 +84,33 @@ test('确认失败不得显示成功；连续点击不重复发送', async ({ pa
     await route.fulfill({ status: 502, json: {} })
   })
   await page.goto('/room-display.html?version=v5')
-  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await page.getByRole('button', { name: '签到', exact: true }).click()
   await expect(page.getByText('操作结果待核实，请等待重新同步')).toBeVisible()
   await expect(page.getByText('已确认使用', { exact: true })).toHaveCount(0)
   expect(count).toBe(1)
 })
 
-test('提前结束必须再次确认，取消不提交', async ({ page }) => {
+test('旧接口允许提前结束时页面也不提供入口，签到仍可用', async ({ page }, testInfo) => {
   await display(page)
   const usage = fixture()
   usage.policy.mode = 'auto'; usage.paused = false; usage.can_end = true; usage.record.verified = true
-  let count = 0
+  let ends = 0
   await mockUsage(page, usage)
-  await page.route('**/api/meeting-rooms/usage/end', route => {
-    count++; usage.record.state = 'end_requested'; usage.can_end = false; usage.can_confirm = false
+  await page.route('**/api/meeting-rooms/usage/end', route => { ends++; return route.fulfill({ status: 403 }) })
+  await page.route('**/api/meeting-rooms/usage/confirm', route => {
+    usage.record.state = 'confirmed'; usage.can_confirm = false
     return route.fulfill({ json: { data: usage } })
   })
   await page.goto('/room-display.html?version=v5')
-  await page.getByRole('button', { name: '提前结束', exact: true }).click()
-  await expect(page.getByRole('group', { name: '确认提前结束' })).toContainText('IT灯塔-Test · 模拟')
-  await page.getByRole('button', { name: '取消', exact: true }).click()
-  expect(count).toBe(0)
-  await page.getByRole('button', { name: '提前结束', exact: true }).click()
-  await page.getByRole('button', { name: '确认释放本次预约' }).click()
-  await expect(page.getByText('正在安排提前结束', { exact: true })).toBeVisible()
-  expect(count).toBe(1)
+  await expect(page.getByRole('button', { name: /提前结束|释放本次预约/ })).toHaveCount(0)
+  await expect(page.getByText('签到与释放', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('确认结果由 RoomBeacon 记录')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toBeEnabled()
+  await page.screenshot({ path: testInfo.outputPath('v5-checkin-pill.png') })
+  await page.getByRole('button', { name: '签到', exact: true }).click()
+  await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /提前结束|释放本次预约/ })).toHaveCount(0)
+  expect(ends).toBe(0)
 })
 
 test('过期状态不能确认；不接受其他房间操作状态', async ({ page }) => {
@@ -117,7 +119,7 @@ test('过期状态不能确认；不接受其他房间操作状态', async ({ pa
   await mockUsage(page, usage)
   await page.goto('/room-display.html?version=v5')
   await expect(page.getByText('确认状态待同步', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
   usage.room_id = 'omm_other'; usage.valid_until = '2026-09-20T08:30:00Z'
   await page.reload()
   await expect(page.getByText('操作结果待核实，请等待重新同步')).toBeVisible()
@@ -147,7 +149,7 @@ test('主控 V5 预览不触发操作或改变 V4 偏好', async ({ page }) => {
   await page.getByRole('button', { name: '预览门牌' }).click()
   await page.getByLabel('门牌版本').selectOption('v5')
   await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
   expect(await page.evaluate(() => localStorage.getItem('argus_room_version'))).toBe('v4')
   expect(operations).toBe(0)
 })
@@ -192,7 +194,7 @@ test('确认失败后查询恢复与刷新也不能重新上报可释放', async
   })
   await page.route('**/api/meeting-rooms/usage/confirm', route => route.abort())
   await page.goto('/room-display.html?version=v5')
-  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await page.getByRole('button', { name: '签到', exact: true }).click()
   await expect(page.getByText('操作结果待核实，请等待重新同步')).toBeVisible()
   expect(reports).toContain('submitting')
   reports.length = 0
@@ -208,7 +210,7 @@ test('待释放可补确认，发送前核验由当前页面回复', async ({ pa
   await mockUsage(page, usage)
   await page.goto('/room-display.html?version=v5')
   await expect(page.getByText('尚未确认 · 即将释放', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toBeEnabled()
   usage.record.state = 'checking'; usage.can_confirm = false
   let ack = ''
   await page.route('**/api/meeting-rooms/usage/heartbeat', route => {
@@ -217,7 +219,7 @@ test('待释放可补确认，发送前核验由当前页面回复', async ({ pa
   })
   await page.reload()
   await expect.poll(() => ack).toBe('b'.repeat(32))
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
 })
 
 test('V5 官方方案不提供操作；V4 遇到 V5 房间提示正确入口', async ({ page }) => {
@@ -229,7 +231,7 @@ test('V5 官方方案不提供操作；V4 遇到 V5 房间提示正确入口', a
   await page.goto('/room-display.html?version=v5')
   await expect(page.getByText('本房间使用官方方案，请切换到 V4')).toBeVisible()
   expect(reports).toBe(0)
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
   await page.route('**/api/meeting-rooms/display', route => route.fulfill({ json: { data: {
     room: { room_id: 'omm_fixture', name: 'IT灯塔-Test', capacity: 4, enabled: true }, events: [], usage_owner: 'v5',
     server_time: '2026-09-20T08:01:00Z', synced_at: '2026-09-20T08:01:00Z', valid_until: '2026-09-20T08:20:00Z',
@@ -246,7 +248,7 @@ test('日程查询短暂失败后仍保持本次预约保护', async ({ page }) 
   const usage = fixture()
   await mockUsage(page, usage)
   await page.goto('/room-display.html?version=v5')
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toBeEnabled()
   await page.route('**/api/meeting-rooms/display', route => route.fulfill({ status: 502, json: {} }))
   await page.clock.fastForward(15000)
   await expect(page.locator('.status-text')).toHaveText('状态暂不可确认')
@@ -280,12 +282,12 @@ for (const scenario of ['success', 'denied', 'failed'] as const) {
     await page.getByLabel('门牌版本').selectOption('v5')
     if (scenario === 'denied') {
       await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
-      await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
     } else {
       await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
       await expect(page.getByText('主控签到测试 · 仅记录确认；自动释放仍需平板在线')).toBeVisible()
       expect(confirmations).toBe(0)
-      await page.getByRole('button', { name: '确认使用', exact: true }).click()
+      await page.getByRole('button', { name: '签到', exact: true }).click()
       if (scenario === 'success') await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
       else {
         await expect(page.getByText('预约或规则已变化，请刷新后核对')).toBeVisible()
@@ -323,7 +325,7 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
   await page.getByRole('button', { name: '预览门牌', exact: true }).click()
   await page.getByLabel('门牌版本').selectOption('v5')
   await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
-  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await page.getByRole('button', { name: '签到', exact: true }).click()
   await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
   expect(confirmations).toBe(1)
   ended = true
@@ -332,7 +334,7 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
   await page.getByLabel('门牌版本').selectOption('v5')
   await expect(page.getByText('当前没有可签到的预约', { exact: true })).toBeVisible()
   await expect(page.getByText(/最近一次签到成功/)).toContainText('16:02')
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
   expect(confirmations).toBe(1)
 })
 
@@ -347,10 +349,10 @@ for (const height of [720, 800]) test(`V5 三列标题与内容下沿对齐 ${he
   await page.goto('/room-display.html?version=v5')
   await expect(page.getByText('自动释放已暂停', { exact: true })).toBeVisible()
   await expect(page.getByText('未在截止前确认，将按规则释放预约')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '确认使用', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
   const geometry = await page.evaluate(() => {
     const rect = (s: string) => document.querySelector(s)!.getBoundingClientRect()
-    const headers = ['.status-text', '.usage-heading', '.agenda-header'].map(s => rect(s).bottom)
+    const headers = ['.status-text', '.agenda-header'].map(s => rect(s).bottom)
     const panels = ['.primary-body', '.usage-body', '.agenda-body'].map(s => rect(s).bottom)
     return { headers: Math.max(...headers) - Math.min(...headers), panels: Math.max(...panels) - Math.min(...panels),
       overflow: ['.door', '.usage-body'].map(s => { const e = document.querySelector(s)!; return e.scrollHeight - e.clientHeight }) }
@@ -380,7 +382,7 @@ test('当前会议确认时也为下一场独立上报监控，确认只提交�
   await page.goto('/room-display.html?version=v5')
   await expect.poll(() => reports.length).toBeGreaterThan(0)
   expect(reports[0]).toMatchObject({ occurrence_id: id, monitored_occurrence_ids: [id, next], operation_state: 'ready' })
-  await page.getByRole('button', { name: '确认使用', exact: true }).click()
+  await page.getByRole('button', { name: '签到', exact: true }).click()
   await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
   expect(reports.some(r => r.operation_state === 'submitting' && r.monitored_occurrence_ids.includes(next))).toBe(true)
   expect(confirmed).toEqual([id])
