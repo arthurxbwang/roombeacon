@@ -17,6 +17,8 @@
 
 ## 部署与回退
 
-目标为现有独立 Control 10.0.24.208，发布代码从 GitHub codex/v5-control-release 获取。部署前要求没有活动监控／释放实例；备份 systemd、Nginx、开关及凭证指纹，保留策略、记录与全部绑定。准确 SHA、实机和全房间核验待部署后补充。
+目标为现有独立 Control 10.0.24.208，发布代码从 GitHub codex/v5-control-release 获取。部署前要求没有活动监控／释放实例；备份 systemd、Nginx、开关及凭证指纹，保留策略、记录与全部绑定。前后端均已发布 `da6315263fde70f4351a26f64d40a9edb17823a6`，备份 `/var/backups/roombeacon-control/20260921-da63152-checkin`。核验 343 间房，342 间仍为 official/off，只有 IT灯塔-Test 获写入资格；所有房间 can_end=false，35 条既有记录、策略和设备凭证指纹均保持。全局暂停恢复为 false。
+
+真实 Control 接口以有效操作凭证调用旧 end 返回 403，无凭证返回 401；调用前后当前记录未变化。指定 BX68（10.0.68.146）重新加载页面，实际空闲画面已移除旧标题与冗余说明；实机无测试预约，胶囊按钮外观与签到提交由隔离模拟回归验证，本轮不新建或释放真实会议。平板重载后的旧会话保护窗口结束后已正常显示，服务器确认最新心跳 ready、距检查 0.54 秒。
 
 回退时恢复部署备份内 systemd drop-in 和 Nginx 配置，nginx -t 后 daemon-reload、重启 room-display 并 reload nginx。保留全局释放暂停直到核验完成；回退旧版本会重新开放提前结束，因此仅故障恢复使用。
