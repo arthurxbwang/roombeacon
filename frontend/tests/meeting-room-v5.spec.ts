@@ -387,3 +387,14 @@ test('当前会议确认时也为下一场独立上报监控，确认只提交�
   expect(reports.some(r => r.operation_state === 'submitting' && r.monitored_occurrence_ids.includes(next))).toBe(true)
   expect(confirmed).toEqual([id])
 })
+
+test('自动核验待完成时允许签到，但不宣称会自动释放', async ({ page }) => {
+  await display(page)
+  const usage = { ...fixture(), auto_verify_enabled: true }
+  usage.policy.mode = 'auto'; usage.paused = false
+  await mockUsage(page, usage)
+  await page.goto('/room-display.html?version=v5')
+  await expect(page.getByText('正在核验预约，暂不自动释放')).toBeVisible()
+  await expect(page.getByText('未签到将按规则释放预约')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toBeEnabled()
+})

@@ -78,6 +78,9 @@ async def view(store, room_id, now=None):
     now = now or datetime.now(UTC)
     policy = await policy_for(store, room_id)
     result = {'room_id': room_id, 'enabled': settings.ROOM_DISPLAY_USAGE_ENABLED,
+              'auto_verify_enabled': bool(room_writes_enabled(room_id)
+                                          and settings.ROOM_DISPLAY_USAGE_AUTO_VERIFY_CALENDARS.get(room_id)
+                                          and policy.get('owner') == 'v5' and policy['mode'] == 'auto'),
               'policy': policy, 'paused': await store.get('paused', True),
               'server_time': now.isoformat(), 'valid_until': (now + timedelta(seconds=30)).isoformat(),
               'record': None, 'can_confirm': False, 'can_end': False}

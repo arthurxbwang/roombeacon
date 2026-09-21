@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     ROOM_DISPLAY_USAGE_ENABLED: bool = False
     ROOM_DISPLAY_USAGE_WRITES_ENABLED: bool = False
     ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS: set[str] = Field(default_factory=set)
+    # Exact room -> readable calendar mapping. Empty keeps the manual pilot behavior.
+    ROOM_DISPLAY_USAGE_AUTO_VERIFY_CALENDARS: dict[str, str] = Field(default_factory=dict)
 
 
 settings = Settings()

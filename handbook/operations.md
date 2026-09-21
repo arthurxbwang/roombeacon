@@ -1,5 +1,7 @@
 # RoomBeacon 运维与仓库切换
 
+> 改期自动核验尚未部署。先完成日历权限与专用日历配置，再从准确GitHub SHA发布；启用和回退不能重置已保护记录。见[操作与权限清单](../docs/v5-reschedule-autoverify.md)。
+
 > 2026-09-21 当前后端374db89、静态da63152，提前结束已关闭。连续三场非重复验收通过，只有IT灯塔-Test获V5写入资格；新预约仍需逐实例登记。见[验收记录](../docs/v5-retest-acceptance.md)，回退沿用[504修复记录](../docs/v5-three-bookings-verification.md)所列备份。下方旧版本为历史记录。
 
 > 当前Control已按用户授权更新，后端c665859、静态85a3cf2；仅IT灯塔-Test开放V5写入，其余342间官方。两种非重复预约释放均已实测，准确SHA与回退见[四场记录](../docs/v5-four-bookings-verification.md)。新增预约仍需在Control→V5规则逐实例登记非重复；房间开关不自动批准未知未来预约。下方迁移说明为历史基线。

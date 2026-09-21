@@ -120,7 +120,7 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <p v-else-if="record?.state === 'confirmed'" class="notice">本场预约已保留</p>
       <p v-else-if="state?.policy.mode === 'observe'" class="notice">观察模式 · 仅记录，不自动释放</p>
       <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
-      <p v-else-if="record && !record.verified" class="notice">自动释放待管理员登记本次预约</p>
+      <p v-else-if="record && !record.verified" class="notice">{{ state?.auto_verify_enabled ? '正在核验预约，暂不自动释放' : '自动释放待管理员登记本次预约' }}</p>
       <p v-else-if="record" class="notice">未签到将按规则释放预约</p>
       <p v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
       <p v-if="record?.state === 'waiting' && record.release_at">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>

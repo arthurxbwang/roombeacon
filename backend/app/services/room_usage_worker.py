@@ -9,9 +9,10 @@ from ..connectors.feishu.room_release import FeishuRoomReleaseClient, ReleaseRej
 from ..core.room_devices import room_cache
 from ..schemas.room_usage import Occurrence
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
+from .room_usage_autoverify import auto_release_target, maybe_auto_verify
 from .room_usage_health import covers_occurrence, healthy_terminal
 from .room_usage_readback import read_after_release
-from .room_usage_recurrence import release_target
+from .room_usage_recurrence import is_recurring, release_target
 from .room_usage_store import PREFIX, UsageStore
 
 logger = structlog.get_logger()
@@ -59,7 +60,19 @@ async def execute_release(store, client, room_id, record, policy, epoch):
             # Revalidate cache as well: a room can be deleted or disabled during preflight.
             current = await fresh_target(room_id, now)
             if safe and current and current.identity(room_id) == record['id'] and acknowledged(record, datetime.now(UTC)):
-                target = release_target(record, occurrence, events)
+                if record.get('verification_source') == 'calendar':
+                    target = await auto_release_target(client, room_id, record, occurrence)
+                    if target.original_time == 0 and is_recurring(occurrence, events):
+                        raise ValueError('Calendar and room recurrence evidence conflict')
+                    at = datetime.now(UTC)
+                    current = await fresh_target(room_id, at)
+                    if (not acknowledged(record, at) or not current or current.identity(room_id) != record['id']
+                            or await store.cache.get(LEASE) != epoch or await policy_for(store, room_id) != policy
+                            or not await write_allowed(store, policy, room_id)
+                            or not await healthy_terminal(store, room_id, at, record, policy)):
+                        raise ValueError('Release authorization expired during calendar verification')
+                else:
+                    target = release_target(record, occurrence, events)
                 later = [e for e in events if e.uid == occurrence.uid and e.start_time >= occurrence.end_time]
                 sent = True
                 await client.release(room_id, target, 'NOT_CHECK_IN')
@@ -158,6 +171,8 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
             await store.cas(key, old, check, room_id, policy=policy)
         else:
             await store.cas(key, old, {**old, 'last_seen': now.timestamp()}, room_id, policy=policy, action='monitor')
+        return
+    if now < deadline and await maybe_auto_verify(store, client, room_id, old, policy, occurrence, now):
         return
     if now >= deadline:
         if policy['mode'] == 'observe' and old['state'] == 'pending':
