@@ -218,7 +218,8 @@ async def test_release_success_is_verified_and_single_attempt(setup_usage, monke
     client.release.assert_awaited_once()
     assert client.release.call_args.args[2] == 'NOT_CHECK_IN'
     saved = RoomSchedule.model_validate_json(await store.cache.get('rooms:snapshot:omm_one'))
-    assert saved.valid_until <= datetime.now(UTC)
+    assert saved.valid_until > datetime.now(UTC)
+    assert saved.events == []
 
 
 @pytest.mark.asyncio

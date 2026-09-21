@@ -11,6 +11,7 @@ from ..core.room_usage_auth import KEY
 from ..schemas.room_usage import Occurrence
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
 from .room_usage_health import covers_occurrence, healthy_terminal
+from .room_usage_readback import read_after_release
 from .room_usage_store import PREFIX, UsageStore
 
 logger = structlog.get_logger()
@@ -62,22 +63,12 @@ async def execute_release(store, client, room_id, record, policy, epoch):
                 sent = True
                 await client.release(room_id, occurrence,
                                      'ENDED_BEFORE_DUE' if record.get('release_kind') == 'end' else 'NOT_CHECK_IN')
-                remaining = await upstream_events(client, room_id, occurrence)
+                remaining = await read_after_release(store.cache, client, room_id, occurrence)
                 # A shortened or otherwise transformed instance cannot prove release; leave it for review.
                 same_uid = any(e.uid == occurrence.uid and e.start_time < occurrence.end_time
                                and e.end_time > now for e in remaining)
                 final = {**claimed, 'state': 'uncertain' if same_uid else 'released',
                          'reason': 'verify_pending' if same_uid else 'verified_release'}
-                # Expire the existing snapshot's business validity without fabricating free time.
-                raw = await store.cache.get('rooms:snapshot:' + room_id)
-                if raw:
-                    import json
-                    snapshot = json.loads(raw)
-                    snapshot['valid_until'] = now.isoformat()
-                    # Do not overwrite a snapshot refreshed concurrently by the collector.
-                    await store.cache.eval(
-                        "if redis.call('get',KEYS[1]) == ARGV[1] then redis.call('set',KEYS[1],ARGV[2],'KEEPTTL'); return 1 end return 0",
-                        1, 'rooms:snapshot:' + room_id, raw, json.dumps(snapshot))
     except ReleaseRejected as exc:
         final = {**claimed, 'state': 'failed', 'reason': 'feishu_rejected', 'error_code': exc.code}
     except Exception as exc:  # noqa: BLE001 — log type only; preserve ambiguous write state.

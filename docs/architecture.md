@@ -45,6 +45,6 @@ Python 3.13、FastAPI、Pydantic、httpx、Redis、Astral、qrcode；Vue 3、Typ
 
 保留 rooms:* 键、设备令牌格式 `room:omm_ID:random`、ROOM_DISPLAY_* 配置及 argus_room_display/argus_room_version/argus_room_control 浏览器键。迁移不自动换域名；换 origin 仍需重新绑定。
 
-快照保留 7 天不等于有效 7 天。有效时间约为采集周期+60秒，且不越过上海午夜；前端请求失败也立即转未知。终端每 15 秒读取，时钟每秒更新，使用服务器时间加单调时钟。
+快照保留 7 天不等于有效 7 天。有效时间约为采集周期+60秒，且不越过实际查询终点（上海后天零点）；已覆盖下一天的数据不在中间零点提前失效；前端请求失败也立即转未知。终端每 15 秒读取，时钟每秒更新，使用服务器时间加单调时钟。
 
 生产运行名暂保留历史 app.room_display_main 和 room-display；新安装模板可用 RoomBeacon 路径。配置不再要求 Argus SECRET_KEY/DATABASE_URL，不再引入 Argus 用户 JWT；旧 service.env 多余字段忽略。

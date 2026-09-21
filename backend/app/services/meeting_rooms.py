@@ -13,6 +13,7 @@ from ..core.exceptions import ExternalAPIError, NotFoundError
 from ..core.room_devices import room_cache
 from ..schemas.meeting_room import Room, RoomEvent, RoomSchedule
 from .room_organizers import complete_organizers
+from .room_schedule_cache import save_snapshot
 
 logger = structlog.get_logger(__name__)
 ZONE = ZoneInfo("Asia/Shanghai")
@@ -96,7 +97,7 @@ async def refresh_batch(cache, client, rooms: list[Room], now: datetime, *,
             valid_until=min(now + timedelta(seconds=fresh_seconds), start + timedelta(days=2)),
             titles_available=titles_available,
         )
-        await cache.set(f"rooms:snapshot:{room.room_id}", schedule.model_dump_json(), ex=snapshot_ttl)
+        await save_snapshot(cache, schedule, snapshot_ttl)
     return len(parsed)
 
 
