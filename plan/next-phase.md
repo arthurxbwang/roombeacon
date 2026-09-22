@@ -12,13 +12,16 @@
 
 | 顺序 | 工作 | 完成条件 | GitHub |
 |---|---|---|---|
-| 1 | 会议联系人显示 | 普通会议与应用创建会议均有明确身份来源；不可读时不把服务身份误认成员工 | [1: 会议联系人统一显示与身份来源核验](https://github.com/arthurxbwang/roombeacon/issues/1) |
-| 2 | 日历自动核验和改期联调 | 专用日历可读、映射明确、实例证据完整；改期重新签到且只影响当次 | [2: 专用日历授权、自动核验与改期联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
-| 3 | V5 剩余验收与长稳 | 更新 B01—B12、C02 的逐项证据，区分隔离测试与真实结果 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
+| 1 | 日历自动核验和改期联调 | 专用日历可读、映射明确、实例证据完整；改期重新签到且只影响当次 | [2: 专用日历授权、自动核验与改期联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
+| 2 | V5 剩余验收与长稳 | 更新 B01—B12、C02 的逐项证据，区分隔离测试与真实结果 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
 | 并行排查 | 504 根因与诊断 | 记录脱敏追踪号和耗时，持续失败时维持未知及保护状态 | [4: 飞书忙闲 504 脱敏诊断与故障链路闭环](https://github.com/arthurxbwang/roombeacon/issues/4) |
 | 独立硬件阶段 | RS485 人体存在传感器 | 先只读接入和三态显示，串口错误为未知，不直接授权签到或释放 | [5: DP72_DRT RS485 人体存在传感器只读接入](https://github.com/arthurxbwang/roombeacon/issues/5) |
 
-顺序 1 和 2 先准备准确日历标识及应用读取范围。权限、凭证或测试预约未准备好时，Issue 写明缺少的具体条件，继续可独立完成的代码和隔离验证。传感器阶段须先落实供电、接线和样机，再确定实施时间。
+日历自动核验先准备准确日历标识及应用读取范围。权限、凭证或测试预约未准备好时，Issue 写明缺少的具体条件，继续可独立完成的代码和隔离验证。传感器阶段须先落实供电、接线和样机，再确定实施时间。
+
+## 已归档的非阻塞事项
+
+[Issue #1](https://github.com/arthurxbwang/roombeacon/issues/1) 按用户决定以 `not_planned` 关闭：保留“联系人优先 → 可确认的组织者兜底 → 信息不可见”规则，接受当前部分应用预约姓名不可读，暂不实施联系人采集或扩权。关闭不代表实现或验收通过，也不阻塞 Issue #2/#3。详见[分析归档与重开条件](../docs/archive/issue-1-meeting-contact-2026-09-22.md)，后续不要重复启动同一轮分析。
 
 ## GitHub 开发方式
 
