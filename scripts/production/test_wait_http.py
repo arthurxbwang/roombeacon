@@ -24,7 +24,7 @@ sys.exit(0 if n>=int(os.environ['PROBE_READY']) else 22)
     env = os.environ | {'PATH': str(bindir) + ':' + os.environ['PATH'], 'PROBE_COUNTER': str(counter),
                        'PROBE_READY': str(success_after)}
     result = subprocess.run(['bash', str(Path(__file__).with_name('wait-http.sh')), 'https://example.test/api'],
-                            env=env, capture_output=True, text=True, timeout=10)
+                            env=env, capture_output=True, text=True, timeout=10, check=False)
     return result.returncode, int(counter.read_text())
 
 
