@@ -19,7 +19,7 @@
 
 ## 已实现
 
-- `/?version=v5`：确认使用、确认截止时间、观察状态、提前结束二次确认、独立操作凭证绑定。保留预约、时间轴及侧灯状态协议。
+- `/?version=v5`：签到、确认截止时间、观察状态、独立操作凭证绑定；门牌不提供提前结束。保留预约、时间轴及侧灯状态协议。
 - 中控「V5 规则」：关闭／观察／自动、提前确认及宽限分钟数、原生策略与接口核验标记、单次非重复预约登记、全局暂停及审计。
 - 服务器持久确认、原子状态转换、单工作者租约、设备心跳、单次飞书写入与结果复核。
 - 旧默认仍为 V4；V5 主控预览不可执行确认或释放，也不修改既有版本偏好。
@@ -28,7 +28,7 @@
 - 健康协议 2：页面每 10 秒主动 POST，包含页面会话、目标实例、策略版本和操作状态；GET 只读。会话 ID 保存在 sessionStorage，刷新沿用；新页面产生新会话，旧会话 45 秒有效期内拒绝抢占，切换会话的当前实例受保护。
 - 确认前先上报提交状态；提交失败或日程查询失败保留本次未核实标记，跨刷新继续上报异常。服务器收到异常后将实例置为 blocked，普通状态恢复不会恢复本次自动释放；确认本身成功保存后可显示已确认。
 - 正常截止后进入 waiting，默认再等待 60 秒（可设 30–300 秒），允许补确认。之后进入 checking，当前页面需在 15 秒内回复绑定实例和任期的一次核验标识。核验超时、会话不匹配、上游或缓存读取拖过期限均不发起释放。
-- 提前结束保留二次确认，同样经过页面核验；V5 确认不修改飞书原生签到状态。
+- 门牌不再提供提前结束；旧认证接口固定返回 403。V5 确认不修改飞书原生签到状态。
 
 ## 隔离验证
 
@@ -53,6 +53,10 @@
 7. 真实释放测试仅针对明确允许取消的测试预约。先核对该房间原生签到规则，验证公开 API 的普通单次预约释放及通知效果，再允许勾选对应验证项。
 8. 真正发送飞书写请求还需：在 `ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS` JSON 数组中列出准确 room_id（默认空数组全部禁止，Control 无权修改此服务器白名单）、开启 `ROOM_DISPLAY_USAGE_WRITES_ENABLED`、房间选自动、两个验证项均成立、当前实例勾选「非重复且允许释放」、解除全局暂停。单纯进入 V5 或签发凭证不会启用自动释放。
 
+## 单房间释放白名单
+
+`ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS` 默认空数组；只有精确匹配的房间才有写入资格，主控不能扩大服务器白名单。即使其他房间误配置为自动模式，也不能释放；任务处理与发送前均重新校验。提前结束已全局关闭，不因白名单放行。
+
 ## 失败与回退
 
 - `blocked`：当前实例自动操作已暂停，排查监控、凭证、策略或登记条件。不要直接改 Redis 强行重置为 pending。
@@ -71,13 +75,13 @@
 | GET /api/meeting-rooms/usage | V5 操作凭证 | 只读查询确认状态及 target_id，不刷新终端心跳 |
 | POST /api/meeting-rooms/usage/heartbeat | V5 操作凭证 | 协议 2 主动健康上报及核验回复，校验页面会话、实例、策略和时效 |
 | POST /api/meeting-rooms/usage/confirm | V5 操作凭证 | 确认当前实例，重复确认不重复写业务 |
-| POST /api/meeting-rooms/usage/end | V5 操作凭证 | 提交提前结束命令，由后台核验执行 |
+| POST /api/meeting-rooms/usage/end | V5 操作凭证 | 兼容保留路径，认证后固定拒绝（403） |
 | GET /api/room-control/usage/{room_id} | 主控凭证 | 规则、当前实例、房间及全局审计 |
 | PUT /api/room-control/usage/{room_id}/policy | 主控凭证 | 更新房间规则并生成新版本 |
 | POST /api/room-control/usage/{room_id}/verify | 主控凭证 | 登记明确允许释放的非重复实例 |
 | PUT /api/room-control/usage-pause | 主控凭证 | 设置全局暂停开关，默认暂停 |
 
-确认与结束携带 occurrence_id、policy_revision、session_id；旧客户端缺少页面会话不能执行操作。心跳携带 protocol=2、session_id、occurrence_id（无目标时为空）、policy_revision、operation_state（ready/submitting/uncertain）、可选 challenge_id。凭证仍取自 Authorization，不放 URL。实例标识结合 room_id、uid、original_time、开始与结束时间，不把日程改期当作同一次确认。状态查询代替另建操作结果接口；释放成功后仍以刷新后的预约数据判断房间是否空闲。
+确认携带 occurrence_id、policy_revision、session_id；旧客户端缺少页面会话不能执行操作，提前结束接口固定拒绝。心跳携带 protocol=2、session_id、occurrence_id（无目标时为空）、policy_revision、operation_state（ready/submitting/uncertain）、可选 challenge_id。凭证仍取自 Authorization，不放 URL。实例标识结合 room_id、uid、original_time、开始与结束时间，不把日程改期当作同一次确认。状态查询代替另建操作结果接口；释放成功后仍以刷新后的预约数据判断房间是否空闲。
 
 ## 本轮未验收
 
