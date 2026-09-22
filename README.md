@@ -1,6 +1,6 @@
 # RoomBeacon · 会议灯塔
 
-**V6 集中管理已进入发布：飞书登录、管理员/只读权限、设备自动纳管、短码核对与远程配置。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
+**V6 集中管理已上线：飞书登录、管理员/只读权限、设备自动纳管、短码核对与远程配置。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
 
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。
 

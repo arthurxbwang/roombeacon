@@ -11,8 +11,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.NetworkInterface
 import java.net.SocketException
+import java.io.File
+import java.io.IOException
 
 object DeviceMetadata {
+    private fun readableMac(name: String): String {
+        if (name !in setOf("eth0", "wlan0") || !RoomLight.supports(Build.MODEL, Build.DISPLAY)) return ""
+        return try {
+            File("/sys/class/net/$name/address").readText().trim().takeIf { ManagedPolicy.validMac(it) } ?: ""
+        } catch (_: IOException) { "" } catch (_: SecurityException) { "" }
+    }
     @SuppressLint("MissingPermission", "HardwareIds")
     fun collect(context: Context): JSONObject {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
@@ -33,8 +41,9 @@ object DeviceMetadata {
         val interfaces = JSONArray()
         try {
             NetworkInterface.getNetworkInterfaces()?.toList()?.filter { !it.isLoopback }?.take(12)?.forEach { nic ->
-                val mac = try { nic.hardwareAddress?.joinToString(":") { "%02X".format(it.toInt() and 255) } ?: "" }
+                val observedMac = try { nic.hardwareAddress?.joinToString(":") { "%02X".format(it.toInt() and 255) } ?: "" }
                     catch (_: SocketException) { "" }
+                val mac = observedMac.takeIf { ManagedPolicy.validMac(it) } ?: readableMac(nic.name)
                 val addresses = nic.inetAddresses.toList().filter { !it.isLoopbackAddress && !it.isLinkLocalAddress }
                     .take(8).map { it.hostAddress ?: "" }
                 interfaces.put(JSONObject().put("name", nic.name.take(32)).put("mac", mac)
@@ -42,6 +51,12 @@ object DeviceMetadata {
             }
         } catch (_: SocketException) {
             // No guessed identifier: the screen reports metadata as unavailable.
+        }
+        for (name in listOf("eth0", "wlan0")) {
+            val exists = (0 until interfaces.length()).any { interfaces.getJSONObject(it).optString("name") == name }
+            val mac = readableMac(name)
+            if (!exists && mac.isNotEmpty() && interfaces.length() < 12) interfaces.put(JSONObject()
+                .put("name", name).put("mac", mac).put("addresses", JSONArray()))
         }
         if (factoryMac.isNotEmpty() && interfaces.length() < 12) interfaces.put(JSONObject()
             .put("name", "wifi-factory").put("mac", factoryMac).put("addresses", JSONArray()))

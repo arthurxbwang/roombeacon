@@ -19,7 +19,7 @@
 |---|---|---|
 | 全屏及维护入口 | [MainActivity.kt](../../android/app/src/main/java/com/roombeacon/shell/MainActivity.kt)：沉浸式显示、维护 PIN；Device Owner 条件满足时进入锁定任务 | 系统导航栏、通知栏控制；不等于自动获得 Device Owner |
 | 页面异常恢复 | [WebShell.kt](../../android/app/src/main/java/com/roombeacon/shell/WebShell.kt)：加载超时、页面心跳、渲染进程退出恢复 | 厂家进程守护；不能替代页面及服务器业务健康检查 |
-| 上电启动 | [AndroidManifest.xml](../../android/app/src/main/AndroidManifest.xml)：HOME 别名默认禁用，由维护流程启用并选择桌面 | 固件自启、默认桌面设置，尚未调用 |
+| 上电启动 | [AndroidManifest.xml](../../android/app/src/main/AndroidManifest.xml)：V6 HOME 别名默认启用，由安装/厂商流程选择；原维护流程为历史实现 | V6 样机已核验固件 `persist.sys.openapp` 覆盖普通 HOME；真实恢复结果见 V6 发布记录 |
 | 侧灯 | [RoomLight.kt](../../android/app/src/main/java/com/roombeacon/shell/RoomLight.kt)：型号与固件白名单、sysfs 写入及读回 | 厂家 GPIO 接口；索引映射尚未确认 |
 | APK 升级、RS485 | 自动升级和传感器串口驱动均未实现 | 静默安装可后续评估；本摘要中的 GPIO 接口不能替代 RS485 驱动 |
 

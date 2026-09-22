@@ -1,22 +1,22 @@
 # RoomBeacon 当前状态
 
-更新：2026-09-22。本页是新任务的状态入口；详细历史保留在各次验证记录中。生产信息依据已保存的发布回执，本次整理没有重新部署或改变运行配置。
+更新：2026-09-22。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
 
 ## 版本与维护入口
 
 | 用途 | 标签 | 提交 |
 |---|---|---|
 | 完整源码整合基线 | `baseline-2026-09-22` | `15c1652dc8adf43adf1e7231689189c9d6349db1` |
-| 已记录的生产后端 | `production-backend-2026-09-22` | `3b0bf39cdfdb92e421882444615f8ab7bcb76c8c` |
-| 已记录的生产前端 | `production-frontend-2026-09-22` | `43d8b8f18d5569940cecce53217e7822459191e1` |
+| V6之前的生产后端 | `production-backend-2026-09-22` | `3b0bf39cdfdb92e421882444615f8ab7bcb76c8c` |
+| V6之前的生产前端 | `production-frontend-2026-09-22` | `43d8b8f18d5569940cecce53217e7822459191e1` |
 
 唯一维护仓库为 [arthurxbwang/roombeacon](https://github.com/arthurxbwang/roombeacon)，后续开发从最新 `main` 创建短期 `codex/` 分支。上述基线标签固定旧提交，后续文档或代码合并不移动标签。源码基线与生产前后端版本分别管理。
 
-生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。运行和回退依据[生产签到记录](production-v5-checkin-2026-09-22.md)。
+生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前前后端SHA为`9cd01a820e6d732611519a0f66eac0e3ddaa8528`；运行和回退依据[V6发布记录](production-v6-2026-09-22.md)。
 
 ## 已完成
 
-- Android WebView 外壳、型号灯控与恢复能力；当前已记录的 BX68 样机使用 APK 0.2.4-debug。
+- Android WebView 外壳、型号灯控与恢复能力；BX68 样机已升级 APK 0.6.1-debug。
 - V1—V5 页面及主控；提前结束已关闭，兼容接口认证后固定拒绝。
 - 当前生产仅 IT灯塔-Test 开启 V5 签到与受控释放，其余 342 间不扩大写入权限。未来预约不因房间开关而自动获得释放资格。
 - Caddy／Nginx 异常恢复已修复；接受 VM 层备份，指标由用户后续配置，证书续期由既定自动化负责。
@@ -26,7 +26,7 @@
 
 ## V6 新增交付
 
-用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)，具体部署和样机证据以发布记录为准。飞书应用回调由用户随后补齐。
+用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)，生产前后端已发布 `9cd01a8`，BX68自动纳管与配置回执通过；BX68误连旧SSID的问题经用户处理后，已确认开机自动恢复及回执3/3；旧样机仍因DNS/网络不可达待接入。具体证据见 [V6发布记录](production-v6-2026-09-22.md)。飞书应用回调由用户随后补齐。
 
 ## 已接受的联系人限制
 
