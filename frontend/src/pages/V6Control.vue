@@ -7,6 +7,7 @@ import {defaultConfig,management,managementError,networkLabel,statusLabel,type D
 import './v6Control.css'
 const abort=new AbortController()
 const user=ref<Manager|null>(null), error=ref(''), info=ref(''), busy=ref(false), checking=ref(true)
+const awaitingPermission=ref(false)
 const devices=ref<ManagedDevice[]>([]), rooms=ref<Room[]>([]), selected=ref<ManagedDevice|null>(null)
 const search=ref(''), filter=ref('all'), tab=ref('devices'), feishu=ref(false), preview=ref('')
 const users=ref<{subject:string;name:string;role:string}[]>([]), logs=ref<{id:number;time:number;actor:string;action:string;target:string}[]>([])
@@ -35,15 +36,16 @@ async function load() {
   }catch(e){if(!axios.isCancel(e))error.value=managementError(e)}finally{loading=false}
 }
 async function identify() {
+  awaitingPermission.value=false
   try {
     user.value=await management<Manager>('GET','/api/v6/auth/me',abort.signal)
     axios.defaults.headers.common['X-RB-CSRF']=user.value.csrf
     await load()
-  }catch(e){if(axios.isAxiosError(e)&&e.response?.status===403)error.value='飞书身份已识别，等待管理员授予管理员或只读权限。授权后请重新登录。'}
+  }catch(e){if(axios.isAxiosError(e)&&e.response?.status===403){awaitingPermission.value=true;error.value='飞书身份已识别，等待管理员授予管理员或只读权限。授权后请重新登录。'}}
   finally{checking.value=false}
 }
 async function logout(){
-  try{await management('POST','/api/v6/auth/logout',abort.signal,{}, {'X-RB-Logout':'1'});user.value=null;devices.value=[];preview.value='';error.value='';delete axios.defaults.headers.common['X-RB-CSRF']}
+  try{await management('POST','/api/v6/auth/logout',abort.signal,{}, {'X-RB-Logout':'1'});user.value=null;awaitingPermission.value=false;devices.value=[];preview.value='';error.value='';delete axios.defaults.headers.common['X-RB-CSRF']}
   catch(e){error.value=managementError(e)}
 }
 async function operate(action:()=>Promise<unknown>){
@@ -69,7 +71,7 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);delete axios.defaults.header
   <div v-if="preview && user" class="v6-preview"><nav><button @click="preview=''">返回 V6 后台</button><span>会议室预览 · {{ roomName(preview) }}</span></nav><RoomDisplay :key="preview" :control-room="preview" control-token="@session" display-version="v6" /></div>
   <main v-else class="v6-control">
     <header class="v6-top"><a class="v6-brand" href="/control"><span class="v6-logo">B</span><div>RoomBeacon <b>V6</b><small>会议灯塔 · 集中管理</small></div></a><div v-if="user" class="v6-account"><span>{{ user.name }} · {{ editable ? '管理员' : '只读' }}</span><button class="secondary" @click="logout">退出登录</button></div></header>
-    <section v-if="!user" class="v6-login"><p class="v6-eyebrow">ROOMBEACON CONTROL</p><h1>飞书登录会议灯塔</h1><p class="v6-muted">使用企业飞书账号，统一管理会议门牌。</p><p v-if="checking">正在检查登录状态…</p><template v-else><a v-if="feishu" class="v6-primary-link" href="/api/v6/auth/feishu/start">飞书扫码 / 快捷登录</a><p v-else class="v6-muted">飞书登录暂不可用，请联系管理员。</p><p v-if="feishu" class="v6-muted v6-login-hint">在飞书授权页扫码，或使用已登录的飞书账号快捷进入。</p><button class="v6-text" @click="logout">清除当前登录状态</button></template><p class="v6-error" role="alert">{{ error }}</p></section>
+    <section v-if="!user" class="v6-login"><p class="v6-eyebrow">ROOMBEACON CONTROL</p><h1>飞书登录会议灯塔</h1><p class="v6-muted">使用企业飞书账号，统一管理会议门牌。</p><p v-if="checking">正在检查登录状态…</p><template v-else><a v-if="feishu" class="v6-primary-link" href="/api/v6/auth/feishu/start">飞书扫码 / 快捷登录</a><p v-else class="v6-muted">飞书登录暂不可用，请联系管理员。</p><p v-if="feishu" class="v6-muted v6-login-hint">在飞书授权页扫码，或使用已登录的飞书账号快捷进入。</p><button v-if="awaitingPermission" class="v6-text" @click="logout">退出登录</button></template><p class="v6-error" role="alert">{{ error }}</p></section>
     <template v-else>
       <section class="v6-heading"><div><p class="v6-eyebrow">中央管理 · 主服务器</p><h1>设备与部署</h1><p class="v6-muted">从这里分配会议室，配置会自动送达门牌。</p></div><button class="secondary" @click="load">刷新状态</button></section>
       <section class="v6-stats"><article><span>设备总数</span><strong>{{ devices.length }}</strong></article><article><span>待激活</span><strong>{{ pending }}</strong></article><article><span>在线运行</span><strong>{{ online }}</strong></article><article><span>会议室</span><strong>{{ rooms.length }}</strong></article></section>

@@ -16,6 +16,8 @@ V6 页面根据服务器房间 owner 自动采用官方签到或 V5 确认使用
 
 ## 认证、存储与接口
 
+退出入口按会话显示：未登录不显示；飞书身份已认证但等待权限时，登录卡片显示“退出登录”；正常后台在右上角退出。退出失败时保留会话和重试入口。退出只注销本浏览器的会议灯塔会话，不退出飞书客户端、不更改管理员权限，也不重开首次管理员初始化。
+
 - `ROOM_DISPLAY_V6_DB`：独立持久 SQLite 路径，单主写入，WAL、事务与版本冲突保护。目录只允许运行用户访问，数据库及 WAL 不得纳入静态资源。
 - `ROOM_DISPLAY_PUBLIC_ORIGIN`：唯一可信后台 HTTPS origin。
 - `ROOM_DISPLAY_FEISHU_LOGIN_ENABLED`：控制飞书登录入口；`ROOM_DISPLAY_FEISHU_TENANT_KEY` 可限制企业。
