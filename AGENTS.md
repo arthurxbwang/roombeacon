@@ -5,7 +5,7 @@ Argus 门牌副本冻结；不要把本仓库改动回写 Argus，也不要默�
 
 ## 开始工作
 
-先读 README.md、docs/handoff.md、docs/architecture.md、CHANGELOG.md。
+先读 README.md、docs/current-state.md、plan/next-phase.md、docs/handoff.md、docs/architecture.md、CHANGELOG.md。历史交接用于追溯，当前状态和 GitHub Issue 优先作为接续入口。
 涉及测试或部署时读 handbook/development.md 和 handbook/operations.md。
 当前用户授权：迁移已有代码及设计资料；2026-09-20 启动 Android WebView APK 实施并在门牌样机安装测试。ESP32 固件仍仅规划；独立服务端由用户另行申请，不默认部署旧服务器。
 
@@ -24,8 +24,8 @@ Argus 门牌副本冻结；不要把本仓库改动回写 Argus，也不要默�
 
 ## 变更约束
 
-- 使用 codex/ 分支；GitHub 管理源码，不从开发机复制源码到服务器。
-- 默认不推送 main；未获远程提交授权不 push。首次迁移仅本地保存；2026-09-20 的授权仅包含 codex/ 分支备份。2026-09-22 用户另行明确授权分析全部本地代码、上传 GitHub，并将全部本地分支合并到 main；本次授权不包含服务器部署，保留原分支历史。
+- 使用 codex/ 短期分支；后续一个需求对应一个 GitHub Issue，经检查和 PR 合入 main 后清理分支。GitHub 管理源码，不从开发机复制源码到服务器。
+- 默认不推送 main；未获远程提交授权不 push。首次迁移仅本地保存；2026-09-20 的授权仅包含 codex/ 分支备份。2026-09-22 用户另行明确授权分析全部本地代码、上传 GitHub，并将全部本地分支合并到 main；本次授权不包含服务器部署，保留原分支历史。随后用户确认建立版本标签、GitHub 计划和 Issues、合并整理 PR、删除已合并历史分支及临时工作树、归档旧任务；提交历史仍保留在 main 和标签中。
 - 不迁入 .env、SSH 私钥、真实 App Secret、主控密码、设备令牌、签到 resource_token。
 - 保留 API 路径、ROOM_DISPLAY_* 配置、rooms:* Redis 键和 argus_room_* 浏览器键，改变时必须设计兼容迁移。
 - 每个接口都必须验证设备或主控凭证。终端仅请求缓存，不直接访问飞书。

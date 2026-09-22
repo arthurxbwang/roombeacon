@@ -1,5 +1,9 @@
 # 开发与验证
 
+## GitHub 接续
+
+从[当前状态](../docs/current-state.md)和[下一阶段计划](../plan/next-phase.md)选择 Issue，自最新 main 创建 `codex/<issue>-<topic>` 分支；并行工作使用独立工作树。PR 记录行为、回归与边界，合并后更新 Issue／文档并清理分支。生产部署另行确定 SHA、目标、配置和回退；归档会话不代表未完成事项已验收。
+
 > 新增改期自动核验回归与日历测试工具，外部调用仍由mock隔离；真实权限和日历测试未通过前不能据此宣称线上验收。见[测试说明](../docs/v5-reschedule-autoverify.md)。
 
 > 版本: 0.1 | 作者: RoomBeacon Team | 更新日期: 2026-09-16
