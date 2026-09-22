@@ -1,7 +1,7 @@
 """Bounded V6 wire protocol. Node fields reserve future centrally approved routing."""
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 
 class StrictModel(BaseModel):
@@ -23,6 +23,8 @@ class Metadata(StrictModel):
     interfaces: list[Interface] = Field(default_factory=list, max_length=12)
     serial_source: str = Field(default='', max_length=60)
     light_supported: bool = False
+    firmware: str = Field(default="", max_length=160)
+    config_schema: Literal[1, 2] = 1
 
 
 class Sync(StrictModel):
@@ -34,13 +36,23 @@ class Sync(StrictModel):
 
 class DeviceConfig(StrictModel):
     version: Literal['v4', 'v5', 'v6'] = 'v6'
+    theme_mode: Literal['auto', 'light'] = 'auto'
+    language: Literal['zh-CN', 'en'] = 'zh-CN'
+    device_profile: Literal['auto', 'generic', 'bx68', 'rk3568_r'] = 'auto'
     portrait: bool = False
     room_light: bool = True
     node_id: Literal['central'] = 'central'
     reload: int = Field(default=0, ge=0, le=2147483647)
 
+    @model_validator(mode="after")
+    def safe_light(self):
+        if self.device_profile == "generic" and self.room_light:
+            raise ValueError("通用屏幕不支持灯控，请关闭同步侧边灯")
+        return self
+
 
 class Configure(StrictModel):
+    confirm_model_mismatch: StrictBool = False
     expected_revision: int = Field(ge=1)
     room_id: str = Field(default='', pattern=r'^(omm_[A-Za-z0-9]{1,96})?$', max_length=100)
     status: Literal['active', 'pending', 'revoked']
@@ -52,6 +64,7 @@ class Revision(StrictModel):
 
 
 class Rollback(Revision):
+    confirm_model_mismatch: StrictBool = False
     revision: int = Field(ge=1)
 
 
@@ -65,5 +78,6 @@ class Template(StrictModel):
 
 
 class Batch(StrictModel):
+    confirm_model_mismatch: StrictBool = False
     devices: dict[str, int] = Field(min_length=1, max_length=100)
     config: DeviceConfig

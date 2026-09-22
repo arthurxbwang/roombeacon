@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Run on the approved production server, from its GitHub checkout.
+# Run on the approved production server with an explicitly approved Git commit.
 set -euo pipefail
-release_sha=${1:?Usage: deploy-v6.sh FULL_GITHUB_SHA}
+release_sha=${1:?Usage: deploy-v6.sh FULL_COMMIT_SHA}
 [[ $release_sha =~ ^[0-9a-f]{40}$ ]] || exit 2
 base=/data/roombeacon
 repo=$base/repository
@@ -29,6 +29,7 @@ fi
 install -d "$release"
 git -C "$repo" archive "$release_sha" | tar -x -C "$release"
 export PATH="$base/tools/node/bin:$PATH"
+export ROOMBEACON_WEB_RELEASE="$release_sha"
 (cd "$release/frontend" && npm ci --no-audit && npm run build)
 (cd "$release/backend" && "$base/venv-current/bin/ruff" check . && "$base/venv-current/bin/pytest" -q)
 # Preserve old immutable assets for tabs that are still on the previous HTML.

@@ -7,6 +7,7 @@ export interface RoomEvent {
   organizer: string | null; summary: string | null
 }
 export interface RoomSchedule {
+  display_preferences?: {theme_mode:'auto'|'light';language:'zh-CN'|'en'} | null
   room: MeetingRoom; events: RoomEvent[]; synced_at: string; valid_until: string
   checkin_qr?: string | null
   usage_owner?: 'official' | 'v5'

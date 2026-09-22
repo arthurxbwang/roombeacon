@@ -32,7 +32,13 @@ class DaylightPlan(BaseModel):
     valid_until: datetime
 
 
+class DisplayPreferences(BaseModel):
+    theme_mode: Literal["auto", "light"] = "auto"
+    language: Literal["zh-CN", "en"] = "zh-CN"
+
+
 class RoomSchedule(BaseModel):
+    display_preferences: DisplayPreferences | None = None
     room: Room
     events: list[RoomEvent]
     synced_at: datetime

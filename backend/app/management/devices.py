@@ -10,6 +10,7 @@ from ..core.exceptions import AppError, UnauthorizedError
 from ..core.response import ok
 from ..services.room_display_collector import cached_directory
 from .models import Batch, Configure, Revision, Rollback, Sync, Template
+from .profiles import PROFILES, validate_target
 from .security import actor, bearer, device, parse_device, web_session
 from .store import (
     DEFAULT_CONFIG,
@@ -36,12 +37,18 @@ def get_row(db, identity):
     return row
 
 
-def update(db, row, config, room_id, status, who, action):
+def update(db, row, config, room_id, status, who, action, confirmed=False):
+    mismatch = False
+    if status == 'active' and action != 'reload':
+        mismatch = validate_target(config, row, confirmed)
     db.execute('UPDATE devices SET config=?, room_id=?, status=?, revision=revision+1 WHERE id=?',
                (json.dumps(config), room_id, status, row['id']))
     result = get_row(db, row['id'])
     save_history(db, result)
-    audit(db, who, action, row['id'], {'revision': result['revision'], 'room_id': room_id, 'status': status})
+    audit(db, who, action, row['id'], {'revision': result['revision'], 'room_id': room_id, 'status': status,
+                                     'device_profile': config.get('device_profile', 'auto'),
+                                     'model_override': mismatch,
+                                     'device_model': json.loads(row['metadata']).get('model', '')})
     return device_view(result)
 
 
@@ -84,10 +91,14 @@ def sync(body: Sync, request: Request):
         row = device(db, bearer(request))
         if body.reported_revision > row['revision']:
             raise conflict()
+        config = DEFAULT_CONFIG | json.loads(row['config'])
+        apply_error = body.error
+        if row['status'] == 'active' and config['room_light'] and config['device_profile'] not in ('auto', 'generic') and body.metadata.config_schema < 2:
+            apply_error = apply_error or '模板已下发；当前 APK 不支持模板灯控，请升级 APK 0.6.2'
         db.execute('UPDATE devices SET metadata=?,last_seen=?,reported_revision=?,error=? WHERE id=?',
-                   (body.metadata.model_dump_json(), int(time.time()), body.reported_revision, body.error, row['id']))
+                   (body.metadata.model_dump_json(), int(time.time()), body.reported_revision, apply_error, row['id']))
         value = {'protocol': 1, 'id': row['id'], 'code': row['code'], 'status': row['status'],
-                 'room_id': row['room_id'], 'revision': row['revision'], 'config': json.loads(row['config']),
+                 'room_id': row['room_id'], 'revision': row['revision'], 'config': config,
                  'poll_seconds': 15, 'node_id': 'central'}
         if row['status'] == 'active':
             value['web_session'] = web_session(db, row)
@@ -113,7 +124,7 @@ async def configure(identity: str, body: Configure, request: Request):
             raise conflict()
         config = body.config.model_dump()
         config['reload'] = json.loads(row['config'])['reload']
-        return ok(update(db, row, config, body.room_id, body.status, user['subject'], 'configure'))
+        return ok(update(db, row, config, body.room_id, body.status, user['subject'], 'configure', body.confirm_model_mismatch))
 
 
 @router.post('/admin/devices/{identity}/reload')
@@ -153,14 +164,14 @@ async def rollback(identity: str, body: Rollback, request: Request):
         if value['status'] != 'active' or not any(r['room_id'] == value['room_id'] for r in rooms):
             raise AppError(422, '只能回退到有效的已激活配置', 422)
         value['config']['reload'] = json.loads(row['config'])['reload'] + 1
-        return ok(update(db, row, value['config'], value['room_id'], 'active', user['subject'], 'rollback'))
+        return ok(update(db, row, value['config'], value['room_id'], 'active', user['subject'], 'rollback', body.confirm_model_mismatch))
 
 
 @router.get('/admin/templates')
 def templates(request: Request):
     actor(request)
     with database() as db:
-        return ok([dict(row) | {'config': json.loads(row['config'])} for row in db.execute('SELECT * FROM templates')])
+        return ok([dict(row) | {'config': DEFAULT_CONFIG | json.loads(row['config'])} for row in db.execute('SELECT * FROM templates')])
 
 
 @router.post('/admin/templates')
@@ -183,7 +194,7 @@ def batch(body: Batch, request: Request):
         for row in rows:
             config = body.config.model_dump()
             config['reload'] = json.loads(row['config'])['reload']
-            update(db, row, config, row['room_id'], 'active', user['subject'], 'batch-config')
+            update(db, row, config, row['room_id'], 'active', user['subject'], 'batch-config', body.confirm_model_mismatch)
     return ok({'updated': len(rows)})
 
 
@@ -200,3 +211,9 @@ def nodes(request: Request):
     actor(request)
     return ok({'protocol': 1, 'nodes': [{'id': 'central', 'name': '主服务器', 'status': 'active'}],
                'capabilities': ['device-sync', 'config-revision', 'ack', 'central-auth'], 'edge_enabled': False})
+
+
+@router.get('/admin/device-profiles')
+def device_profiles(request: Request):
+    actor(request)
+    return ok(PROFILES)

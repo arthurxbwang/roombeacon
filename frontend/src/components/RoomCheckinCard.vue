@@ -1,17 +1,19 @@
 <script setup lang="ts">
+import {useDisplayText} from '@/utils/displayLanguage'
+const t=useDisplayText()
 import brand from '@/assets/room-checkin-brand.gif'
 defineProps<{ qr: string; roomName: string; dark: boolean }>()
 </script>
 
 <template>
-  <aside class="checkin-card" :class="{ 'dark-brand': dark }" aria-label="飞书扫码签到">
+  <aside class="checkin-card" :class="{ 'dark-brand': dark }" :aria-label="t('飞书扫码签到')">
     <div class="brand-art" aria-hidden="true"><img :src="brand" alt="" /></div>
     <div class="checkin-content">
       <p class="checkin-eyebrow">THUNDERSOFT · CHECK IN</p>
-      <div class="qr-frame"><img class="checkin-qr" :src="qr" :alt="`${roomName}会议室飞书签到二维码`" /></div>
-      <strong>飞书扫码签到</strong>
-      <p>打开飞书扫一扫</p>
-      <small>签到结果请以飞书页面为准</small>
+      <div class="qr-frame"><img class="checkin-qr" :src="qr" :alt="`${roomName} · ${t('飞书扫码签到')}`" /></div>
+      <strong>{{ t('飞书扫码签到') }}</strong>
+      <p>{{ t('打开飞书扫一扫') }}</p>
+      <small>{{ t('签到结果请以飞书页面为准') }}</small>
     </div>
   </aside>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {useDisplayText} from '@/utils/displayLanguage'
+const t=useDisplayText()
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
@@ -121,35 +123,35 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
 <template>
   <aside class="usage-card" aria-label="V5 确认使用">
     <div class="usage-body">
-    <h4 class="usage-state" :class="record?.state" role="status">{{ label }}</h4>
+    <h4 class="usage-state" :class="record?.state" role="status">{{ t(label) }}</h4>
     <p v-if="preview && testing" class="notice">主控签到测试 · 仅记录确认；自动释放仍需平板在线</p>
     <template v-if="(!preview || testing) && token && fresh && state?.policy.owner === 'v5' && state?.policy.mode !== 'off'">
       <p v-if="preview && record && canConfirm">点击签到，成功后显示「已确认使用」</p>
       <p v-else-if="preview && !record">有预约且进入签到窗口后，才会显示签到按钮</p>
       <p v-else-if="preview && record?.state === 'confirmed'">服务器已保存本次签到</p>
       <p v-else-if="preview">当前预约不可签到，请核对下方状态</p>
-      <p v-else-if="record?.state === 'blocked'" class="notice">本次预约受保护，不会自动释放</p>
-      <p v-else-if="record?.state === 'confirmed'" class="notice">本场预约已保留</p>
-      <p v-else-if="state?.policy.mode === 'observe'" class="notice">观察模式 · 仅记录，不自动释放</p>
-      <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
-      <p v-else-if="record && !record.verified" class="notice">{{ state?.auto_verify_enabled ? '正在核验预约，暂不自动释放' : '自动释放待管理员登记本次预约' }}</p>
-      <p v-else-if="record" class="notice">未签到将按规则释放预约</p>
-      <p v-if="record && !countdown?.release && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
-      <p v-if="record?.state === 'waiting' && record.release_at && !countdown">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
-      <p v-if="record && now >= Date.parse(record.release_at || record.deadline) && ['pending', 'blocked'].includes(record.state)">已过确认截止时间，请使用下一场预约测试</p>
+      <p v-else-if="record?.state === 'blocked'" class="notice">{{ t('本次预约受保护，不会自动释放') }}</p>
+      <p v-else-if="record?.state === 'confirmed'" class="notice">{{ t('本场预约已保留') }}</p>
+      <p v-else-if="state?.policy.mode === 'observe'" class="notice">{{ t('观察模式 · 仅记录，不自动释放') }}</p>
+      <p v-else-if="state?.paused" class="notice">{{ t('自动释放已由管理员暂停') }}</p>
+      <p v-else-if="record && !record.verified" class="notice">{{ state?.auto_verify_enabled ? t('正在核验预约，暂不自动释放') : t('自动释放待管理员登记本次预约') }}</p>
+      <p v-else-if="record" class="notice">{{ t('未签到将按规则释放预约') }}</p>
+      <p v-if="record && !countdown?.release && ['pending', 'waiting', 'blocked'].includes(record.state)">{{ t('签到截止') }} {{ clock(record.deadline) }}</p>
+      <p v-if="record?.state === 'waiting' && record.release_at && !countdown">{{ clock(record.release_at) }} {{ t('后核验释放，仍可补确认') }}</p>
+      <p v-if="record && now >= Date.parse(record.release_at || record.deadline) && ['pending', 'blocked'].includes(record.state)">{{ t('已过确认截止时间，请使用下一场预约测试') }}</p>
       <div v-if="countdown" class="checkin-countdown" :class="{ 'release-countdown': countdown.release }">
-        <span class="countdown-caption">{{ countdown.label }}</span>
-        <strong role="timer" aria-live="off" :aria-label="countdown.label">{{ countdown.text }}</strong>
-        <span v-if="countdown.release" class="countdown-note">仍可签到保留本场会议</span>
+        <span class="countdown-caption">{{ t(countdown.label) }}</span>
+        <strong role="timer" aria-live="off" :aria-label="t(countdown.label)">{{ countdown.text }}</strong>
+        <span v-if="countdown.release" class="countdown-note">{{ t('仍可签到保留本场会议') }}</span>
       </div>
-      <p v-else-if="record?.state === 'waiting' && fresh && !state?.paused && record.verified && state?.policy.mode === 'auto'" class="notice">正在同步释放状态</p>
-      <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? '正在提交…' : '签到' }}</span></button>
+      <p v-else-if="record?.state === 'waiting' && fresh && !state?.paused && record.verified && state?.policy.mode === 'auto'" class="notice">{{ t('正在同步释放状态') }}</p>
+      <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? t('正在提交…') : t('签到') }}</span></button>
     </template>
     <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
-    <p v-if="error" role="alert">{{ error }}</p>
-    <details v-if="!preview && !token"><summary>设备设置</summary><form @submit.prevent="bind">
+    <p v-if="error" role="alert">{{ t(error) }}</p>
+    <details v-if="!preview && !token"><summary>{{ t('设备设置') }}</summary><form @submit.prevent="bind">
       <input v-model="input" type="password" autocomplete="off" aria-label="V5 操作凭证" placeholder="本房间操作凭证" />
-      <button>启用确认操作</button>
+      <button>{{ t('启用确认操作') }}</button>
     </form></details>
     </div>
   </aside>

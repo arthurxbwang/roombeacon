@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL,
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, config TEXT NOT NULL);
 """
-DEFAULT_CONFIG = {'version': 'v6', 'portrait': False, 'room_light': True, 'node_id': 'central', 'reload': 0}
+DEFAULT_CONFIG = {'version': 'v6', 'portrait': False, 'room_light': True, 'node_id': 'central', 'reload': 0,
+                  'theme_mode': 'auto', 'language': 'zh-CN', 'device_profile': 'auto'}
 
 
 def digest(value):
@@ -85,7 +86,7 @@ def device_view(row):
     value = dict(row)
     value.pop('secret_hash', None)
     value['metadata'] = json.loads(value['metadata'])
-    value['config'] = json.loads(value['config'])
+    value['config'] = DEFAULT_CONFIG | json.loads(value['config'])
     value['online'] = time.time() - value['last_seen'] < 60
     return value
 
