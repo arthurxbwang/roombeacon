@@ -8,7 +8,7 @@
 
 **当前：Web V4 汇总现有门牌功能，V1/V2/V3 保留兼容；Android 0.2.4 按型号匹配两套样机的侧灯接线，BX68已切V5专用房间测试，ESP32-P4 仍仅规划。** 软件仓库版本暂为 0.1.0，界面版本与 APK 版本分别管理。
 
-V5 确认使用版本已实现，通过 `/?version=v5` 显式选择；配置默认关闭。现有 Control 后端7deb6ba、静态da63152，仅专用测试房间开启自动释放写入；非重复和每日重复单实例签到、释放及后续预约保留已实测，门牌提前结束已关闭。重复改期、周/月重复及长稳尚未实测，未来预约仍需逐实例登记；默认V4保持兼容。见[重复实例验收](docs/v5-recurring-release-verification.md)与[Control部署](docs/v5-control-deployment.md)。
+V5 签到和受控释放已实现，通过 `/?version=v5` 显式选择；配置默认关闭。最新生产记录仅对 IT灯塔-Test 开启，仍按具体实例核验，日历自动核验映射未配置；见[生产单房间记录](docs/production-v5-checkin-2026-09-22.md)。非重复和每日重复单实例的历史验收见[重复实例验收](docs/v5-recurring-release-verification.md)。门牌提前结束已关闭，周/月重复及长稳仍待验收；默认 V4 保持兼容。
 
 V5 已增加平板主动保活、操作异常保护、待释放补确认和发送前核验；服务器逐房间选择官方／V5 方案，切页面不切换后台规则。专用虚拟房间已完成真实读取检查，本轮非重复预约实测见 [四场记录](docs/v5-four-bookings-verification.md)，历史预检见 [测试记录](docs/v5-test-room-verification.md)。
 
@@ -41,6 +41,7 @@ npm run dev
 
 - [独立飞书应用：11项权限与迁移清单](docs/feishu-permissions.md)
 
+- [2026-09-22 全部分支整合与代码分析](docs/source-consolidation-2026-09-22.md)
 - [项目交接：先读](docs/handoff.md)
 - [系统架构与 API](docs/architecture.md)
 - [界面与历史设计决策](docs/design.md)
