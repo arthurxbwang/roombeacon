@@ -63,13 +63,10 @@ cp "$release/scripts/production/roombeacon.nginx.conf" /etc/nginx/sites-enabled/
 nginx -t
 systemctl daemon-reload
 systemctl restart roombeacon
-for attempt in $(seq 1 20); do
-    if curl -fsS http://127.0.0.1:8088/api/v6/auth/options >/dev/null; then break; fi
-    sleep 1
-done
-curl -fsS http://127.0.0.1:8088/api/v6/auth/options >/dev/null
+bash "$release/scripts/production/wait-http.sh" http://127.0.0.1:8088/api/v6/auth/options
 systemctl reload nginx
-curl -fsS https://roombeacon.thundersoft.com/api/v6/auth/options >/dev/null
+bash "$release/scripts/production/wait-http.sh" http://127.0.0.1:8080/api/v6/auth/options
+bash "$release/scripts/production/wait-http.sh" https://roombeacon.thundersoft.com/api/v6/auth/options
 systemctl is-active roombeacon nginx
 trap - ERR
 printf 'V6 deployed SHA=%s backup=%s\n' "$release_sha" "$backup"
