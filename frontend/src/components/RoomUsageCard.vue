@@ -27,9 +27,21 @@ const matches = computed(() => !record.value || (props.event && props.event.uid 
   Date.parse(props.event.end_time) === Date.parse(record.value.occurrence.end_time)))
 const fresh = computed(() => props.fresh && matches.value && !failed.value && !!state.value && props.now < Date.parse(state.value.valid_until))
 const canConfirm = computed(() => fresh.value && state.value?.policy.owner === 'v5' && state.value?.can_confirm && record.value && props.now < Date.parse(record.value.release_at || record.value.deadline))
-const label = computed(() => props.preview && !testing.value ? 'V5 预览 · 操作不可用' : !token.value ? '确认使用尚未配置' :
+const label = computed(() => props.preview && !testing.value ? 'V5 预览 · 操作不可用' : !token.value ? '签到暂不可用' :
   !fresh.value ? '确认状态待同步' : state.value?.policy.owner !== 'v5' ? '本房间使用官方方案，请切换到 V4' : state.value?.policy.mode === 'off' ? '确认使用已关闭' :
-  record.value ? usageLabels[record.value.state] || '状态待核实' : props.preview && !state.value?.target_id ? '当前没有可签到的预约' : '等待下一场确认窗口')
+  record.value ? (record.value.state === 'pending' ? '请签到' : usageLabels[record.value.state]) || '状态待核实' : props.preview && !state.value?.target_id ? '当前没有可签到的预约' : '等待下一场确认窗口')
+const countdown = computed(() => {
+  if (!fresh.value || !record.value || state.value?.policy.owner !== 'v5' || state.value.policy.mode === 'off') return null
+  const release = record.value.state === 'waiting' && state.value.policy.mode === 'auto' &&
+    !state.value.paused && record.value.verified && state.value.policy.native_policy_cleared && state.value.policy.release_verified
+  const signup = ['pending', 'blocked'].includes(record.value.state) && canConfirm.value
+  if (!release && !signup) return null
+  const end = Date.parse(release ? record.value.release_at || '' : record.value.deadline)
+  const seconds = Math.ceil((end - props.now) / 1000)
+  if (!Number.isFinite(seconds) || seconds <= 0) return null
+  return { label: release ? '释放倒计时' : '签到倒计时', release,
+    text: `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}` }
+})
 const clock = (value: string) => new Date(value).toLocaleTimeString('zh-CN', { timeZone: props.timezone, hour: '2-digit', minute: '2-digit', hour12: false })
 function markUnresolved(id: string) {
   unresolved.value = id
@@ -122,14 +134,20 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
       <p v-else-if="record && !record.verified" class="notice">{{ state?.auto_verify_enabled ? '正在核验预约，暂不自动释放' : '自动释放待管理员登记本次预约' }}</p>
       <p v-else-if="record" class="notice">未签到将按规则释放预约</p>
-      <p v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
-      <p v-if="record?.state === 'waiting' && record.release_at">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
+      <p v-if="record && !countdown?.release && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
+      <p v-if="record?.state === 'waiting' && record.release_at && !countdown">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
       <p v-if="record && now >= Date.parse(record.release_at || record.deadline) && ['pending', 'blocked'].includes(record.state)">已过确认截止时间，请使用下一场预约测试</p>
+      <div v-if="countdown" class="checkin-countdown" :class="{ 'release-countdown': countdown.release }">
+        <span class="countdown-caption">{{ countdown.label }}</span>
+        <strong role="timer" aria-live="off" :aria-label="countdown.label">{{ countdown.text }}</strong>
+        <span v-if="countdown.release" class="countdown-note">仍可签到保留本场会议</span>
+      </div>
+      <p v-else-if="record?.state === 'waiting' && fresh && !state?.paused && record.verified && state?.policy.mode === 'auto'" class="notice">正在同步释放状态</p>
       <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? '正在提交…' : '签到' }}</span></button>
     </template>
     <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
-    <details v-if="!preview && !token"><summary>管理员配置</summary><form @submit.prevent="bind">
+    <details v-if="!preview && !token"><summary>设备设置</summary><form @submit.prevent="bind">
       <input v-model="input" type="password" autocomplete="off" aria-label="V5 操作凭证" placeholder="本房间操作凭证" />
       <button>启用确认操作</button>
     </form></details>
@@ -139,12 +157,12 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
 
 <style scoped>
 .usage-card{width:100%;min-width:0;max-height:100%;display:flex;flex-direction:column;gap:14px;color:var(--text);align-self:center}
-.usage-body{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-sizing:border-box}
+.usage-body{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;min-height:0;overflow:auto;padding:8px 0;border:0;background:transparent;box-sizing:border-box}
 .usage-state{font-size:19px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}.usage-state:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#8ba8df;margin-right:8px;vertical-align:middle}.usage-state.blocked:before{background:#d6a352}.usage-state.confirmed:before{background:#34c89e}
 p{font-size:14px;line-height:1.5}.notice{color:var(--muted)}
 button{width:100%;background:#2563eb;color:#fff;border:1px solid transparent;border-radius:999px;padding:14px 22px;font-size:17px;line-height:1.3;font-weight:600;min-height:48px;flex-shrink:0}
-.checkin-button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;margin-top:auto;box-shadow:0 5px 14px #2563eb24;cursor:pointer}.checkin-button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}button:focus-visible{outline:3px solid #93b4ff;outline-offset:3px}.checkin-button:not(:disabled):active{background:#1d4ed8;box-shadow:none}
+.checkin-button{display:flex;align-items:center;justify-content:center;gap:14px;min-height:76px;max-width:320px;margin-top:8px;font-size:28px;font-weight:700;letter-spacing:.12em;background:linear-gradient(120deg,#2563eb,#4f46e5);box-shadow:0 8px 24px #2563eb30;cursor:pointer;transition:transform .15s,box-shadow .15s}.checkin-button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 28px #2563eb40}.checkin-button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}button:focus-visible{outline:3px solid #93b4ff;outline-offset:3px}.checkin-button:not(:disabled):active{background:#1d4ed8;box-shadow:none}
 button:disabled{box-shadow:none;color:var(--subtle);background:transparent;border-color:var(--line);cursor:not-allowed}
-form{display:grid;gap:10px}input{width:100%;color:var(--text);background:transparent;border:1px solid var(--line);padding:10px;border-radius:8px}summary{font-size:12px;cursor:pointer}details form{margin-top:10px}[role=alert]{color:#e88862}
-@media(min-width:1000px) and (max-height:760px) and (orientation:landscape){.usage-body{padding:16px;gap:10px}.usage-state{font-size:18px}}
+.checkin-countdown{display:flex;flex-direction:column;align-items:center;gap:4px;margin:4px 0;color:var(--text)}.countdown-caption{font-size:13px;letter-spacing:.12em;color:var(--muted)}.checkin-countdown strong{font-size:clamp(38px,4cqw,54px);line-height:1.08;letter-spacing:.04em;font-variant-numeric:tabular-nums;font-weight:650}.countdown-note{font-size:12px;color:var(--muted)}.release-countdown strong{color:#d88b22}details{align-self:center}form{display:grid;gap:10px}input{width:100%;color:var(--text);background:transparent;border:1px solid var(--line);padding:10px;border-radius:8px}summary{font-size:12px;cursor:pointer}details form{margin-top:10px}[role=alert]{color:#e88862}
+@media(min-width:1000px) and (max-height:760px) and (orientation:landscape){.usage-body{padding:4px 0;gap:8px}.checkin-button{min-height:66px;font-size:26px}.checkin-countdown strong{font-size:44px}.usage-state{font-size:18px}}
 </style>
