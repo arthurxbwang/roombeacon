@@ -1,5 +1,7 @@
 # RoomBeacon · 会议灯塔
 
+**V6 集中管理已进入发布：飞书登录、管理员/只读权限、设备自动纳管、短码核对与远程配置。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
+
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。
 
 **当前源码包含 Android 外壳、V1—V5 页面、改期后重新签到及日历自动核验。生产是否启用以运行配置为准；目标日历授权与映射仍待完成。会议联系人统一显示方案已确认，尚未实现。**

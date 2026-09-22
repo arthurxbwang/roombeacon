@@ -4,7 +4,7 @@ import axios from 'axios'
 import { usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
 import type { RoomEvent } from '@/api/meetingRooms'
 
-const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; controlToken?: string; event?: RoomEvent }>()
+const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; controlToken?: string; managed?: boolean; event?: RoomEvent }>()
 const emit = defineEmits<{ changed: [] }>()
 const storageKey = `argus_room_usage_v5:${props.roomId}${props.preview ? ":control-test" : ""}`
 const pendingKey = `${storageKey}:unresolved`
@@ -12,7 +12,7 @@ const sessionKey = `${storageKey}:session`
 const sessionId = sessionStorage.getItem(sessionKey) || Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
 if (!props.preview) sessionStorage.setItem(sessionKey, sessionId)
 const unresolved = ref(localStorage.getItem(pendingKey) || '')
-const token = ref(props.preview ? props.controlToken || '' : localStorage.getItem(storageKey) || '')
+const token = ref(props.preview ? props.controlToken || '' : props.managed ? '@managed' : localStorage.getItem(storageKey) || '')
 const testAllowed = ref(false), receipt = ref('')
 const testing = computed(() => props.preview && testAllowed.value)
 const input = ref(''), error = ref('')
@@ -86,7 +86,7 @@ async function refresh() {
     if (record.value && ['pending', 'waiting', 'checking', 'end_requested'].includes(record.value.state)) markUnresolved(record.value.id)
     if (axios.isAxiosError(err) && err.response?.status === 401) {
       if (!props.preview) localStorage.removeItem(storageKey)
-      token.value = ''; state.value = null; testAllowed.value = false
+      if (!props.managed) token.value = ''; state.value = null; testAllowed.value = false
     }
   } finally { pending.value = false }
 }

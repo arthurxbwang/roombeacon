@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://127.0.0.1:6379/0"
     FEISHU_APP_ID: str = ""
     FEISHU_APP_SECRET: str = ""
+    ROOM_DISPLAY_V6_DB: str = ""
+    ROOM_DISPLAY_PUBLIC_ORIGIN: str = "https://roombeacon.thundersoft.com"
+    ROOM_DISPLAY_FEISHU_LOGIN_ENABLED: bool = False
+    ROOM_DISPLAY_FEISHU_TENANT_KEY: str = ""
     ROOM_DISPLAY_CHECKIN_URLS: dict[str, str] = Field(default_factory=dict)
     ROOM_DISPLAY_SYNC_SECONDS: int = Field(default=300, ge=120, le=3600)
     ROOM_DISPLAY_CONTROL_TOKEN: str = ""

@@ -17,6 +17,7 @@ class WebShell(
     private val container: FrameLayout,
     private val policy: OriginPolicy,
     private val light: RoomLight? = null,
+    private val entryPath: String = "/",
     private val status: (String?) -> Unit,
 ) {
     private val handler = Handler(Looper.getMainLooper())
@@ -200,7 +201,7 @@ class WebShell(
         loading = true
         status("正在连接门牌服务…")
         handler.postDelayed(timeout, 30000)
-        web?.loadUrl("${policy.origin}/")
+        web?.loadUrl("${policy.origin}$entryPath")
     }
 
     fun networkAvailable() { if (active && failed) load() }

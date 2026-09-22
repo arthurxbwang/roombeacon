@@ -145,7 +145,7 @@ test('主控 V5 预览不触发操作或改变 V4 偏好', async ({ page }) => {
     server_time: '2026-09-20T08:01:00Z', synced_at: '2026-09-20T08:01:00Z', valid_until: '2026-09-20T08:20:00Z',
     titles_available: true, events: [],
   } } }))
-  await page.goto('/control')
+  await page.goto('/control/legacy')
   await page.getByRole('button', { name: '预览门牌' }).click()
   await page.getByLabel('门牌版本').selectOption('v5')
   await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible()
@@ -171,7 +171,7 @@ test('主控保存观察规则并暂停全局释放', async ({ page }) => {
     expect(route.request().postDataJSON()).toEqual({ paused: true }); paused = true
     return route.fulfill({ json: { data: { paused: true } } })
   })
-  await page.goto('/control')
+  await page.goto('/control/legacy')
   await page.getByRole('button', { name: 'V5 规则', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'V5 使用规则 · IT灯塔-Test · 模拟' })).toBeVisible()
   await page.getByLabel('开始后宽限（分钟）').fill('12')
@@ -277,7 +277,7 @@ for (const scenario of ['success', 'denied', 'failed'] as const) {
       usage.record.state = 'confirmed'; usage.can_confirm = false
       return route.fulfill({ json: { data: usage } })
     })
-    await page.goto('/control')
+    await page.goto('/control/legacy')
     await page.getByRole('button', { name: '预览门牌', exact: true }).click()
     await page.getByLabel('门牌版本').selectOption('v5')
     if (scenario === 'denied') {
@@ -321,7 +321,7 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
     confirmations++; usage.record.state = 'confirmed'; usage.can_confirm = false
     return route.fulfill({ json: { data: usage } })
   })
-  await page.goto('/control')
+  await page.goto('/control/legacy')
   await page.getByRole('button', { name: '预览门牌', exact: true }).click()
   await page.getByLabel('门牌版本').selectOption('v5')
   await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)

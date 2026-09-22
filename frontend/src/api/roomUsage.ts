@@ -25,7 +25,7 @@ export const usageLabels: Record<string, string> = {
 }
 export function usageRequest<T>(method: string, path: string, token: string, signal: AbortSignal, data?: unknown) {
   return axios.request<{ data: T }>({ method, url: path, data, signal,
-    headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }).then(r => r.data.data)
+    headers: { Authorization: `Bearer ${token}`, ...(token === '@managed' ? {'X-RB-Device': '1'} : {}) }, timeout: 10000 }).then(r => r.data.data)
 }
 export function usageError(error: unknown) {
   if (axios.isAxiosError(error)) {
