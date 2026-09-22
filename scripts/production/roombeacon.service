@@ -1,0 +1,29 @@
+[Unit]
+Description=RoomBeacon production meeting room signage
+After=network-online.target roombeacon-redis.service
+Wants=network-online.target
+Requires=roombeacon-redis.service
+RequiresMountsFor=/data/roombeacon
+
+[Service]
+User=roombeacon
+Group=roombeacon
+WorkingDirectory=/data/roombeacon/current/backend
+EnvironmentFile=/data/roombeacon/shared/config/service.env
+EnvironmentFile=/data/roombeacon/shared/config/feishu.env
+EnvironmentFile=/data/roombeacon/shared/config/control.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Missing credentials leave the unit inactive, without making upstream requests.
+ExecCondition=/data/roombeacon/venv-current/bin/python -c "import os,sys; sys.exit(0 if all(os.environ.get(k, '').strip() for k in ('FEISHU_APP_ID','FEISHU_APP_SECRET')) else 1)"
+ExecStart=/data/roombeacon/venv-current/bin/uvicorn app.room_display_main:app --host 127.0.0.1 --port 8088 --no-access-log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

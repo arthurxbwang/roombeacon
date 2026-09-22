@@ -9,6 +9,8 @@ Argus 门牌副本冻结；不要把本仓库改动回写 Argus，也不要默�
 涉及测试或部署时读 handbook/development.md 和 handbook/operations.md。
 当前用户授权：迁移已有代码及设计资料。Android APK 和 ESP32 固件仅做规划，不实际编写，直到用户明确启动实施。
 
+2026-09-22 用户另行授权部署独立生产服务器 `10.0.53.174`，目录 `/data/roombeacon`，SSH 端口80；实际服务状态、凭证待办与回退见 `docs/production-10.0.53.174.md`。不默认部署旧服务器，也不自动迁移旧服务或启用飞书写入。
+
 ## 目录
 
 - backend/：独立 FastAPI、飞书只读采集与 Redis 缓存、Python 测试。
