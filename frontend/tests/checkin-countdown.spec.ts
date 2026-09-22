@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-async function scene(page: Page, phase = 'pending', options: { paused?: boolean; verified?: boolean; mode?: string; bound?: boolean } = {}) {
+async function scene(page: Page, phase = 'pending', options: { paused?: boolean; verified?: boolean; mode?: string; bound?: boolean; validUntil?: string } = {}) {
   await page.clock.install({ time: new Date('2026-09-22T08:01:00Z') })
   await page.setViewportSize({ width: 1280, height: 720 })
   await page.addInitScript(bound => {
@@ -9,22 +9,17 @@ async function scene(page: Page, phase = 'pending', options: { paused?: boolean;
   }, options.bound !== false)
   const occurrence = { uid: 'fixture', original_time: 0, start_time: '2026-09-22T08:00:00Z', end_time: '2026-09-22T09:00:00Z' }
   const state = { room_id: 'omm_fixture', enabled: true, paused: options.paused ?? false,
-    target_id: 'a'.repeat(64), server_time: '2026-09-22T08:01:00Z', valid_until: '2026-09-22T08:01:30Z', can_confirm: true, can_end: false,
+    target_id: 'a'.repeat(64), server_time: '2026-09-22T08:01:00Z', valid_until: options.validUntil || '2026-09-22T08:01:30Z', can_confirm: true, can_end: false,
     policy: { owner: 'v5', mode: options.mode || 'auto', early_minutes: 10, grace_minutes: 10, release_delay_seconds: 60, native_policy_cleared: true, release_verified: true, revision: 'test' },
     record: { id: 'a'.repeat(64), state: phase, verified: options.verified ?? true, deadline: '2026-09-22T08:10:00Z', occurrence,
       ...(phase === 'waiting' ? { release_at: '2026-09-22T08:01:45Z' } : {}) } }
-  // Match the real API: each response reports current server time, even when
-  // the cached booking is unchanged. A frozen response would rewind the clock.
-  const currentTime = () => page.evaluate(() => Date.now())
   await page.route('**/api/meeting-rooms/display', async route => route.fulfill({ json: { data: {
     room: { room_id: 'omm_fixture', name: '仅布局测试 · 模拟会议室', capacity: 4, enabled: true },
-    server_time: new Date(await currentTime()).toISOString(), synced_at: state.server_time, valid_until: '2026-09-22T08:20:00Z', usage_owner: 'v5', titles_available: true,
+    server_time: await page.evaluate(() => new Date().toISOString()), synced_at: state.server_time, valid_until: '2026-09-22T08:20:00Z', usage_owner: 'v5', titles_available: true,
     events: [{ ...occurrence, summary: '模拟预约 · 非线上签到', organizer: '测试数据' }],
   } } }))
-  for (const path of ['usage', 'usage/heartbeat']) await page.route(`**/api/meeting-rooms/${path}`, async route => {
-    const now = await currentTime()
-    await route.fulfill({ json: { data: { ...state, server_time: new Date(now).toISOString(), valid_until: new Date(now + 30000).toISOString() } } })
-  })
+  await page.route('**/api/meeting-rooms/usage', route => route.fulfill({ json: { data: state } }))
+  await page.route('**/api/meeting-rooms/usage/heartbeat', route => route.fulfill({ json: { data: state } }))
   await page.goto('/room-display.html?version=v5')
 }
 
@@ -41,25 +36,16 @@ test('签到倒计时逐秒变化，签到区无独立背景或边框', async ({
   await page.screenshot({ path: info.outputPath('checkin-countdown.png') })
 })
 
-test('待释放显示服务器释放倒计时，失联后隐藏倒计时且不伪报已释放', async ({ page }, info) => {
+test('待释放显示服务器释放倒计时，网络失败不伪报已释放', async ({ page }, info) => {
   await scene(page, 'waiting')
   await expect(page.getByLabel('释放倒计时')).toHaveText('00:45')
   await page.clock.fastForward(1000)
   await expect(page.getByLabel('释放倒计时')).toHaveText('00:44')
+  expect(await page.locator('.usage-body').evaluate(e => e.scrollHeight - e.clientHeight)).toBe(0)
   await page.screenshot({ path: info.outputPath('release-countdown.png') })
   await page.route('**/api/meeting-rooms/display', route => route.fulfill({ status: 502, json: {} }))
   await page.clock.fastForward(45000)
   await expect(page.getByLabel('释放倒计时')).toHaveCount(0)
-  await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
-})
-
-test('正常轮询跨过释放时间后只等待服务器核验，不伪报已释放', async ({ page }) => {
-  await scene(page, 'waiting')
-  await expect(page.getByLabel('释放倒计时')).toHaveText('00:45')
-  await page.clock.fastForward(46000)
-  await expect(page.getByLabel('释放倒计时')).toHaveCount(0)
-  await expect(page.getByText('正在同步释放状态', { exact: true })).toBeVisible()
   await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
 })
@@ -79,4 +65,15 @@ test('未配置时只给出简短不可用提示，保留设备设置入口', as
   await expect(page.getByText('管理员配置', { exact: true })).toHaveCount(0)
   await page.getByText('设备设置', { exact: true }).click()
   await expect(page.getByLabel('V5 操作凭证')).toBeVisible()
+})
+
+
+test('倒计时到零等待服务器核验，不自行显示释放成功', async ({ page }) => {
+  await scene(page, 'waiting', { validUntil: '2026-09-22T08:02:30Z' })
+  await expect(page.getByLabel('释放倒计时')).toHaveText('00:45')
+  await page.clock.fastForward(45000)
+  await expect(page.getByLabel('释放倒计时')).toHaveCount(0)
+  await expect(page.getByText('正在同步释放状态', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
+  await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
 })
