@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "issue": "https://github.com/arthurxbwang/roombeacon/issues/1",
+  "date": "2026-09-22",
+  "timezone": "Asia/Shanghai",
+  "provenance": "由本会话真实只读探针输出与用户截图转录脱敏；不是原始响应，不是归档时重新实测。",
+  "decision": {
+    "display_priority": ["verified_meeting_room_contact", "verified_organizer", "information_unavailable"],
+    "state": "closed",
+    "state_reason": "not_planned",
+    "contact_collection_implemented": false,
+    "production_changed_by_this_task": false
+  },
+  "beijing_today": {
+    "checked_at": ["2026-09-22T18:11:54.865982+08:00", "2026-09-22T18:19:18.707192+08:00"],
+    "rooms": 34,
+    "upstream_failed_rooms": 0,
+    "events": 110,
+    "events_with_organizer_name": 101,
+    "events_missing_organizer_name": 9,
+    "rooms_with_missing_name": 5,
+    "missing_events_with_organizer_id": 9,
+    "distinct_organizer_ids_among_missing": 1,
+    "missing_titles_containing_interview_keyword": 9,
+    "other_nonempty_missing_titles": 0,
+    "missing_titles_empty": 0,
+    "identity_lookup": {"http": 400, "code": 41012, "name_present": false},
+    "scope_note": "北京当日样本；有组织者姓名不等于已验证会议室联系人；标题关键词不证明创建应用身份。"
+  },
+  "missing_samples": [
+    {"room": "207", "start": "09:30", "end": "10:30", "organizer_group": "unknown_identity_1"},
+    {"room": "101", "start": "10:00", "end": "10:45", "organizer_group": "unknown_identity_1", "ui_booker_alias": "person_A"},
+    {"room": "101", "start": "11:00", "end": "11:45", "organizer_group": "unknown_identity_1", "ui_booker_alias": "person_B"},
+    {"room": "207", "start": "11:00", "end": "11:45", "organizer_group": "unknown_identity_1"},
+    {"room": "201", "start": "14:00", "end": "14:45", "organizer_group": "unknown_identity_1", "ui_booker_alias": "person_C"},
+    {"room": "207", "start": "14:00", "end": "15:00", "organizer_group": "unknown_identity_1"},
+    {"room": "201", "start": "14:45", "end": "15:30", "organizer_group": "unknown_identity_1", "ui_booker_alias": "person_C"},
+    {"room": "210", "start": "16:00", "end": "17:00", "organizer_group": "unknown_identity_1"},
+    {"room": "203", "start": "19:00", "end": "20:00", "organizer_group": "unknown_identity_1"}
+  ],
+  "observed_response_fields": {
+    "room_freebusy": ["end_time", "organizer_info", "organizer_info.name", "organizer_info.open_id", "original_time", "start_time", "uid"],
+    "room_summary": ["original_time", "summary", "uid", "vchat", "vchat.meeting_url", "vchat.vc_type"],
+    "summary_returned": 9,
+    "summary_item_errors": 0,
+    "contact_field_returned": false
+  },
+  "ordinary_sample": {
+    "room": "IT灯塔-Test",
+    "start": "18:00",
+    "end": "18:15",
+    "created_by": "user_in_feishu",
+    "freebusy_unique_match": true,
+    "organizer_name_matches_user_screenshot": true,
+    "directory_lookup": {"http": 200, "code": 0, "name_matches_user_screenshot": true},
+    "cache_event_eventually_present": true,
+    "cache_organizer_matches_user_screenshot": true,
+    "cache_manually_modified": false,
+    "listed_calendars": 1,
+    "event_in_application_calendar": {"http": 404, "code": 193001},
+    "organizer_primary_calendar_lookup": {"http": 200, "code": 0, "role": "free_busy_reader"},
+    "event_without_attendees": {"http": 200, "code": 0},
+    "event_with_attendees": {"http": 403, "code": 194001},
+    "contact_verified": false
+  },
+  "github_receipts": {
+    "analysis_commit": "9fbb9a9a21528af3a3399757ea45c699e6bb6951",
+    "analysis_pr": "https://github.com/arthurxbwang/roombeacon/pull/13",
+    "merge_commit": "a7645eb8072e57e31869067ddba0231f086bf4ea",
+    "merged_at": "2026-09-22T18:27:59+08:00",
+    "issue_closed_at": "2026-09-22T18:28:29+08:00",
+    "roadmap_issue": 6
+  }
+}
