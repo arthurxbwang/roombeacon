@@ -11,6 +11,11 @@ const router = createRouter({ history: createWebHistory(), routes: [
   { path: '/control/legacy', component: RoomControl },
   { path: '/:pathMatch(.*)*', component: RoomDisplay },
 ] })
-router.beforeEach(to => to.query.preview ? { path: to.path } : true)
+router.beforeEach(to => {
+  if (to.path === '/' && !('version' in to.query) && !('managed' in to.query)) {
+    return {path:'/control',query:to.query,replace:true}
+  }
+  return to.query.preview ? { path: to.path } : true
+})
 const app = createApp({ render: () => h(RouterView) }).use(router)
 router.isReady().then(() => app.mount('#app'))

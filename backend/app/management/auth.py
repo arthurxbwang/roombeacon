@@ -1,5 +1,4 @@
 """Feishu login binds browser state, exchanges codes server-side and defaults to no role."""
-import hashlib
 import hmac
 import secrets
 import time
@@ -12,6 +11,7 @@ from fastapi.responses import RedirectResponse
 from ..core.config import settings
 from ..core.exceptions import AppError, UnauthorizedError
 from ..core.response import ok
+from . import bootstrap
 from .models import Role
 from .security import (
     ADMIN_COOKIE,
@@ -128,17 +128,12 @@ async def callback(request: Request, state: str = '', code: str = ''):
         db.execute('DELETE FROM oauth WHERE state=?', (digest(state),))
     try:
         identity = await feishu_identity(code)
+        verified = bootstrap.needs_employee_check()
+        if verified:
+            await bootstrap.verify_employee(identity['open_id'])
+        token = bootstrap.complete_login(identity, employee_verified=verified)
     except AppError:
         return RedirectResponse('/control?login_error=feishu', status_code=302)
-    if settings.ROOM_DISPLAY_FEISHU_TENANT_KEY and identity['tenant_key'] != settings.ROOM_DISPLAY_FEISHU_TENANT_KEY:
-        raise AppError(403, '该飞书企业未获授权', 403)
-    subject = hashlib.sha256((identity['tenant_key'] + ':' + identity['open_id']).encode()).hexdigest()
-    with database() as db:
-        db.execute('INSERT INTO users(subject,tenant,name,created_at) VALUES (?,?,?,?) '
-                   'ON CONFLICT(subject) DO UPDATE SET name=excluded.name',
-                   (subject, identity['tenant_key'], str(identity.get('name', '飞书用户'))[:100], int(time.time())))
-        token = new_session(db, subject)
-        audit(db, subject, 'feishu-login', subject)
     response = RedirectResponse('/control', status_code=302)
     cookie(response, ADMIN_COOKIE, token, 8 * 3600)
     response.delete_cookie(STATE_COOKIE, secure=True, httponly=True, samesite='lax')
