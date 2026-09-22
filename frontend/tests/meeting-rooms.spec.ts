@@ -136,7 +136,7 @@ test('测试主控筛选并切换会议室，不更换门牌绑定凭证', async
     const response = await route.fetch({ url: new URL('/room-display.html', route.request().url()).href })
     await route.fulfill({ response })
   })
-  await page.goto('/control')
+  await page.goto('/control/legacy')
   await page.getByLabel('测试主控凭证').fill('test-control-credential')
   await page.getByRole('button', { name: '进入主控' }).click()
   await page.getByLabel('地区 / 园区').selectOption('北京')

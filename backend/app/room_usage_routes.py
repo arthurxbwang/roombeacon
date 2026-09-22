@@ -1,11 +1,12 @@
 """Opt-in V5 APIs. Every endpoint authenticates before returning room data."""
-from fastapi import APIRouter, Depends, Header, Path, Response
+from fastapi import APIRouter, Depends, Header, Path, Request, Response
 
 from .core.config import settings
 from .core.exceptions import AppError
 from .core.response import ok
 from .core.room_devices import room_cache
 from .core.room_usage_auth import authenticate_usage
+from .management.security import DEVICE_COOKIE, authenticate_web, check_origin
 from .schemas.room_usage import (
     ROOM_PATTERN,
     PauseCommand,
@@ -30,7 +31,7 @@ from .services.room_usage_health import heartbeat
 from .services.room_usage_store import UsageStore
 
 
-def usage_router(require_admin):
+def usage_router(require_admin, require_reader=None):
     router = APIRouter()
 
     async def store_dep(response: Response):
@@ -40,7 +41,13 @@ def usage_router(require_admin):
         async with room_cache() as cache:
             yield UsageStore(cache)
 
-    async def action_user(authorization: str = Header(default='')):
+    async def action_user(request: Request, authorization: str = Header(default='')):
+        if request.cookies.get(DEVICE_COOKIE):
+            check_origin(request)
+            if request.method != 'GET' and request.headers.get('x-rb-device') != '1':
+                raise AppError(403, '设备操作来源无效', 403)
+            user = authenticate_web(request.cookies[DEVICE_COOKIE])
+            return user['room_id'], user['digest']
         token = authorization.removeprefix('Bearer ') if authorization.startswith('Bearer ') else ''
         return await authenticate_usage(token)
 
@@ -62,11 +69,13 @@ def usage_router(require_admin):
         return ok(await command(store, *user, body, 'end'))
 
     @router.get('/api/room-control/usage/{room_id}')
-    async def inspect(room_id: str = Path(pattern=ROOM_PATTERN), admin=Depends(require_admin), store=Depends(store_dep)):
+    async def inspect(room_id: str = Path(pattern=ROOM_PATTERN), admin=Depends(require_reader or require_admin),
+                      store=Depends(store_dep)):
         return ok({'usage': await view(store, room_id), 'audit': await store.audit(room_id),
                    'global_audit': await store.audit('global'),
                    'writes_enabled': room_writes_enabled(room_id),
-                   'control_confirm_enabled': room_id in settings.ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS})
+                   'control_confirm_enabled': admin.get('role') != 'viewer' and
+                   room_id in settings.ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS})
 
     @router.post('/api/room-control/usage/{room_id}/confirm')
     async def control_confirm(body: UsageCommand, room_id: str = Path(pattern=ROOM_PATTERN),

@@ -10,6 +10,9 @@ from .core.config import settings
 from .core.exceptions import AppError, UnauthorizedError, app_error_handler
 from .core.response import R, ok
 from .core.room_devices import authenticate_device, room_cache
+from .management.auth import router as auth_router
+from .management.devices import router as devices_router
+from .management.security import DEVICE_COOKIE, actor, authenticate_web
 from .room_usage_routes import usage_router
 from .schemas.meeting_room import RoomSchedule
 from .services.room_checkin import checkin_qr
@@ -40,6 +43,8 @@ app.add_exception_handler(AppError, app_error_handler)
 
 
 async def get_current_user(request: Request, authorization: str = Header(default="")) -> dict:
+    if request.cookies.get(DEVICE_COOKIE):
+        return authenticate_web(request.cookies[DEVICE_COOKIE])
     token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
     return await authenticate_device(token, request.url.path, request.method)
 
@@ -60,7 +65,9 @@ async def display(response: Response, user: dict = Depends(get_current_user)):
     return ok(await decorate(snapshot))
 
 
-async def require_admin(authorization: str = Header(default="")) -> dict:
+async def require_admin(request: Request, authorization: str = Header(default="")) -> dict:
+    if request.cookies.get('__Host-rb_admin'):
+        return actor(request, write=True)
     candidates = ((settings.ROOM_DISPLAY_CONTROL_TOKEN, 32),
                   (settings.ROOM_DISPLAY_CONTROL_TOKEN_SECONDARY, 1))
     token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
@@ -72,8 +79,14 @@ async def require_admin(authorization: str = Header(default="")) -> dict:
     return {"role": "room_control"}
 
 
+async def require_reader(request: Request, authorization: str = Header(default="")) -> dict:
+    if request.cookies.get('__Host-rb_admin'):
+        return actor(request)
+    return await require_admin(request, authorization)
+
+
 @app.get("/api/room-control/rooms")
-async def control_rooms(response: Response, user: dict = Depends(require_admin)):
+async def control_rooms(response: Response, user: dict = Depends(require_reader)):
     response.headers["Cache-Control"] = "no-store"
     return ok(await directory())
 
@@ -81,10 +94,21 @@ async def control_rooms(response: Response, user: dict = Depends(require_admin))
 @app.get("/api/room-control/preview", response_model=R[RoomSchedule])
 async def control_preview(response: Response,
                           room_id: str = Query(pattern=r"^omm_[a-zA-Z0-9]+$", max_length=100),
-                          user: dict = Depends(require_admin)):
+                          user: dict = Depends(require_reader)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(room_id)
     return ok(await decorate(snapshot))
 
 
-app.include_router(usage_router(require_admin))
+app.include_router(usage_router(require_admin, require_reader))
+app.include_router(auth_router)
+app.include_router(devices_router)
+
+
+@app.middleware('http')
+async def private_responses(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith('/api/v6/'):
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Referrer-Policy'] = 'no-referrer'
+    return response

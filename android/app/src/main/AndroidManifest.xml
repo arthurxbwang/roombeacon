@@ -14,7 +14,7 @@
             </intent-filter>
         </activity>
         <activity-alias android:name=".HomeActivity" android:targetActivity=".MainActivity"
-            android:enabled="false" android:exported="true">
+            android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />

@@ -11,7 +11,7 @@ async function control(page: Page, schedule = data) {
   await page.route('**/control', async route => route.fulfill({ response: await route.fetch({ url: new URL('/room-display.html', route.request().url()).href }) }))
   await page.route('**/api/room-control/rooms', route => route.fulfill({ json: { data: [{ ...data.room, region: '北京', location: '北京', floor: '2F' }] } }))
   await page.route('**/api/room-control/preview?*', route => route.fulfill({ json: { data: schedule } }))
-  await page.goto('/control')
+  await page.goto('/control/legacy')
   await page.getByRole('button', { name: '预览门牌' }).click()
   await expect(page.locator('.door')).toHaveClass(/v2/)
 }

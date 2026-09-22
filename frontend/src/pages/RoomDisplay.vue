@@ -10,13 +10,14 @@ import { watchPageRelease } from '@/utils/pageRelease'
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
 const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string }>()
 const route = useRoute()
-const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
+const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
-const isV3 = computed(() => ['v3', 'v4', 'v5'].includes(version.value))
-const isV4 = computed(() => ['v4', 'v5'].includes(version.value))
-const isV5 = computed(() => version.value === 'v5')
+const isV3 = computed(() => ['v3', 'v4', 'v5', 'v6'].includes(version.value))
+const isV4 = computed(() => ['v4', 'v5', 'v6'].includes(version.value))
+const isV5 = computed(() => version.value === 'v5' || (version.value === 'v6' && snapshot.value?.usage_owner === 'v5'))
+const managed = route.query.managed === '1' && !props.controlRoom
 const storageKey = 'argus_room_display'
-const token = ref(localStorage.getItem(storageKey) || '')
+const token = ref(managed ? '@managed' : localStorage.getItem(storageKey) || '')
 const input = ref('')
 const snapshot = ref<RoomSchedule | null>(null)
 const now = ref(Date.now())
@@ -92,7 +93,7 @@ async function refresh() {
     failed.value = true
     message.value = '同步失败，正在重试'
     if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
-      if (!props.controlRoom) { token.value = ''; localStorage.removeItem(storageKey) }
+      if (!props.controlRoom && !managed) { token.value = ''; localStorage.removeItem(storageKey) }
       snapshot.value = null
       message.value = '凭证已失效，请重新绑定'
     }
@@ -158,7 +159,7 @@ onUnmounted(() => {
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? '暂不可使用' : '等待日程同步' }}</h2><p class="organizer">{{ message || '正在确认最新预约状态' }}</p></template>
             </div>
           </div>
-          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" @changed="refresh" />
+          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
           <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">本房间使用 V5 确认，请切换到 V5 页面</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
