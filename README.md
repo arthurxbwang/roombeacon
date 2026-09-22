@@ -50,6 +50,7 @@ npm run dev
 - [开发与检查](handbook/development.md)
 - [运行环境与部署迁移边界](handbook/operations.md)
 - [Android / ESP 对照规划](plan/meeting-room-terminal-comparison.md)
+- [开发资料索引：RK3568 SDK 摘要与 DP72 协议](docs/reference/README.md)
 - [Android 外壳构建与样机测试](android/README.md)
 - [Android 样机验证记录](docs/android-sample-verification.md)
 - [Android 型号与灯控接线](docs/android-device-profiles.md)
