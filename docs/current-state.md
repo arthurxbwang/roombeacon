@@ -26,13 +26,16 @@
 
 ## V6 新增交付
 
-用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)，具体部署和样机证据以发布记录为准。飞书应用回调由用户随后补齐。
+用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)，生产前后端已发布 `9cd01a8`，BX68自动纳管与配置回执通过；旧样机因DNS/网络不可达待接入，BX68最终重启恢复仍待确认。具体证据见 [V6发布记录](production-v6-2026-09-22.md)。飞书应用回调由用户随后补齐。
+
+## 已接受的联系人限制
+
+用户确认“联系人优先 → 可确认的组织者兜底 → 信息不可见”，认为当前影响有限、非核心卡点。[Issue #1](https://github.com/arthurxbwang/roombeacon/issues/1) 按暂不实施关闭；现有业务仍展示组织者，联系人采集未实现。本项不再作为优先待办。接口结论、普通会议与北京110条预约实测及重开条件见[分析归档](archive/issue-1-meeting-contact-2026-09-22.md)，后续复用此记录，不重复分析。
 
 ## 下一阶段仍需完成
 
 | 工作 | 当前边界 | 入口 |
 |---|---|---|
-| 会议联系人统一显示 | 方案已确认，尚未编码；目标日历定位与读取权待补齐 | [1: 会议联系人统一显示与身份来源核验](https://github.com/arthurxbwang/roombeacon/issues/1) |
 | 日历自动核验与改期 | 代码及隔离回归已存在，生产日历映射为空，真实联调待完成 | [2: 专用日历授权、自动核验与改期联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
 | V5 剩余验收及长稳 | 每日重复有历史通过记录；周／月重复、故障及跨日场景仍有缺口 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
 | 飞书忙闲 504 诊断 | 已有限次只读重试；失败追踪与根因尚未闭环 | [4: 飞书忙闲 504 脱敏诊断与故障链路闭环](https://github.com/arthurxbwang/roombeacon/issues/4) |
