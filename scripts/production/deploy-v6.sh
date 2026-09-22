@@ -35,11 +35,13 @@ export PATH="$base/tools/node/bin:$PATH"
 old_static=$(awk '/^[[:space:]]*root / {gsub(";", "", $2); print $2; exit}' "$backup/nginx.before")
 if [[ -d $old_static/assets ]]; then cp -n "$old_static"/assets/* "$release/frontend/dist/assets/"; fi
 install -d -o roombeacon -g roombeacon -m 700 "$base/shared/management"
+if [[ ! -e $base/shared/config/v6.env ]]; then
 cat > "$base/shared/config/v6.env" <<'CONFIG'
 ROOM_DISPLAY_V6_DB=/data/roombeacon/shared/management/v6.sqlite3
 ROOM_DISPLAY_PUBLIC_ORIGIN=https://roombeacon.thundersoft.com
 ROOM_DISPLAY_FEISHU_LOGIN_ENABLED=true
 CONFIG
+fi
 chmod 600 "$base/shared/config/v6.env"
 cat > /etc/systemd/system/roombeacon.service.d/70-v6.conf <<'UNIT'
 [Service]

@@ -22,9 +22,12 @@ async function fixture(page:Page,role='admin',logged=true){
  });return state
 }
 test('V6 登录、短码核对与后台激活下发',async({page})=>{
- const state=await fixture(page,'admin',false);await page.goto('/control')
+ const state=await fixture(page,'admin',false);await page.goto('/')
+ await expect(page).toHaveURL(/\/control$/)
  await expect(page.getByRole('link',{name:'飞书扫码 / 快捷登录'})).toHaveAttribute('href','/api/v6/auth/feishu/start')
- await page.getByLabel('主控凭证').fill('test-secret');await page.getByRole('button',{name:'进入管理后台'}).click()
+ await expect(page.getByLabel('主控凭证')).toHaveCount(0)
+ await page.route('**/api/v6/auth/feishu/start',async route=>{state.logged=true;await route.fulfill({status:302,headers:{location:'/control'}})})
+ await page.getByRole('link',{name:'飞书扫码 / 快捷登录'}).click()
  await expect(page.getByText('ABC 234',{exact:true})).toBeVisible();await expect(page.getByText('有线 / PoE')).toBeVisible()
  await page.getByRole('button',{name:'配置',exact:true}).click()
  await page.getByRole('dialog').getByLabel('设备状态').selectOption('active');await page.getByLabel('分配会议室').selectOption('omm_test')
@@ -33,6 +36,23 @@ test('V6 登录、短码核对与后台激活下发',async({page})=>{
  await expect(page.getByRole('dialog')).toHaveCount(0);await page.setViewportSize({width:1440,height:1000})
  await page.screenshot({path:'/tmp/roombeacon-v6-admin-test.png',fullPage:true})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+})
+test('飞书未授权与失败回调保持登录入口',async({page})=>{
+ await fixture(page,'admin',false)
+ await page.route('**/api/v6/auth/me',route=>route.fulfill({status:403,json:{code:403}}))
+ await page.goto('/control');await expect(page.getByRole('alert')).toContainText('等待管理员')
+ await expect(page.getByRole('button',{name:'账号权限'})).toHaveCount(0)
+ await page.unroute('**/api/v6/auth/me')
+ await page.goto('/control?login_error=feishu');await expect(page.getByRole('alert')).toContainText('飞书登录未完成')
+ await expect(page.getByRole('link',{name:'飞书扫码 / 快捷登录'})).toBeVisible()
+ await page.screenshot({path:'/tmp/roombeacon-feishu-login.png',fullPage:true})
+})
+test('企业登录不可用不显示密码入口',async({page})=>{
+ await fixture(page,'admin',false)
+ await page.route('**/api/v6/auth/options',route=>route.fulfill({json:{code:0,data:{feishu:false}}}))
+ await page.goto('/');await expect(page.getByText('飞书登录暂不可用，请联系管理员。')).toBeVisible()
+ await expect(page.getByRole('link',{name:'飞书扫码 / 快捷登录'})).toHaveCount(0)
+ await expect(page.locator('input[type=password]')).toHaveCount(0)
 })
 test('只读账号不显示发布与权限操作',async({page})=>{
  await fixture(page,'viewer');await page.goto('/control');await expect(page.getByRole('button',{name:'账号权限'})).toHaveCount(0)

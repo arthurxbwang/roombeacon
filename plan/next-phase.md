@@ -6,6 +6,8 @@
 
 ## V6 已确认新增需求
 
+[#17](https://github.com/arthurxbwang/roombeacon/issues/17)：飞书回调已由用户配置；首页改飞书登录，本次首位企业员工自动成为唯一初始管理员，消费后不自动重开。真实扫码结果按Issue与发布记录接续。
+
 [#10](https://github.com/arthurxbwang/roombeacon/issues/10)：用户授权一次性实施并部署 V6；范围为飞书登录、管理员/只读、设备自动注册认领、六位短码、Wi-Fi/有线兼容、远程配置/模板/回执/回退。地区节点先预留协议，不部署未提供的异地环境。详见 [V6 文档](../docs/v6-device-management.md)。飞书应用配置与真实扫码由用户随后补齐。
 
 ## 执行顺序
