@@ -46,6 +46,7 @@ test('待释放显示服务器释放倒计时，失联后隐藏倒计时且不�
   await expect(page.getByLabel('释放倒计时')).toHaveText('00:45')
   await page.clock.fastForward(1000)
   await expect(page.getByLabel('释放倒计时')).toHaveText('00:44')
+  expect(await page.locator('.usage-body').evaluate(e => e.scrollHeight - e.clientHeight)).toBe(0)
   await page.screenshot({ path: info.outputPath('release-countdown.png') })
   await page.route('**/api/meeting-rooms/display', route => route.fulfill({ status: 502, json: {} }))
   await page.clock.fastForward(45000)

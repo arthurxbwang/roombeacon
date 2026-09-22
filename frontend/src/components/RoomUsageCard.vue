@@ -134,8 +134,8 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <p v-else-if="state?.paused" class="notice">自动释放已由管理员暂停</p>
       <p v-else-if="record && !record.verified" class="notice">{{ state?.auto_verify_enabled ? '正在核验预约，暂不自动释放' : '自动释放待管理员登记本次预约' }}</p>
       <p v-else-if="record" class="notice">未签到将按规则释放预约</p>
-      <p v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
-      <p v-if="record?.state === 'waiting' && record.release_at">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
+      <p v-if="record && !countdown?.release && ['pending', 'waiting', 'blocked'].includes(record.state)">签到截止 {{ clock(record.deadline) }}</p>
+      <p v-if="record?.state === 'waiting' && record.release_at && !countdown">{{ clock(record.release_at) }} 后核验释放，仍可补确认</p>
       <p v-if="record && now >= Date.parse(record.release_at || record.deadline) && ['pending', 'blocked'].includes(record.state)">已过确认截止时间，请使用下一场预约测试</p>
       <div v-if="countdown" class="checkin-countdown" :class="{ 'release-countdown': countdown.release }">
         <span class="countdown-caption">{{ countdown.label }}</span>
