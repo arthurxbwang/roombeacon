@@ -1,5 +1,10 @@
 # Changelog
 
+### RK3568 开发资料提炼（2026-09-22）
+
+- 将用户提供的 91 页厂家 PDF 中与门牌相关的内容整理为 [SDK 开发摘要](docs/hardware/rk3568-sdk-guide.md)，保留 AIDL 生命周期、显示／启动／GPIO 参数、手册歧义与现有源码对应关系。
+- 增加[开发资料索引](docs/reference/README.md)，方便 Agent 按需读取。原 PDF、页面图片及 SDK 二进制不上传；未修改业务代码、接入 SDK 或操作样机。
+
 ### 历史归档与 GitHub 开发接续（2026-09-22）
 - 固定完整源码基线、已记录的生产后端和前端三个标签；用户确认清理已合并分支与临时工作树，保留提交历史和本地归档备份。
 - 增加[当前状态](docs/current-state.md)、[下一阶段计划](plan/next-phase.md)及六个 GitHub Issues；后续按 Issue、短期分支、PR 和独立发布记录推进。
