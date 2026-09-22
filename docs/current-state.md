@@ -12,7 +12,7 @@
 
 唯一维护仓库为 [arthurxbwang/roombeacon](https://github.com/arthurxbwang/roombeacon)，后续开发从最新 `main` 创建短期 `codex/` 分支。上述基线标签固定旧提交，后续文档或代码合并不移动标签。源码基线与生产前后端版本分别管理。
 
-生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前前后端SHA为`8915b38b05ec54ef3ef186803afb38d7ef9ff9e4`；运行和回退依据[飞书登录发布记录](production-feishu-login-2026-09-22.md)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
+生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前后端SHA为`8915b38b05ec54ef3ef186803afb38d7ef9ff9e4`；飞书登录基线见[发布记录](production-feishu-login-2026-09-22.md)，退出按钮修复的最新静态SHA与回退回执见[#20](https://github.com/arthurxbwang/roombeacon/issues/20)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
 
 ## 已完成
 
@@ -26,7 +26,7 @@
 
 ## V6 新增交付
 
-用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)。BX68自动纳管与开机恢复通过，用户关闭网络ADB后远程刷新回执4/4，后续无ADB更新验收见[#16](https://github.com/arthurxbwang/roombeacon/issues/16)；旧样机仍因DNS/网络不可达待接入。飞书回调用户已配置，首页飞书登录及一次性首位员工管理员初始化已发布8915b38，发布后初始化未消费，等待用户真实扫码；见[登录发布记录](production-feishu-login-2026-09-22.md)及[#17](https://github.com/arthurxbwang/roombeacon/issues/17)。
+用户已批准一次性开发与上线 V6（[#10](https://github.com/arthurxbwang/roombeacon/issues/10)）：设备免配置纳管、Wi-Fi/有线身份连续、六位唯一码、管理员/只读与飞书登录、集中配置和回执。实施与运行边界见 [V6 文档](v6-device-management.md)。BX68自动纳管与开机恢复通过，用户关闭网络ADB后远程刷新回执4/4，后续无ADB更新验收见[#16](https://github.com/arthurxbwang/roombeacon/issues/16)；旧样机仍因DNS/网络不可达待接入。飞书回调用户已配置，首页飞书登录及一次性首位员工管理员初始化已发布8915b38，用户已真实扫码确认本人，核验唯一员工管理员及消费记录通过；见[登录发布记录](production-feishu-login-2026-09-22.md)及[#17](https://github.com/arthurxbwang/roombeacon/issues/17)。
 
 ## 已接受的联系人限制
 
