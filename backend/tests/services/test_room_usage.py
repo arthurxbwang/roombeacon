@@ -218,7 +218,8 @@ async def test_release_success_is_verified_and_single_attempt(setup_usage, monke
     client.release.assert_awaited_once()
     assert client.release.call_args.args[2] == 'NOT_CHECK_IN'
     saved = RoomSchedule.model_validate_json(await store.cache.get('rooms:snapshot:omm_one'))
-    assert saved.valid_until <= datetime.now(UTC)
+    assert saved.valid_until > datetime.now(UTC)
+    assert saved.events == []
 
 
 @pytest.mark.asyncio
@@ -275,27 +276,37 @@ async def test_restart_during_window_does_not_enroll_missing_records(setup_usage
 
 
 @pytest.mark.asyncio
-async def test_early_end_requires_occurrence_verification_and_stays_queued(setup_usage, monkeypatch):
-    store, client, _, actor, policy, now, _, epoch = setup_usage
+async def test_early_end_disabled_even_for_verified_confirmed_meeting(setup_usage, monkeypatch):
+    store, client, token, actor, policy, now, _, _ = setup_usage
     monkeypatch.setattr(settings, 'ROOM_DISPLAY_USAGE_WRITES_ENABLED', True)
     policy.update(mode='auto', native_policy_cleared=True, release_verified=True)
     await store.put('policy:omm_one', policy)
     await store.put('paused', False)
     request = await request_for(store, now)
-    with pytest.raises(AppError):
-        await service.command(store, 'omm_one', actor, request, 'end', now)
     await service.verify_occurrence(store, 'omm_one', VerifiedOccurrence(**request.model_dump(), non_recurring_verified=True))
     await service.command(store, 'omm_one', actor, request, 'confirm', now)
-    result = await service.command(store, 'omm_one', actor, request, 'end', now)
-    assert result['record']['state'] == 'end_requested'
+    old = await store.get('record:' + request.occurrence_id)
+    assert (await service.view(store, 'omm_one', now))['can_end'] is False
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as http:
+        path = '/api/meeting-rooms/usage/end'
+        assert (await http.post(path, json=request.model_dump())).status_code == 401
+        response = await http.post(path, json=request.model_dump(), headers={'Authorization': 'Bearer ' + token})
+        assert response.status_code == 403
+    assert await store.get('record:' + request.occurrence_id) == old
     client.release.assert_not_called()
-    client.freebusy.side_effect = [client.freebusy.return_value, {'free_busy': {'omm_one': []}}]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('stage', ['end_requested', 'checking'])
+async def test_old_early_end_queue_is_blocked_without_upstream_write(setup_usage, monkeypatch, stage):
+    store, client, key, old, _, now, _, epoch = await make_due(setup_usage, monkeypatch)
+    await store.put(key, {**old, 'state': stage, 'release_kind': 'end'})
     await worker.tick_room(store, client, 'omm_one', epoch, now)
-    record = await store.get('record:' + request.occurrence_id)
-    assert record['state'] == 'checking'
-    await store.put('record:' + request.occurrence_id, {**record, 'ack_at': now.timestamp()})
-    await worker.tick_room(store, client, 'omm_one', epoch, now)
-    assert client.release.call_args.args[2] == 'ENDED_BEFORE_DUE'
+    result = await store.get(key)
+    assert result['state'] == 'blocked'
+    assert result['reason'] == 'early_end_disabled'
+    client.release.assert_not_called()
+    client.freebusy.assert_not_called()
 
 
 @pytest.mark.asyncio

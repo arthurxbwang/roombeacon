@@ -2,9 +2,9 @@
 import hashlib
 import json
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ROOM_PATTERN = r'^omm_[A-Za-z0-9]{1,96}$'
 
@@ -48,10 +48,23 @@ class UsageHeartbeat(BaseModel):
     policy_revision: str
     operation_state: Literal['ready', 'submitting', 'uncertain']
     challenge_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+    monitored_occurrence_ids: list[Annotated[str, Field(pattern=r'^[a-f0-9]{64}$')]] = Field(default_factory=list, max_length=64)
 
 
 class VerifiedOccurrence(UsageCommand):
     non_recurring_verified: Literal[True]
+
+    @model_validator(mode='before')
+    @classmethod
+    def reject_mixed_scope(cls, value):
+        if isinstance(value, dict) and 'recurring_verified' in value:
+            raise ValueError('Conflicting verification scopes')
+        return value
+
+
+class VerifiedRecurringOccurrence(UsageCommand):
+    model_config = ConfigDict(extra='forbid')
+    recurring_verified: Literal[True]
 
 
 class PauseCommand(BaseModel):

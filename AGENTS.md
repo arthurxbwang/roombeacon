@@ -9,6 +9,8 @@ Argus 门牌副本冻结；不要把本仓库改动回写 Argus，也不要默�
 涉及测试或部署时读 handbook/development.md 和 handbook/operations.md。
 当前用户授权：迁移已有代码及设计资料；2026-09-20 启动 Android WebView APK 实施并在门牌样机安装测试。ESP32 固件仍仅规划；独立服务端由用户另行申请，不默认部署旧服务器。
 
+2026-09-22 用户已确认独立生产服务器部署完成；当前域名 `roombeacon.thundersoft.com`，SSH `root`/`aw.key`/端口 `8081`，部署目录 `/data/roombeacon`。连接已验证；历史 SSH80 与首次部署待办不代表当前状态，见 docs/production-10.0.53.174.md。
+
 ## 目录
 
 - backend/：独立 FastAPI、飞书只读采集与 Redis 缓存、Python 测试。
@@ -23,7 +25,7 @@ Argus 门牌副本冻结；不要把本仓库改动回写 Argus，也不要默�
 ## 变更约束
 
 - 使用 codex/ 分支；GitHub 管理源码，不从开发机复制源码到服务器。
-- 不推送 main；未获远程提交授权不 push。首次迁移仅本地保存；2026-09-20 用户另行授权整理现有代码并推送 codex/ 分支备份，不包含合并 main 或新增部署。
+- 默认不推送 main；未获远程提交授权不 push。首次迁移仅本地保存；2026-09-20 的授权仅包含 codex/ 分支备份。2026-09-22 用户另行明确授权分析全部本地代码、上传 GitHub，并将全部本地分支合并到 main；本次授权不包含服务器部署，保留原分支历史。
 - 不迁入 .env、SSH 私钥、真实 App Secret、主控密码、设备令牌、签到 resource_token。
 - 保留 API 路径、ROOM_DISPLAY_* 配置、rooms:* Redis 键和 argus_room_* 浏览器键，改变时必须设计兼容迁移。
 - 每个接口都必须验证设备或主控凭证。终端仅请求缓存，不直接访问飞书。

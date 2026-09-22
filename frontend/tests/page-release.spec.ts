@@ -9,11 +9,12 @@ for (const ready of [true, false]) {
     const old = await page.locator('meta[name="roombeacon-release"]').getAttribute('content')
     let navigation = 0
     page.on('request', request => { if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigation++ })
-    await page.route('http://127.0.0.1:4178/', async route => {
-      const response = await route.fetch()
-      const body = (await response.text()).replace(`content="${old}"`, 'content="release-test-next"')
-      await route.fulfill({ response, body })
-    })
+    // Capture the fixture before polling; an in-flight route.fetch can outlive teardown.
+    const releaseUrl = new URL('/', page.url()).href
+    const response = await page.request.get(releaseUrl)
+    expect(response.status()).toBe(200)
+    const body = (await response.text()).replace(`content="${old}"`, 'content="release-test-next"')
+    await page.route(releaseUrl, route => route.fulfill({ status: 200, contentType: 'text/html', body }))
     await page.route('**/assets/*.js', async route => {
       if (route.request().method() === 'HEAD' && !ready) await route.fulfill({ status: 404 })
       else await route.continue()
@@ -28,5 +29,6 @@ for (const ready of [true, false]) {
       await expect(page.locator('.door')).toBeVisible()
       expect(navigation).toBe(0)
     }
+    await page.unrouteAll({ behavior: 'wait' })
   })
 }

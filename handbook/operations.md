@@ -1,8 +1,16 @@
 # RoomBeacon 运维与仓库切换
 
+> 2026-09-22生产Caddy/Nginx已启用异常重启，Caddy优先恢复持久化配置；实际覆盖文件、验证及回退见[修复记录](../docs/production-entry-recovery-2026-09-22.md)。备份接受VM方案；指标由用户后续配置；证书由自动化负责。
+
+> 当前生产服务器为`roombeacon.thundersoft.com`，SSH使用`root`、私有`aw.key`和端口`8081`；部署目录`/data/roombeacon`。已验证登录主机`tsm-eed-ts-bj`。用户已完成部署；历史SSH80及首次部署待办不能覆盖当前状态，见[连接与历史部署记录](../docs/production-10.0.53.174.md)。
+
+> 改期自动核验尚未部署。先完成日历权限与专用日历配置，再从准确GitHub SHA发布；启用和回退不能重置已保护记录。见[操作与权限清单](../docs/v5-reschedule-autoverify.md)。
+
+> 2026-09-21 当前后端374db89、静态da63152，提前结束已关闭。连续三场非重复验收通过，只有IT灯塔-Test获V5写入资格；新预约仍需逐实例登记。见[验收记录](../docs/v5-retest-acceptance.md)，回退沿用[504修复记录](../docs/v5-three-bookings-verification.md)所列备份。下方旧版本为历史记录。
+
 > 现有 Control 已按用户授权部署 V4/V5；实际目录、准确 SHA、配置覆盖及回退备份以 [2026-09-20 部署记录](../docs/v5-control-deployment.md)为准。以下未切换说明为此前基线，不覆盖该记录。
 
-V5 默认关闭；独立环境启用、专用操作凭证、逐实例登记及暂停回退见 [V5 运维](../docs/v5-usage-verification.md)。本次本地实现不改变已有服务器或样机接入。
+V5 默认关闭；独立环境启用、专用操作凭证、逐实例登记及暂停回退见 [V5 运维](../docs/v5-usage-verification.md)。当前Control仅IT灯塔-Test已启用，已实测非重复自动释放和提前结束，见[四场记录](../docs/v5-four-bookings-verification.md)。新增预约仍需在V5规则逐实例登记非重复；房间开关不会自动批准未知未来预约。
 
 V5 保护协议 2 要求前后端同步升级：在中控明确选 V5 方案，旧无 owner 的策略按官方关闭处理，旧页面不能靠 GET 为释放保活。回退须先暂停写入、核对在途请求，再切服务器方案及页面；飞书后台的官方规则需单独恢复。当前虚拟房间写入验收状态见 [测试记录](../docs/v5-test-room-verification.md)。
 
@@ -56,3 +64,10 @@ issue 会在终端显示一次设备凭证，属于管理员有意操作；不�
 ## 组织者姓名补全（2026-09-17）
 
 后台采集在组织者姓名缺失时，以现有飞书应用查询通讯录补全，成功缓存 5 分钟、失败缓存 1 分钟；按 App ID 隔离，不改变终端 API 或主题可见性。当前暂借 Argus 自建应用，权限核对、实测限制及独立迁移见 [飞书应用权限清单](../docs/feishu-permissions.md)。本次功能仅在 RoomBeacon 本地实现，未部署线上。
+
+
+## 重复实例试点登记（2026-09-21）
+
+仅对白名单V5房间，通过既有管理员认证POST `/api/room-control/usage/{room_id}/verify`，请求包含当前`occurrence_id`、`policy_revision`及`recurring_verified: true`。与`non_recurring_verified`不能同时提交；旧非重复登记仍兼容。登记只对当前实例有效，不授权整个系列。未知单条0实例不能凭开始时间直接认定重复，必须有快照重复依据；发送前重复核对。Control现有非重复勾选不能用于重复预约，本轮由有截止时间的测试脚本调用新登记类型。
+
+重复记录可能包含`release_scope=recurring_instance`和`release_original_time`。回退到不识别这些字段的旧版时，保持全局暂停，核对在途请求和记录后再决定恢复；不能把新版已登记记录交给旧版直接发送。部署、真实结果和回退目录见[重复实例验证](../docs/v5-recurring-release-verification.md)。

@@ -97,16 +97,13 @@ async def test_api_delay_invalidates_ack_before_write(setup_usage, monkeypatch):
 async def test_cache_delay_after_upstream_check_does_not_use_expired_ack(setup_usage, monkeypatch):
     store, client, key, _old, _, now, _, epoch = await make_due(setup_usage, monkeypatch)
     original = worker.fresh_target
-    reads = 0
     class Clock:
         @staticmethod
         def now(tz):
             return now + timedelta(seconds=20)
     async def delayed_cache(*args):
-        nonlocal reads
         result = await original(*args)
-        reads += 1
-        if reads == 2:
+        if client.freebusy.await_count:
             monkeypatch.setattr(worker, 'datetime', Clock)
         return result
     monkeypatch.setattr(worker, 'fresh_target', delayed_cache)

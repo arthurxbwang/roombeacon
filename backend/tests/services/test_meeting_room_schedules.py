@@ -100,7 +100,7 @@ async def test_stale_snapshot_during_parallel_refresh_stays_stale(world):
 
 
 @pytest.mark.asyncio
-async def test_snapshot_expires_at_shanghai_midnight(world):
+async def test_snapshot_has_bounded_freshness(world):
     result = await schedule_for('omm_one')
     assert result.valid_until - result.synced_at <= timedelta(minutes=5)
     assert json.loads(world.values['rooms:snapshot:omm_one'])['room']['name'] == '望岳'

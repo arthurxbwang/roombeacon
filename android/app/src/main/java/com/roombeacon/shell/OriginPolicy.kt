@@ -7,8 +7,10 @@ class OriginPolicy(origin: String, debug: Boolean = false) {
     private val base: URI
     init {
         val parsed = URI(origin.trim())
-        require(parsed.scheme == "https" || (debug && parsed.scheme == "http" &&
-            parsed.host in setOf("127.0.0.1", "localhost"))) { "正式服务器必须使用 HTTPS" }
+        val debugHttp = debug && parsed.scheme == "http" &&
+            (parsed.host in setOf("127.0.0.1", "localhost") ||
+                (parsed.host == "10.0.24.208" && parsed.port in listOf(-1, 80)))
+        require(parsed.scheme == "https" || debugHttp) { "正式服务器必须使用 HTTPS" }
         require(!parsed.host.isNullOrBlank() && parsed.rawUserInfo == null &&
             parsed.rawQuery == null && parsed.rawFragment == null &&
             parsed.rawPath in listOf("", "/") && parsed.port in -1..65535 && parsed.port != 0) {

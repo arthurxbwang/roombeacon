@@ -136,6 +136,7 @@ onUnmounted(() => {
         <section class="current" :class="{ 'is-free': fresh && !disabled && !current, 'is-soon': state === '即将开始', 'with-checkin': (isV5 || (isV3 && !!snapshot?.checkin_qr)) && !disabled }">
           <div class="primary-info">
             <span class="status" :class="{ 'large-status': isV3 && ['使用中', '即将开始', '空闲可用'].includes(state) }" role="status"><i aria-hidden="true" /><span class="status-text">{{ state }}</span></span>
+            <div class="primary-body">
             <template v-if="snapshot && !disabled">
               <div v-if="current || state === '即将开始'" class="hero">
                 <p class="hero-label">{{ current ? '距本场结束还有' : '距下场开始还有' }}</p>
@@ -155,8 +156,9 @@ onUnmounted(() => {
               <div v-else-if="fresh && !isV3" class="booking-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 11h18m-13 5h8"/></svg><div><strong>扫码预订</strong><p>预约入口待接入</p></div></div>
             </template>
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? '暂不可使用' : '等待日程同步' }}</h2><p class="organizer">{{ message || '正在确认最新预约状态' }}</p></template>
+            </div>
           </div>
-          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" @changed="refresh" />
+          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" @changed="refresh" />
           <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">本房间使用 V5 确认，请切换到 V5 页面</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
@@ -235,5 +237,28 @@ onUnmounted(() => {
 @media(min-width:701px) and (min-height:701px) and (max-height:760px) and (orientation:landscape){
   .v4 .agenda-body{gap:8px}
   .v4 .agenda article{padding-top:8px;padding-bottom:8px}
+}
+</style>
+
+
+<style scoped>
+.primary-body{display:contents}
+/* V5 shares two grid rows: headings, then full-height content panels. */
+@media(min-width:1000px) and (min-height:600px) and (orientation:landscape){
+  .v5 .content{grid-template-columns:minmax(0,1.2fr) minmax(260px,.95fr) minmax(0,1.15fr);grid-template-rows:auto minmax(0,1fr);column-gap:clamp(18px,2.2cqw,32px);row-gap:18px;align-items:end;min-height:0}
+  .v5 .current.with-checkin,.v5 .primary-info,.v5 .agenda{display:contents}
+  .v5 .status{grid-column:1;grid-row:1;align-self:end;align-items:baseline;height:auto;line-height:1;margin:0;gap:10px}
+  .v5 .large-status .status-text{font-size:clamp(42px,5.4cqw,72px);line-height:1}
+  .v5 .large-status i{width:10px;height:10px;margin:0;align-self:center}
+  .v5 .primary-body{grid-column:1;grid-row:2;align-self:stretch;min-height:0;display:flex;flex-direction:column;gap:12px;overflow:auto;padding:0 12px 0 0}
+  .v5 .primary-body .meeting-progress{margin-top:auto;flex-shrink:0}
+  .v5 .primary-body .countdown strong,.v5 .primary-body .available-until{font-size:clamp(42px,5.4cqw,72px)}
+  .v5 .primary-body .meeting-detail h2{font-size:clamp(22px,2.4cqw,32px)}
+  .v5 :deep(.usage-card){display:contents}
+    .v5 .agenda-header h3{font-size:clamp(22px,2.3cqw,30px);line-height:1.2;font-weight:600}
+  .v5 :deep(.usage-body){grid-column:2;grid-row:2;align-self:stretch;min-height:0;height:100%}
+  .v5 .agenda-header{grid-column:3;grid-row:1;align-self:end;margin:0;line-height:1.2}
+  .v5 .agenda-body{grid-column:3;grid-row:2;align-self:stretch;min-height:0}
+  .v5 .agenda-empty{border-radius:16px}
 }
 </style>

@@ -29,6 +29,16 @@ class ShellPolicyTest {
         repeat(100) { assertEquals(60000L, retry.nextDelayMillis()) }
         retry.reset(); assertEquals(2000L, retry.nextDelayMillis())
     }
+    @Test fun debugLanServerIsExactAndReleaseStillRequiresTls() {
+        val policy = OriginPolicy("http://10.0.24.208", true)
+        assertTrue(policy.allows("http://10.0.24.208/api/meeting-rooms/usage"))
+        for (url in listOf("http://10.0.24.209", "http://10.0.24.208.evil.test",
+            "http://10.0.24.208:8080", "http://10.0.24.208@evil.test")) {
+            assertThrows(Exception::class.java) { OriginPolicy(url, true) }
+            assertFalse(policy.allows(url))
+        }
+        assertThrows(Exception::class.java) { OriginPolicy("http://10.0.24.208") }
+    }
     @Test fun passwordIsSaltedAndWrongPasswordFailsClosed() {
         val first = PinHash.create("test-pass-123")
         assertNotEquals(first, PinHash.create("test-pass-123"))

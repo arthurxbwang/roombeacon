@@ -1,12 +1,16 @@
 # RoomBeacon · 会议灯塔
 
+**当前源码包含 Android 外壳、V1—V5 页面、改期后重新签到及日历自动核验。生产是否启用以运行配置为准；目标日历授权与映射仍待完成。会议联系人统一显示方案已确认，尚未实现。**
+
+当前生产入口为 `roombeacon.thundersoft.com`，部署目录 `/data/roombeacon`。源码合并与服务器部署分别管理；本轮汇总源码不会自动部署或启用 V5 写入。运行版本与边界见[生产记录](docs/production-10.0.53.174.md)，日历核验准备见[修复说明](docs/v5-reschedule-autoverify.md)。
+
 面向飞书会议室的独立门牌系统。服务器集中采集并缓存日程，终端显示会议状态、时间、组织者、后续会议与官方签到二维码。
 
-**当前：Web V4 汇总现有门牌功能，V1/V2/V3 保留兼容；Android 0.2.3 按型号匹配两套样机的侧灯接线，ESP32-P4 仍仅规划。** 软件仓库版本暂为 0.1.0，界面版本与 APK 版本分别管理。
+**当前：Web V4 汇总现有门牌功能，V1/V2/V3 保留兼容；Android 0.2.4 按型号匹配两套样机的侧灯接线，BX68已切V5专用房间测试，ESP32-P4 仍仅规划。** 软件仓库版本暂为 0.1.0，界面版本与 APK 版本分别管理。
 
-V5 确认使用版本已实现，通过 `/?version=v5` 显式选择；配置默认关闭。现有 Control 已按用户要求部署 V4/V5，专用测试房间开启观察模式，飞书写入仍关闭；默认 V4 保持兼容。部署与回退见 [Control 更新](docs/v5-control-deployment.md)，验证范围见 [V5 说明](docs/v5-usage-verification.md)。
+V5 确认使用版本已实现，通过 `/?version=v5` 显式选择；配置默认关闭。现有 Control 后端7deb6ba、静态da63152，仅专用测试房间开启自动释放写入；非重复和每日重复单实例签到、释放及后续预约保留已实测，门牌提前结束已关闭。重复改期、周/月重复及长稳尚未实测，未来预约仍需逐实例登记；默认V4保持兼容。见[重复实例验收](docs/v5-recurring-release-verification.md)与[Control部署](docs/v5-control-deployment.md)。
 
-V5 已增加平板主动保活、操作异常保护、待释放补确认和发送前核验；服务器逐房间选择官方／V5 方案，切页面不切换后台规则。专用虚拟房间已完成真实读取检查，预约释放尚待验收，见 [测试记录](docs/v5-test-room-verification.md)。
+V5 已增加平板主动保活、操作异常保护、待释放补确认和发送前核验；服务器逐房间选择官方／V5 方案，切页面不切换后台规则。专用虚拟房间已完成真实读取检查，本轮非重复预约实测见 [四场记录](docs/v5-four-bookings-verification.md)，历史预检见 [测试记录](docs/v5-test-room-verification.md)。
 
 ## 快速开始
 
@@ -35,6 +39,8 @@ npm run dev
 
 ## 文档
 
+- [独立飞书应用：11项权限与迁移清单](docs/feishu-permissions.md)
+
 - [项目交接：先读](docs/handoff.md)
 - [系统架构与 API](docs/architecture.md)
 - [界面与历史设计决策](docs/design.md)
@@ -45,6 +51,7 @@ npm run dev
 - [Android 样机验证记录](docs/android-sample-verification.md)
 - [Android 型号与灯控接线](docs/android-device-profiles.md)
 - [北京-203 / 1080P 样机记录](docs/android-203-1080p-verification.md)
+- [BX68 / IT灯塔-Test / V5 样机记录](docs/android-v5-test-room-verification.md)
 - [2026-09-20 源码备份说明](docs/source-backup-2026-09-20.md)
 - [源代码出处清单](docs/migration-manifest.json)
 - [迁移验证](docs/migration-verification.md)

@@ -27,7 +27,18 @@ def _is_retryable_token_error(exc: BaseException) -> bool:
     return isinstance(exc, ExternalAPIError) and getattr(exc, "retryable_token_error", False)
 
 
+def _is_retryable_freebusy_gateway_error(exc: BaseException) -> bool:
+    return (isinstance(exc, httpx.HTTPStatusError)
+            and exc.request.method == "GET"
+            and exc.request.url.path == "/open-apis/meeting_room/freebusy/batch_get"
+            and exc.response.status_code in {502, 503, 504})
+
+
 def _before_api_retry(retry_state) -> None:
+    exc = retry_state.outcome.exception()
+    if _is_retryable_freebusy_gateway_error(exc):
+        logger.warning("feishu_freebusy_retry", status_code=exc.response.status_code,
+                       attempt=retry_state.attempt_number)
     if _is_retryable_token_error(retry_state.outcome.exception()):
         client = retry_state.args[0]
         client._tenant_token = None
@@ -79,6 +90,7 @@ class FeishuClient:
         retry=retry_any(
             retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError)),
             retry_if_exception(_is_retryable_token_error),
+            retry_if_exception(_is_retryable_freebusy_gateway_error),
         ),
         before_sleep=_before_api_retry,
         reraise=True,

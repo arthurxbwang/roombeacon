@@ -151,7 +151,7 @@ class MainActivity : Activity() {
         form.addView(label(if (first) "RoomBeacon · 首次配置" else "RoomBeacon · 设备维护", 28f))
         val version = WebView.getCurrentWebViewPackage()?.versionName ?: "不可用"
         form.addView(label("APK ${BuildConfig.VERSION_NAME} · WebView $version\n" +
-            if (BuildConfig.DEBUG) "调试版：仅本机 HTTP 测试；业务服务尚未配置" else "正式版：使用 HTTPS 服务", 16f))
+            if (BuildConfig.DEBUG) "调试版：允许本机及指定局域网测试服务器 HTTP；正式接入使用 HTTPS" else "正式版：使用 HTTPS 服务", 16f))
         val address = EditText(this).apply {
             hint = "服务器地址，例如 https://rooms.example.com"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
