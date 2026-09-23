@@ -1,6 +1,6 @@
 # 设备台账、安装模板与会议室业务方案
 
-2026-09-23，本地开发，尚未发布。需求 [#25](https://github.com/arthurxbwang/roombeacon/issues/25)，接续已部署的 [#23](https://github.com/arthurxbwang/roombeacon/issues/23) 型号模板；开发基线为 `3cb966e`，生产版本仍以[型号模板发布记录](production-model-templates-2026-09-23.md)为准。
+2026-09-23，已部署并完成真实 HTTPS 管理页验收，运行 SHA 为 `4b65ecc`，见[发布与回退记录](production-inventory-templates-2026-09-23.md)。需求 [#25](https://github.com/arthurxbwang/roombeacon/issues/25)，接续已部署的 [#23](https://github.com/arthurxbwang/roombeacon/issues/23) 型号模板；开发基线为 `3cb966e`，前序生产版本见[型号模板发布记录](production-model-templates-2026-09-23.md)。
 
 ## 关联方式与选择理由
 
@@ -45,4 +45,4 @@
 
 环境修复记录：首次全量后端测试因独立 Redis 缺少动态库而启动失败，补齐该测试程序的 `LD_LIBRARY_PATH` 后重新执行 300 项全部通过；未修改测试来跳过失败。
 
-本次未推送源码、合并 main、部署服务器或升级 APK。部署需另行明确准确 SHA、目标和回退记录。未来部署先备份管理数据库并同步发布前后端；本轮没有新增 APK 协议。回退到本次基线时保留数据库及新增版本表，旧代码忽略该表，不清空设备身份或配置历史。若旧版直接修改模板后再次升级，须核对版本表与模板内容，不复用旧浏览器中的未提交草稿。
+用户随后授权先部署验收、再推送 GitHub，已按固定提交发布并完成真实管理页验证；见[发布记录](production-inventory-templates-2026-09-23.md)。本轮没有合并 main、更新 APK 或新增 APK 协议。回退到本次基线时保留数据库及新增版本表，旧代码忽略该表，不清空设备身份或配置历史。若旧版直接修改模板后再次升级，须核对版本表与模板内容，不复用旧浏览器中的未提交草稿。

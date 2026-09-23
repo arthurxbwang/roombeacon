@@ -4,9 +4,9 @@
 
 本计划承接已整合的 `main`，将需求和验收状态从历史任务迁入 GitHub。当前版本与生产边界见[当前状态](../docs/current-state.md)，旧记录继续作为证据保留。
 
-## 设备台账与安装模板（本地开发中）
+## 设备台账与安装模板（已部署，待源码审阅）
 
-[#25](https://github.com/arthurxbwang/roombeacon/issues/25)：地区与多级位置筛选、模板新建／编辑及方向归属、硬件安装与会议室业务方案分离。接续 #23 已部署实现，本轮不自动发布；见[设计与交付](../docs/device-inventory-templates.md)。
+[#25](https://github.com/arthurxbwang/roombeacon/issues/25)：地区与多级位置筛选、模板新建／编辑及方向归属、硬件安装与会议室业务方案分离。接续 #23 实现；用户后续授权先上线验收再推送，前后端 `4b65ecc` 已发布并通过真实验收，见[发布记录](../docs/production-inventory-templates-2026-09-23.md)。
 
 ## V6 已确认新增需求
 
