@@ -1,5 +1,6 @@
 import axios from 'axios'
 export interface DeviceConfig { version: 'v4'|'v5'|'v6'; portrait: boolean; room_light: boolean; node_id: 'central'; reload: number; theme_mode: 'auto'|'light'; language: 'zh-CN'|'en'; device_profile: string }
+export interface ConfigTemplate {id:string;name:string;revision:number;config:DeviceConfig}
 export interface ManagedDevice {
   id: string; code: string; status: string; room_id: string; revision: number; reported_revision: number
   online: boolean; last_seen: number; error: string; config: DeviceConfig

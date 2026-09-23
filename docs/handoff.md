@@ -1,5 +1,7 @@
 # RoomBeacon 项目交接
 
+> 2026-09-23 本地开发：Issue #25 的设备台账分层筛选、模板编辑及会议室业务方案分离，分支 `codex/device-inventory-templates` 从已部署型号模板分支 `3cb966e` 接续。尚未推送、部署或更新 APK；见[设计与交付](device-inventory-templates.md)。
+
 > 2026-09-23 型号模板已发布：前后端 `808710d`、BX68 APK 0.6.2，配置回执 5/5，正式 HTTPS 页面及红灯电平正常。用户明确批准本次先 Git bundle 部署验收再推 GitHub；准确版本、检查和回退见[发布记录](production-model-templates-2026-09-23.md)。下方 0.6.1 与旧服务版本为历史。
 
 > 2026-09-22 V6会话归档：本会话功能及退出按钮修复已合入GitHub；最后后端8915b38、静态921ba26、APK0.6.1。用户真实飞书登录及唯一初始管理员已验收，一次性初始化已消费。完整PR/版本/回退、关闭ADB实测及剩余事项见[V6会话接续](archive/v6-session-handoff-2026-09-22.md)。后续从Issue #10/#16继续。

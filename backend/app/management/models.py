@@ -1,7 +1,14 @@
 """Bounded V6 wire protocol. Node fields reserve future centrally approved routing."""
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    field_validator,
+    model_validator,
+)
 
 
 class StrictModel(BaseModel):
@@ -51,7 +58,12 @@ class DeviceConfig(StrictModel):
         return self
 
 
-class Configure(StrictModel):
+class TemplateSelection(StrictModel):
+    template_id: str = Field(default='', max_length=32)
+    template_revision: int = Field(default=0, ge=0)
+
+
+class Configure(TemplateSelection):
     confirm_model_mismatch: StrictBool = False
     expected_revision: int = Field(ge=1)
     room_id: str = Field(default='', pattern=r'^(omm_[A-Za-z0-9]{1,96})?$', max_length=100)
@@ -76,8 +88,19 @@ class Template(StrictModel):
     name: str = Field(min_length=1, max_length=80)
     config: DeviceConfig
 
+    @field_validator('name')
+    @classmethod
+    def nonblank_name(cls, value):
+        if not value.strip():
+            raise ValueError('模板名称不能为空')
+        return value.strip()
 
-class Batch(StrictModel):
+
+class EditTemplate(Template):
+    expected_revision: int = Field(ge=1)
+
+
+class Batch(TemplateSelection):
     confirm_model_mismatch: StrictBool = False
     devices: dict[str, int] = Field(min_length=1, max_length=100)
     config: DeviceConfig

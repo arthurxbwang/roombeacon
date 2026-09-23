@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS audit (
  action TEXT NOT NULL, target TEXT NOT NULL, detail TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS template_versions (id TEXT PRIMARY KEY, revision INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE IF NOT EXISTS templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, config TEXT NOT NULL);
 """
 DEFAULT_CONFIG = {'version': 'v6', 'portrait': False, 'room_light': True, 'node_id': 'central', 'reload': 0,

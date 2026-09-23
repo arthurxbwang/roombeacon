@@ -4,6 +4,10 @@
 
 本计划承接已整合的 `main`，将需求和验收状态从历史任务迁入 GitHub。当前版本与生产边界见[当前状态](../docs/current-state.md)，旧记录继续作为证据保留。
 
+## 设备台账与安装模板（本地开发中）
+
+[#25](https://github.com/arthurxbwang/roombeacon/issues/25)：地区与多级位置筛选、模板新建／编辑及方向归属、硬件安装与会议室业务方案分离。接续 #23 已部署实现，本轮不自动发布；见[设计与交付](../docs/device-inventory-templates.md)。
+
 ## V6 已确认新增需求
 
 [#23](https://github.com/arthurxbwang/roombeacon/issues/23)：型号模板、昼夜和语言设置、后台异型号确认已部署；BX68 APK 0.6.2 与配置回执 5/5 通过，见[发布记录](../docs/production-model-templates-2026-09-23.md)。本次使用用户临时开启的 ADB，不代表 #16 的无 ADB 升级完成。

@@ -23,8 +23,8 @@ function set<K extends keyof DeviceConfig>(key:K,value:DeviceConfig[K]) {
   </div>
   <p v-else class="v6-muted">{{ modelValue.device_profile==='auto'?'旧配置沿用本机接线识别；新模板需选择具体型号。':'通用屏幕仅应用显示设置，不控制 GPIO。' }}</p>
   <div class="v6-form-row">
-    <label>显示方案<select :value="modelValue.version" @change="set('version',($event.target as HTMLSelectElement).value as DeviceConfig['version'])"><option value="v6">V6 自动适配房间方案</option><option value="v4">V4 官方签到</option><option value="v5">V5 确认使用</option></select></label>
-    <label>屏幕方向<select :value="String(modelValue.portrait)" @change="set('portrait',($event.target as HTMLSelectElement).value==='true')"><option value="false">横屏</option><option value="true">竖屏</option></select></label>
+    <label>门牌页面版本<select :value="modelValue.version" @change="set('version',($event.target as HTMLSelectElement).value as DeviceConfig['version'])"><option value="v6">V6 自动适配房间方案</option><option value="v4">V4 兼容页面</option><option value="v5">V5 兼容页面</option></select></label>
+    <label>屏幕方向<select aria-label="屏幕方向" :value="String(modelValue.portrait)" @change="set('portrait',($event.target as HTMLSelectElement).value==='true')"><option value="false">横屏</option><option value="true">竖屏</option></select></label>
   </div>
   <label class="v6-check"><input type="checkbox" :checked="modelValue.theme_mode==='auto'" @change="set('theme_mode',($event.target as HTMLInputElement).checked?'auto':'light')" />自动切换白天／黑夜</label>
   <p class="v6-muted">{{ modelValue.theme_mode==='auto'?'跟随会议室所在城市的日出日落；城市时间不可用时保持白天。':'已关闭自动切换，始终使用白天模式。' }}</p>

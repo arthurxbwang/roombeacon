@@ -2,6 +2,10 @@
 
 更新：2026-09-23。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
 
+## 本地开发中（2026-09-23）
+
+设备台账多级筛选、安装模板编辑与会议室业务方案分离见 [Issue #25](https://github.com/arthurxbwang/roombeacon/issues/25) 和[设计记录](device-inventory-templates.md)。分支 `codex/device-inventory-templates` 接续已部署型号模板基线 `3cb966e`；本轮尚未部署，不能用本地结果覆盖生产状态。
+
 ## 版本与维护入口
 
 | 用途 | 标签 | 提交 |
