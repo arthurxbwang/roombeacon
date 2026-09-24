@@ -202,7 +202,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.door.with-custom-background{position:relative;isolation:isolate;background:transparent}.template-background{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}.with-custom-background .door-header,.with-custom-background footer{background:var(--panel);border-radius:12px}.door.layout-compact{padding:20px;gap:12px}.layout-compact .current,.layout-compact .agenda{padding:18px}.layout-compact .door-header h1{font-size:clamp(26px,3vw,44px)}
+.door.with-custom-background{position:relative;isolation:isolate}.template-background{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.2}.with-custom-background .door-header,.with-custom-background footer{background:var(--surface);border-radius:12px}.door.layout-compact{padding:20px;gap:12px}.layout-compact .current,.layout-compact .agenda{padding:18px}.layout-compact .door-header h1{font-size:clamp(26px,3vw,44px)}
 .history-warning{flex-shrink:0;font-size:14px;line-height:1.5;color:var(--muted);border-left:3px solid #94a3b8;padding-left:10px}
 
 .door{--surface:#1e293b;--text:#f8fafc;--muted:#a5b4c8;--subtle:#738197;--line:rgba(255,255,255,.08);--track:#243044;--shadow:none;min-height:100dvh;background:#0b0f19;color:var(--text);padding:clamp(24px,3vw,48px);font-family:Inter,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;display:flex;flex-direction:column;gap:24px;color-scheme:dark}
