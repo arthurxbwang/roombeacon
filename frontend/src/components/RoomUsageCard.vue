@@ -6,7 +6,7 @@ import axios from 'axios'
 import { usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
 import type { RoomEvent } from '@/api/meetingRooms'
 
-const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; controlToken?: string; managed?: boolean; event?: RoomEvent }>()
+const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; readOnly?: boolean; controlToken?: string; managed?: boolean; event?: RoomEvent }>()
 const emit = defineEmits<{ changed: [] }>()
 const storageKey = `argus_room_usage_v5:${props.roomId}${props.preview ? ":control-test" : ""}`
 const pendingKey = `${storageKey}:unresolved`
@@ -16,7 +16,7 @@ if (!props.preview) sessionStorage.setItem(sessionKey, sessionId)
 const unresolved = ref(localStorage.getItem(pendingKey) || '')
 const token = ref(props.preview ? props.controlToken || '' : props.managed ? '@managed' : localStorage.getItem(storageKey) || '')
 const testAllowed = ref(false), receipt = ref('')
-const testing = computed(() => props.preview && testAllowed.value)
+const testing = computed(() => props.preview && !props.readOnly && testAllowed.value)
 const input = ref(''), error = ref('')
 const state = ref<UsageState | null>(null)
 const pending = ref(false), failed = ref(false)
@@ -28,7 +28,7 @@ const matches = computed(() => !record.value || (props.event && props.event.uid 
   Date.parse(props.event.start_time) === Date.parse(record.value.occurrence.start_time) &&
   Date.parse(props.event.end_time) === Date.parse(record.value.occurrence.end_time)))
 const fresh = computed(() => props.fresh && matches.value && !failed.value && !!state.value && props.now < Date.parse(state.value.valid_until))
-const canConfirm = computed(() => fresh.value && state.value?.policy.owner === 'v5' && state.value?.can_confirm && record.value && props.now < Date.parse(record.value.release_at || record.value.deadline))
+const canConfirm = computed(() => !props.readOnly && fresh.value && state.value?.policy.owner === 'v5' && state.value?.can_confirm && record.value && props.now < Date.parse(record.value.release_at || record.value.deadline))
 const label = computed(() => props.preview && !testing.value ? 'V5 预览 · 操作不可用' : !token.value ? '签到暂不可用' :
   !fresh.value ? '确认状态待同步' : state.value?.policy.owner !== 'v5' ? '本房间使用官方方案，请切换到 V4' : state.value?.policy.mode === 'off' ? '确认使用已关闭' :
   record.value ? (record.value.state === 'pending' ? '请签到' : usageLabels[record.value.state]) || '状态待核实' : props.preview && !state.value?.target_id ? '当前没有可签到的预约' : '等待下一场确认窗口')
@@ -100,7 +100,7 @@ function bind() {
   token.value = value; localStorage.setItem(storageKey, value); input.value = ''; refresh()
 }
 async function confirm() {
-  if (pending.value || !fresh.value || !record.value || !state.value || (props.preview && (!testing.value || !testAllowed.value))) return
+  if (props.readOnly || pending.value || !fresh.value || !record.value || !state.value || (props.preview && (!testing.value || !testAllowed.value))) return
   if (!canConfirm.value) return
   pending.value = true; error.value = ''
   markUnresolved(record.value.id)

@@ -7,6 +7,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.DisplayMetrics
+import android.view.WindowManager
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.NetworkInterface
@@ -60,11 +62,17 @@ object DeviceMetadata {
         }
         if (factoryMac.isNotEmpty() && interfaces.length() < 12) interfaces.put(JSONObject()
             .put("name", "wifi-factory").put("mac", factoryMac).put("addresses", JSONArray()))
+        val physical = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(physical)
         return JSONObject().put("model", Build.MODEL.take(100)).put("serial", serial.take(100))
             .put("serial_source", if (serial.isEmpty()) "unavailable" else "android")
             .put("android", Build.VERSION.RELEASE.take(40)).put("apk", BuildConfig.VERSION_NAME)
             .put("network", network).put("interfaces", interfaces)
-            .put("firmware", Build.DISPLAY.take(160)).put("config_schema", 2)
+            .put("firmware", Build.DISPLAY.take(160)).put("config_schema", 3)
+            .put("screen", JSONObject().put("pixel_width",physical.widthPixels)
+                .put("pixel_height",physical.heightPixels)
+                .put("density",context.resources.displayMetrics.density.toDouble()))
             .put("light_supported", RoomLight.supports(Build.MODEL, Build.DISPLAY))
     }
 }

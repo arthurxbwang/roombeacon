@@ -21,6 +21,15 @@ class Interface(StrictModel):
     addresses: list[str] = Field(default_factory=list, max_length=8)
 
 
+class Screen(StrictModel):
+    pixel_width: int = Field(default=0, ge=0, le=8192)
+    pixel_height: int = Field(default=0, ge=0, le=8192)
+    viewport_width: float = Field(default=0, ge=0, le=8192, allow_inf_nan=False)
+    viewport_height: float = Field(default=0, ge=0, le=8192, allow_inf_nan=False)
+    density: float = Field(default=0, ge=0, le=16, allow_inf_nan=False)
+    dpr: float = Field(default=0, ge=0, le=16, allow_inf_nan=False)
+
+
 class Metadata(StrictModel):
     model: str = Field(default='', max_length=100)
     serial: str = Field(default='', max_length=100)
@@ -31,7 +40,8 @@ class Metadata(StrictModel):
     serial_source: str = Field(default='', max_length=60)
     light_supported: bool = False
     firmware: str = Field(default="", max_length=160)
-    config_schema: Literal[1, 2] = 1
+    config_schema: Literal[1, 2, 3] = 1
+    screen: Screen = Field(default_factory=Screen)
 
 
 class Sync(StrictModel):

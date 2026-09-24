@@ -6,11 +6,15 @@ object ManagedPolicy {
         value.lowercase() !in setOf("02:00:00:00:00:00", "00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff")
     fun displayPath(version: String, theme: String, language: String): String {
         require(version in setOf("v4", "v5", "v6")) { "不支持的页面版本" }
-        require(theme in setOf("auto", "light")) { "不支持的昼夜模式" }
+        require(theme in setOf("auto", "light", "dark")) { "不支持的昼夜模式" }
         require(language in setOf("zh-CN", "en")) { "不支持的门牌语言" }
         return "/?version=$version&managed=1&theme=$theme&lang=$language"
     }
     // Model matching and overrides belong to the management console.
+    fun wiring(red: Int, green: Int, blue: Int, activeLevel: Int): RoomLight.Profile {
+        require(activeLevel in 0..1) { "不支持的点亮电平" }
+        return RoomLight.Profile(red,green,1-activeLevel,blue)
+    }
     fun lightProfile(profile: String, model: String, firmware: String): RoomLight.Profile? = when (profile) {
         "auto" -> RoomLight.profileFor(model, firmware) // Legacy configurations keep auto detection.
         "generic" -> null

@@ -9,7 +9,7 @@ import { displayLanguage, translateDisplayText } from '@/utils/displayLanguage'
 import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
-const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string }>()
+const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
 const route = useRoute()
 const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
@@ -22,14 +22,18 @@ const token = ref(managed ? '@managed' : localStorage.getItem(storageKey) || '')
 const input = ref('')
 const snapshot = ref<RoomSchedule | null>(null)
 const now = ref(Date.now())
-const language=computed(()=>snapshot.value?.display_preferences?.language || (managed && route.query.lang==='en' ? 'en' : 'zh-CN'))
+const preferences=computed(()=>props.templatePreferences || snapshot.value?.display_preferences)
+const language=computed(()=>preferences.value?.language || (managed && route.query.lang==='en' ? 'en' : 'zh-CN'))
 provide(displayLanguage,language)
 const t=(value:string)=>translateDisplayText(value,language.value)
-const themeMode = computed(() => props.controlTheme || snapshot.value?.display_preferences?.theme_mode || (managed && route.query.theme==='light' ? 'light' : 'auto'))
+const themeMode = computed(() => props.controlTheme || preferences.value?.theme_mode || (managed && route.query.theme==='dark'?'dark':managed && route.query.theme==='light' ? 'light' : 'auto'))
 const timezone = computed(() => snapshot.value?.daylight?.timezone || 'Asia/Shanghai')
 const daylightKnown = computed(() => !!snapshot.value?.daylight?.city && now.value < Date.parse(snapshot.value.daylight.valid_until))
 const isLight = computed(() => themeMode.value === 'light' || (themeMode.value === 'auto' && (daylightKnown.value ? snapshot.value?.daylight?.windows.some(w => Date.parse(w.start) <= now.value && now.value < Date.parse(w.end)) : managed || !!snapshot.value?.display_preferences)))
-const themeLabel = computed(() => themeMode.value === 'auto' ? daylightKnown.value ? `${snapshot.value?.daylight?.city} · ${t(isLight.value ? '日间' : '夜间')}` : t('城市待配置') : t(props.controlTheme ? '手动预览' : '始终白天'))
+const themeLabel = computed(() => themeMode.value === 'auto' ? daylightKnown.value ? `${snapshot.value?.daylight?.city} · ${t(isLight.value ? '日间' : '夜间')}` : t('城市待配置') : t(props.controlTheme ? '手动预览' : themeMode.value==='dark'?'固定夜间':'始终白天'))
+const backgroundId=computed(()=>isLight.value?preferences.value?.background_day:preferences.value?.background_night)
+const backgroundFailed=ref(false)
+watch(backgroundId,()=>{backgroundFailed.value=false})
 watch(isLight, value => emit('theme-change', value ? 'light' : 'dark'), { immediate: true })
 const failed = ref(false)
 const message = ref('')
@@ -122,7 +126,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5 }]" :style="{ '--accent': accent }">
+  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5,'layout-compact':preferences?.layout==='compact','with-custom-background':!!backgroundId&&!backgroundFailed }]" :style="{ '--accent': accent }">
+    <img v-if="backgroundId&&!backgroundFailed" class="template-background" :src="'/api/v6/assets/'+backgroundId" :style="{objectFit:preferences?.background_fit==='contain'?'contain':'cover'}" alt="" @error="backgroundFailed=true" />
     <form v-if="!bound" class="binding" @submit.prevent="bind">
       <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>{{ t('绑定会议门牌') }}</h1>
       <p>{{ t('请输入管理员为这间会议室生成的设备凭证。') }}</p>
@@ -163,7 +168,8 @@ onUnmounted(() => {
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? t('暂不可使用') : t('等待日程同步') }}</h2><p class="organizer">{{ t(message || '正在确认最新预约状态') }}</p></template>
             </div>
           </div>
-          <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
+          <RoomUsageCard :read-only="!!templatePreferences" v-if="isV5 && snapshot && !disabled && snapshot.display_preferences?.usage_control!==false" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
+          <p v-else-if="isV5&&snapshot?.display_preferences?.usage_control===false" class="organizer">{{language==='en'?'Please check in on the primary display':'请在本会议室主控门牌签到'}}</p>
           <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">{{ t('本房间使用 V5 确认，请切换到 V5 页面') }}</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
@@ -196,6 +202,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.door.with-custom-background{position:relative;isolation:isolate}.template-background{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.2}.with-custom-background .door-header,.with-custom-background footer{background:var(--surface);border-radius:12px}.door.layout-compact{padding:20px;gap:12px}.layout-compact .current,.layout-compact .agenda{padding:18px}.layout-compact .door-header h1{font-size:clamp(26px,3vw,44px)}
 .history-warning{flex-shrink:0;font-size:14px;line-height:1.5;color:var(--muted);border-left:3px solid #94a3b8;padding-left:10px}
 
 .door{--surface:#1e293b;--text:#f8fafc;--muted:#a5b4c8;--subtle:#738197;--line:rgba(255,255,255,.08);--track:#243044;--shadow:none;min-height:100dvh;background:#0b0f19;color:var(--text);padding:clamp(24px,3vw,48px);font-family:Inter,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;display:flex;flex-direction:column;gap:24px;color-scheme:dark}

@@ -112,7 +112,8 @@ def authenticate_web(token):
             raise UnauthorizedError('设备绑定已变化')
         # Stable throughout a binding: cookie renewal must not reset V5 business health.
         config = json.loads(row['config'])
-        return {'room_id': row['room_id'],
-                'display_preferences': {key: config.get(key, default)
-                                        for key, default in [('theme_mode', 'auto'), ('language', 'zh-CN')]},
+        return {'room_id': row['room_id'], 'device_id': row['id'], 'usage_control': config.get('usage_control', True),
+                'display_preferences': ({key: config.get(key, default)
+                                        for key, default in [('theme_mode', 'auto'), ('language', 'zh-CN')]}
+                                        | config.get('presentation', {}) | {'usage_control': config.get('usage_control', True)}),
                 'digest': digest(f"v6:{row['id']}:{row['revision']}")}

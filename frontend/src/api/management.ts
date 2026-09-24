@@ -5,10 +5,11 @@ export interface ManagedDevice {
   id: string; code: string; status: string; room_id: string; revision: number; reported_revision: number
   online: boolean; last_seen: number; error: string; config: DeviceConfig
   metadata: { model?: string; firmware?: string; config_schema?: number; serial?: string; apk?: string; android?: string; network?: string; light_supported?: boolean
+    screen?:{pixel_width?:number;pixel_height?:number;viewport_width?:number;viewport_height?:number;dpr?:number}
     interfaces?: { name: string; mac: string; addresses: string[] }[] }
 }
 export interface Manager { subject: string; name: string; role: 'admin'|'viewer'; csrf: string }
-export interface Room { room_id: string; name: string; region: string; location: string }
+export interface Room { room_id: string; name: string; region: string; location: string; region_id?:string; location_nodes?:{id:string;name:string}[] }
 export const defaultConfig: DeviceConfig = { version: 'v6', portrait: false, room_light: true, node_id: 'central', reload: 0, theme_mode: 'auto', language: 'zh-CN', device_profile: 'auto' }
 export async function management<T>(method: string, url: string, signal: AbortSignal, data?: unknown, headers?: Record<string,string>) {
   const response = await axios.request<{data:T}>({method,url,signal,data,headers,timeout:15000})

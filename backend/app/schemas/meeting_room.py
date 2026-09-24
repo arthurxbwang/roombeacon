@@ -33,8 +33,13 @@ class DaylightPlan(BaseModel):
 
 
 class DisplayPreferences(BaseModel):
-    theme_mode: Literal["auto", "light"] = "auto"
+    theme_mode: Literal["auto", "light", "dark"] = "auto"
     language: Literal["zh-CN", "en"] = "zh-CN"
+    layout: Literal['standard', 'compact'] = 'standard'
+    background_day: str = ''
+    background_night: str = ''
+    background_fit: Literal['cover', 'contain'] = 'cover'
+    usage_control: bool = True
 
 
 class RoomSchedule(BaseModel):

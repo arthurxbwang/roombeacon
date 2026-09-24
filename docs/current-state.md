@@ -1,6 +1,10 @@
 # RoomBeacon 当前状态
 
-更新：2026-09-23。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
+更新：2026-09-24。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
+
+## 配置模型重构已部署（2026-09-24）
+
+[#27](https://github.com/arthurxbwang/roombeacon/issues/27)：硬件安装和软件模板独立编辑、不可覆盖的发布版本、设备显式部署、会议室与模板三处反查、可读审计已实现。生产应用 `3359332b5b84343318693f7266d7966d3a950619`；BX68 APK 0.7.0，硬件 v2＋软件 v1 回执 7/7，原参数与 V5 策略不变。324 项后端、108 项浏览器覆盖和 19 项 Android 测试通过；真实验收及回退见[本次发布](production-configuration-2026-09-24.md)，关系定义见 [ADR 0005](adr/0005-versioned-configuration.md)。以下旧版本记录按日期保留。
 
 ## 台账与模板编辑已部署（2026-09-23）
 
@@ -16,11 +20,11 @@
 
 唯一维护仓库为 [arthurxbwang/roombeacon](https://github.com/arthurxbwang/roombeacon)，后续开发从最新 `main` 创建短期 `codex/` 分支。上述基线标签固定旧提交，后续文档或代码合并不移动标签。源码基线与生产前后端版本分别管理。
 
-生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前前后端 SHA 为 `4b65ecceb53e82333df54038d1290bf4da42dc57`，台账及模板编辑的最新验收见[发布记录](production-inventory-templates-2026-09-23.md)；APK 0.6.2 的实机证据见[此前型号模板发布](production-model-templates-2026-09-23.md)；飞书登录基线见[发布记录](production-feishu-login-2026-09-22.md)，退出按钮修复的最新静态SHA与回退回执见[#20](https://github.com/arthurxbwang/roombeacon/issues/20)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
+生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。此前 2026-09-23 前后端 SHA 为 `4b65ecceb53e82333df54038d1290bf4da42dc57`，台账及模板编辑的最新验收见[发布记录](production-inventory-templates-2026-09-23.md)；APK 0.6.2 的实机证据见[此前型号模板发布](production-model-templates-2026-09-23.md)；飞书登录基线见[发布记录](production-feishu-login-2026-09-22.md)，退出按钮修复的最新静态SHA与回退回执见[#20](https://github.com/arthurxbwang/roombeacon/issues/20)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
 
 ## 已完成
 
-- Android WebView 外壳、型号灯控与恢复能力；BX68 样机已升级 APK 0.6.2-debug，模板配置回执 5/5。
+- Android WebView 外壳、型号灯控与恢复能力；BX68 样机当前 APK 0.7.0-debug，模板配置回执 7/7。
 - V1—V5 页面及主控；提前结束已关闭，兼容接口认证后固定拒绝。
 - 当前生产仅 IT灯塔-Test 开启 V5 签到与受控释放，其余 342 间不扩大写入权限。未来预约不因房间开关而自动获得释放资格。
 - Caddy／Nginx 异常恢复已修复；接受 VM 层备份，指标由用户后续配置，证书续期由既定自动化负责。

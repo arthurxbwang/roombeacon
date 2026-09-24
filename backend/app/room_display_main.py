@@ -11,6 +11,13 @@ from .core.exceptions import AppError, UnauthorizedError, app_error_handler
 from .core.response import R, ok
 from .core.room_devices import authenticate_device, room_cache
 from .management.auth import router as auth_router
+from .management.catalog import router as catalog_router
+from .management.configuration_assets import router as assets_router
+from .management.configuration_delivery import configuration_loop
+from .management.configuration_delivery import router as delivery_router
+from .management.configuration_migration import router as migration_router
+from .management.deployment_batch import router as batch_deployments_router
+from .management.deployments import router as deployments_router
 from .management.devices import router as devices_router
 from .management.security import DEVICE_COOKIE, actor, authenticate_web
 from .room_usage_routes import usage_router
@@ -28,11 +35,14 @@ from .services.room_usage_worker import usage_loop
 async def lifespan(app: FastAPI):
     worker = asyncio.create_task(collector_loop())
     usage_worker = asyncio.create_task(usage_loop()) if settings.ROOM_DISPLAY_USAGE_ENABLED else None
+    configuration_worker = asyncio.create_task(configuration_loop())
     try:
         yield
     finally:
         worker.cancel()
         await asyncio.gather(worker, return_exceptions=True)
+        configuration_worker.cancel()
+        await asyncio.gather(configuration_worker, return_exceptions=True)
         if usage_worker:
             usage_worker.cancel()
             await asyncio.gather(usage_worker, return_exceptions=True)
@@ -98,12 +108,29 @@ async def control_preview(response: Response,
                           user: dict = Depends(require_reader)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(room_id)
-    return ok(await decorate(snapshot))
+    result = await decorate(snapshot)
+    if settings.ROOM_DISPLAY_V6_DB:
+        import json
+
+        from .management.store import database
+        with database() as db:
+            row = db.execute('SELECT v.spec FROM room_configurations r JOIN config_versions v '
+                             'ON v.template_id=r.software_id AND v.version=r.software_version '
+                             'WHERE r.room_id=?', (room_id,)).fetchone()
+            if row:
+                result = result.model_copy(update={'display_preferences': DisplayPreferences(**json.loads(row['spec']))})
+    return ok(result)
 
 
 app.include_router(usage_router(require_admin, require_reader))
 app.include_router(auth_router)
 app.include_router(devices_router)
+app.include_router(catalog_router)
+app.include_router(assets_router)
+app.include_router(migration_router)
+app.include_router(delivery_router)
+app.include_router(deployments_router)
+app.include_router(batch_deployments_router)
 
 
 @app.middleware('http')

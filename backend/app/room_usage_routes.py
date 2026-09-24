@@ -47,6 +47,8 @@ def usage_router(require_admin, require_reader=None):
             if request.method != 'GET' and request.headers.get('x-rb-device') != '1':
                 raise AppError(403, '设备操作来源无效', 403)
             user = authenticate_web(request.cookies[DEVICE_COOKIE])
+            if request.method != 'GET' and not user.get('usage_control', True):
+                raise AppError(403, '此设备为展示屏，签到由该房间业务主控设备处理', 403)
             return user['room_id'], user['digest']
         token = authorization.removeprefix('Bearer ') if authorization.startswith('Bearer ') else ''
         return await authenticate_usage(token)
@@ -86,7 +88,14 @@ def usage_router(require_admin, require_reader=None):
     async def policy(body: UsagePolicy, room_id: str = Path(pattern=ROOM_PATTERN),
                      admin=Depends(require_admin), store=Depends(store_dep)):
         await cached_schedule(room_id)
-        return ok(await save_policy(store, room_id, body))
+        before = await view(store, room_id)
+        result = await save_policy(store, room_id, body)
+        if settings.ROOM_DISPLAY_V6_DB:
+            from .management.store import audit, database
+            with database() as db:
+                audit(db, admin.get('subject', 'control'), 'room-policy', room_id,
+                      {'before': before['policy'], 'after': result})
+        return ok(result)
 
     @router.post('/api/room-control/usage/{room_id}/verify')
     async def verify(body: VerifiedOccurrence | VerifiedRecurringOccurrence, room_id: str = Path(pattern=ROOM_PATTERN),

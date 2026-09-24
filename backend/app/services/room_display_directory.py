@@ -16,6 +16,9 @@ def directory_rows(rooms: list[dict], names: dict[str, str]) -> list[dict]:
         result.append({
             "room_id": room["room_id"], "name": room["name"], "region": region,
             "location": " / ".join(path), "floor": path[-1] if len(path) >= 4 else "—",
+            "location_nodes": [{"id": ident, "name": names.get(ident, "未解析层级")}
+                               for ident in room.get("path", [])],
+            "region_id": room.get("path", [])[2] if len(path) >= 3 else '',
             "capacity": room.get("capacity", 0),
             "enabled": (room.get("room_status") or {}).get("status", True),
         })

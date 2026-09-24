@@ -68,3 +68,5 @@ npm run dev
 
 已有服务没有随仓库迁移而切换。历史目录、服务名和浏览器存储键保留兼容；详见交接文档。
 公司提供的 ThunderSoft 品牌素材仅用于本项目，未新增开源许可证或第三方再授权承诺。
+
+配置与实施：设备先选硬件安装模板、软件模板，再选会议室并检查部署；草稿发布不会自动变更设备。详见 [配置设计](docs/adr/0005-versioned-configuration.md) 和 [实施检查](plan/configuration-redesign.md)。

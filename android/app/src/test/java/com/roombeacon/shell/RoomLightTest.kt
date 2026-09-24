@@ -4,6 +4,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RoomLightTest {
+    @org.junit.Test fun customWiringRejectsUnsupportedPinsAndPolarity() {
+        for (values in listOf(listOf(116,148,147,0),listOf(148,148,147,0),listOf(148,154,147,2))) {
+            try { ManagedPolicy.wiring(values[0],values[1],values[2],values[3]); org.junit.Assert.fail("invalid wiring accepted") }
+            catch (_: IllegalArgumentException) { }
+        }
+    }
+
+    @org.junit.Test fun customWiringUsesSelectedChannelsAndOffLevel() {
+        val values = mutableMapOf(147 to 1,148 to 1,154 to 1)
+        val light = RoomLight({pin,value->values[pin]=value},{pin->values.getValue(pin)},
+            {org.junit.Assert.fail(it)},ManagedPolicy.wiring(147,148,154,0))
+        light.apply("busy")
+        org.junit.Assert.assertEquals(mapOf(147 to 0,148 to 1,154 to 1),values)
+        light.apply("unknown")
+        org.junit.Assert.assertTrue(values.values.all { it==1 })
+    }
     private fun bx68() = requireNotNull(RoomLight.profileFor(
         "RK3568", "RK3568_BX68_Android 11_64-20260331.094925_ZX-keys",
     ))
