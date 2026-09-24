@@ -9,7 +9,16 @@ from fastapi import APIRouter, Request
 from ..core.exceptions import AppError, UnauthorizedError
 from ..core.response import ok
 from ..services.room_display_collector import cached_directory
-from .models import Batch, Configure, Revision, Rollback, Sync, Template
+from .models import (
+    Batch,
+    Configure,
+    DeviceConfig,
+    EditTemplate,
+    Revision,
+    Rollback,
+    Sync,
+    Template,
+)
 from .profiles import PROFILES, validate_target
 from .security import actor, bearer, device, parse_device, web_session
 from .store import (
@@ -122,7 +131,7 @@ async def configure(identity: str, body: Configure, request: Request):
         row = get_row(db, identity)
         if row['revision'] != body.expected_revision:
             raise conflict()
-        config = body.config.model_dump()
+        config = selected_config(db, body)
         config['reload'] = json.loads(row['config'])['reload']
         return ok(update(db, row, config, body.room_id, body.status, user['subject'], 'configure', body.confirm_model_mismatch))
 
@@ -171,7 +180,9 @@ async def rollback(identity: str, body: Rollback, request: Request):
 def templates(request: Request):
     actor(request)
     with database() as db:
-        return ok([dict(row) | {'config': DEFAULT_CONFIG | json.loads(row['config'])} for row in db.execute('SELECT * FROM templates')])
+        return ok([dict(row) | {'config': DEFAULT_CONFIG | json.loads(row['config'])} for row in db.execute(
+            'SELECT t.*, COALESCE(v.revision, 1) AS revision FROM templates t '
+            'LEFT JOIN template_versions v ON t.id=v.id')])
 
 
 @router.post('/admin/templates')
@@ -181,7 +192,37 @@ def template(body: Template, request: Request):
     with database() as db:
         db.execute('INSERT INTO templates VALUES (?,?,?)', (identity, body.name, body.config.model_dump_json()))
         audit(db, user['subject'], 'template', identity, {'name': body.name})
-    return ok({'id': identity})
+    return ok({'id': identity, 'revision': 1})
+
+
+def selected_config(db, body):
+    if not body.template_id:
+        return body.config.model_dump()
+    row = db.execute('SELECT t.*, COALESCE(v.revision, 1) AS revision FROM templates t '
+                     'LEFT JOIN template_versions v ON t.id=v.id WHERE t.id=?', (body.template_id,)).fetchone()
+    if not row:
+        raise AppError(404, '模板不存在', 404)
+    if row['revision'] != body.template_revision:
+        raise conflict()
+    return DeviceConfig.model_validate_json(row['config']).model_dump()
+
+
+@router.put('/admin/templates/{identity}')
+def edit_template(identity: str, body: EditTemplate, request: Request):
+    user = actor(request, write=True)
+    with database() as db:
+        row = db.execute('SELECT t.*, COALESCE(v.revision, 1) AS revision FROM templates t '
+                         'LEFT JOIN template_versions v ON t.id=v.id WHERE t.id=?', (identity,)).fetchone()
+        if not row:
+            raise AppError(404, '模板不存在', 404)
+        if row['revision'] != body.expected_revision:
+            raise conflict()
+        db.execute('UPDATE templates SET name=?,config=? WHERE id=?',
+                   (body.name, body.config.model_dump_json(), identity))
+        db.execute('INSERT INTO template_versions VALUES (?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision',
+                   (identity, row['revision'] + 1))
+        audit(db, user['subject'], 'template-edit', identity, {'revision': row['revision'] + 1})
+        return ok({'id': identity, 'revision': row['revision'] + 1})
 
 
 @router.post('/admin/batch-config')
@@ -191,8 +232,9 @@ def batch(body: Batch, request: Request):
         rows = [get_row(db, identity) for identity in body.devices]
         if any(row['revision'] != body.devices[row['id']] or row['status'] != 'active' for row in rows):
             raise conflict()
+        selected = selected_config(db, body)
         for row in rows:
-            config = body.config.model_dump()
+            config = dict(selected)
             config['reload'] = json.loads(row['config'])['reload']
             update(db, row, config, row['room_id'], 'active', user['subject'], 'batch-config', body.confirm_model_mismatch)
     return ok({'updated': len(rows)})

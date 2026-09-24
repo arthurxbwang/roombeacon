@@ -14,7 +14,7 @@ async function fixture(page:Page,role='admin',logged=true){
   if(p==='/api/v6/admin/devices')return ok([state.device])
   if(p==='/api/room-control/rooms')return ok([{room_id:'omm_test',name:'测试会议室',region:'北京',location:'2F'}])
   if(p==='/api/v6/admin/device-profiles')return ok(profiles)
-  if(p==='/api/v6/admin/templates'){if(method==='POST'){state.templates.push({id:String(state.templates.length+1),...route.request().postDataJSON()});return ok({})}return ok(state.templates)}
+  if(p==='/api/v6/admin/templates'){if(method==='POST'){state.templates.push({revision:1,id:String(state.templates.length+1),...route.request().postDataJSON()});return ok({})}return ok(state.templates)}
   if(p==='/api/v6/admin/batch-config'){state.batches.push(route.request().postDataJSON());return ok({updated:1})}
   if(p==='/api/v6/admin/audit')return ok([])
   if(p==='/api/v6/auth/users')return ok([{subject:'pending-user',name:'待授权用户',role:'pending'}])
@@ -107,25 +107,25 @@ test('型号模板保存接线、语言和昼夜；复制调整不改变批量�
  const state=await fixture(page);state.device.status='active';state.device.room_id='omm_test'
  Object.assign(state.device.metadata,{model:profiles[1].model,firmware:profiles[1].firmware,config_schema:2})
  await page.goto('/control');await page.getByRole('button',{name:'配置模板',exact:true}).click()
- await page.getByLabel('模板名称').fill('BX 白天英文');await expect(page.getByText('低电平点亮 · 高电平熄灭')).toBeVisible()
+ await page.getByRole('button',{name:'新建模板',exact:true}).click();await page.getByLabel('模板名称').fill('BX 白天英文');await expect(page.getByText('低电平点亮 · 高电平熄灭')).toBeVisible()
  await expect(page.locator('.v6-wiring')).toContainText('148')
  await page.getByLabel('自动切换白天／黑夜').uncheck();await page.getByLabel('门牌语言').selectOption('en')
  await expect(page.getByText('已关闭自动切换，始终使用白天模式。')).toBeVisible()
- await page.getByRole('button',{name:'保存模板',exact:true}).click();await expect(page.locator('.v6-template-list')).toContainText('始终白天 · English')
+ await page.getByRole('button',{name:'保存模板',exact:true}).click();await expect(page.locator('.v6-template-grid')).toContainText('始终白天 · English')
  expect(state.templates[0].config).toMatchObject({device_profile:'bx68',theme_mode:'light',language:'en',room_light:true})
  await page.getByRole('button',{name:'复制调整'}).click();await page.getByLabel('设备型号').selectOption('rk3568_r')
  await expect(page.getByText('高电平点亮 · 低电平熄灭')).toBeVisible()
  await page.getByRole('button',{name:'设备台账',exact:true}).click();await page.getByLabel('选择 ABC234').check();await page.locator('.v6-batch select').selectOption('1')
  page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'批量下发'}).click();await expect.poll(()=>state.batches.length).toBe(1)
  expect(state.batches[0].config.device_profile).toBe('bx68');expect(state.batches[0].config.theme_mode).toBe('light')
- await page.getByRole('button',{name:'配置模板',exact:true}).click();await page.getByLabel('设备型号').selectOption('generic')
+ await page.getByRole('button',{name:'配置模板',exact:true}).click();await expect(page.getByLabel('设备型号')).toHaveValue('rk3568_r');await page.getByLabel('设备型号').selectOption('generic')
  await expect(page.getByLabel('同步侧边灯')).not.toBeChecked();await expect(page.getByLabel('同步侧边灯')).toBeDisabled()
  await page.getByLabel('设备型号').selectOption('bx68');await page.setViewportSize({width:1366,height:1000});await page.screenshot({path:'/tmp/roombeacon-model-templates.png',fullPage:true})
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 test('同型号仅提示；异型号批量下发可取消或确认，单台同样支持',async({page})=>{
  const state=await fixture(page);state.device.status='active';state.device.room_id='omm_test'
- state.templates.push({id:'1',name:'BX template',config:{...config,device_profile:'bx68',theme_mode:'light',language:'en'}})
+ state.templates.push({id:'1',revision:1,name:'BX template',config:{...config,device_profile:'bx68',theme_mode:'light',language:'en'}})
  Object.assign(state.device.metadata,{model:profiles[1].model,firmware:'custom'})
  await page.goto('/control');await page.getByLabel('选择 ABC234').check();await page.locator('.v6-batch select').selectOption('1')
  await expect(page.locator('.v6-batch')).toContainText('型号相同，可正常下发')
@@ -141,8 +141,7 @@ test('同型号仅提示；异型号批量下发可取消或确认，单台同�
  await page.getByRole('button',{name:'批量下发'}).click();expect(prompts).toHaveLength(1);expect(prompts[0]).toContain('special');expect(state.batches).toHaveLength(1)
  accept=true;await page.getByRole('button',{name:'批量下发'}).click();await expect.poll(()=>state.batches.length).toBe(2)
  expect(state.batches[1].confirm_model_mismatch).toBe(true)
- await page.getByRole('button',{name:'配置',exact:true}).click();await page.getByLabel('设备型号').selectOption('bx68')
- await page.getByLabel('自动切换白天／黑夜').uncheck();await page.getByLabel('门牌语言').selectOption('en')
+ await page.getByRole('button',{name:'配置',exact:true}).click();await page.getByLabel('硬件安装模板',{exact:true}).selectOption('1')
  accept=false;await page.getByRole('button',{name:'保存并下发'}).click();expect(state.saved).toHaveLength(0)
  accept=true;await page.getByRole('button',{name:'保存并下发'}).click();await expect.poll(()=>state.saved.length).toBe(1)
  expect(state.saved[0].confirm_model_mismatch).toBe(true)

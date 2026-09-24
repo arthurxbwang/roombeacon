@@ -1,5 +1,7 @@
 # RoomBeacon 项目交接
 
+> 2026-09-23 Issue #25 已部署：前后端 `4b65ecc`，真实五级位置筛选、模板新建／编辑／冲突／持久化验收通过。343 间采集正常、BX68 回执 5/5；配置及规则保持，未更新 APK。用户要求验收后推送 GitHub，分支 `codex/device-inventory-templates` 接续型号模板分支；见[发布与回退](production-inventory-templates-2026-09-23.md)。
+
 > 2026-09-23 型号模板已发布：前后端 `808710d`、BX68 APK 0.6.2，配置回执 5/5，正式 HTTPS 页面及红灯电平正常。用户明确批准本次先 Git bundle 部署验收再推 GitHub；准确版本、检查和回退见[发布记录](production-model-templates-2026-09-23.md)。下方 0.6.1 与旧服务版本为历史。
 
 > 2026-09-22 V6会话归档：本会话功能及退出按钮修复已合入GitHub；最后后端8915b38、静态921ba26、APK0.6.1。用户真实飞书登录及唯一初始管理员已验收，一次性初始化已消费。完整PR/版本/回退、关闭ADB实测及剩余事项见[V6会话接续](archive/v6-session-handoff-2026-09-22.md)。后续从Issue #10/#16继续。

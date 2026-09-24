@@ -2,6 +2,10 @@
 
 更新：2026-09-23。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
 
+## 台账与模板编辑已部署（2026-09-23）
+
+设备台账多级筛选、安装模板编辑与会议室业务方案分离见 [Issue #25](https://github.com/arthurxbwang/roombeacon/issues/25) 和[设计记录](device-inventory-templates.md)。前后端 `4b65ecc` 已部署，343 间真实采集、后台模板新建／编辑和五级位置筛选通过；BX68 回执仍为 5/5，未更新 APK 或业务规则，见[发布与回退记录](production-inventory-templates-2026-09-23.md)。分支 `codex/device-inventory-templates` 接续型号模板基线 `3cb966e`，验收后推送 GitHub。
+
 ## 版本与维护入口
 
 | 用途 | 标签 | 提交 |
@@ -12,7 +16,7 @@
 
 唯一维护仓库为 [arthurxbwang/roombeacon](https://github.com/arthurxbwang/roombeacon)，后续开发从最新 `main` 创建短期 `codex/` 分支。上述基线标签固定旧提交，后续文档或代码合并不移动标签。源码基线与生产前后端版本分别管理。
 
-生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前前后端 SHA 为 `808710d5347353c241b438eafbe9d5ccd8979db9`，型号模板与 APK 0.6.2 的最新实机证据见[发布记录](production-model-templates-2026-09-23.md)；飞书登录基线见[发布记录](production-feishu-login-2026-09-22.md)，退出按钮修复的最新静态SHA与回退回执见[#20](https://github.com/arthurxbwang/roombeacon/issues/20)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
+生产域名 `roombeacon.thundersoft.com`，SSH 8081，目录 `/data/roombeacon`；私钥和凭证仅保存在私有环境。当前前后端 SHA 为 `4b65ecceb53e82333df54038d1290bf4da42dc57`，台账及模板编辑的最新验收见[发布记录](production-inventory-templates-2026-09-23.md)；APK 0.6.2 的实机证据见[此前型号模板发布](production-model-templates-2026-09-23.md)；飞书登录基线见[发布记录](production-feishu-login-2026-09-22.md)，退出按钮修复的最新静态SHA与回退回执见[#20](https://github.com/arthurxbwang/roombeacon/issues/20)，此前设备交付见[V6发布记录](production-v6-2026-09-22.md)。
 
 ## 已完成
 
