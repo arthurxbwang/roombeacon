@@ -45,6 +45,23 @@ def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+def enable_wal(db):
+    # Switching a new database to WAL may return SQLITE_BUSY immediately even
+    # with busy_timeout. Concurrent first requests must retry this transition.
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            if db.execute('PRAGMA journal_mode').fetchone()[0] != 'wal':
+                db.execute('PRAGMA journal_mode=WAL')
+            return
+        except sqlite3.OperationalError as exc:
+            if getattr(exc, 'sqlite_errorcode', 0) & 0xff not in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                raise
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.02)
+
+
 @contextmanager
 def database():
     if not settings.ROOM_DISPLAY_V6_DB:
@@ -54,8 +71,8 @@ def database():
     db = sqlite3.connect(path, timeout=5)
     db.row_factory = sqlite3.Row
     try:
-        db.execute('PRAGMA journal_mode=WAL')
         db.execute('PRAGMA busy_timeout=5000')
+        enable_wal(db)
         db.executescript(SCHEMA)
         db.executescript(CATALOG_SCHEMA)
         db.execute("INSERT OR IGNORE INTO meta VALUES ('signing_key', ?)", (secrets.token_hex(32),))
