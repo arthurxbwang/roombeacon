@@ -1,131 +1,28 @@
-import {test,expect,type Page} from '@playwright/test'
-const config={device_profile:'generic',language:'zh-CN',theme_mode:'auto',version:'v6',portrait:false,room_light:false,node_id:'central',reload:0}
-const rooms=[
- {room_id:'omm_beijing',name:'同名会议室',region:'北京',location:'公司 / 中国 / 北京 / A座 / 2层 / 东区'},
- {room_id:'omm_shanghai',name:'同名会议室',region:'上海',location:'公司 / 中国 / 上海 / A座 / 2层'},
- {room_id:'omm_other',name:'其他会议室',region:'北京',location:'公司 / 中国 / 北京 / B座 / 3层'},
-]
-async function setup(page:Page,role='admin'){
- const state={templates:[{id:'template1',name:'横版模板',revision:1,config:{...config}}],writes:[] as any[]}
- const devices=rooms.map((room,i)=>({id:String(i),code:['ABC234','DEF567','GHJ890'][i],status:'active',room_id:room.room_id,
-  revision:2,reported_revision:2,online:true,config:{...config},metadata:{model:'RK3568'},error:''}))
- await page.route('**/api/**',async route=>{
-  const path=new URL(route.request().url()).pathname,method=route.request().method()
-  const ok=(data:unknown)=>route.fulfill({json:{code:0,data}})
-  if(path.endsWith('/auth/options'))return ok({feishu:true})
-  if(path.endsWith('/auth/me'))return ok({subject:'user',role,name:'测试用户',csrf:'csrf'})
-  if(path.endsWith('/admin/device-profiles'))return ok([{id:'generic',name:'通用屏幕',model:'',firmware:'',pins:null,active_level:null},{id:'bx68',name:'BX68',model:'RK3568',firmware:'test',pins:{red:148,green:154,blue:147},active_level:0}])
-  if(path.endsWith('/admin/devices'))return ok(devices)
-  if(path==='/api/room-control/rooms')return ok(rooms)
-  if(path.includes('/admin/templates')){
-   if(method==='GET')return ok(state.templates)
-   const body=route.request().postDataJSON();state.writes.push({method,path,body})
-   if(method==='POST')state.templates.push({...body,id:'template2',revision:1})
-   else state.templates[0]={...body,id:'template1',revision:2}
-   return ok(state.templates.at(-1))
-  }
-  if(method==='PUT'||path.endsWith('/batch-config')){state.writes.push(route.request().postDataJSON());return ok({})}
-  return ok([])
- });return state
-}
-test('台账地区和位置搜索，绑定支持任意深度级联并清理下级筛选',async({page})=>{
- await setup(page);await page.goto('/control')
- await page.getByLabel('地区 / 园区',{exact:true}).selectOption('北京')
- await expect(page.locator('tbody tr')).toHaveCount(2)
- await page.getByLabel('搜索设备').fill('东区');await expect(page.locator('tbody tr')).toHaveCount(1)
- await page.getByRole('button',{name:'配置',exact:true}).click()
- const panel=page.getByRole('dialog')
- await expect(panel.getByLabel('屏幕方向',{exact:true})).toHaveCount(0)
- await panel.getByLabel('地区 / 园区',{exact:true}).selectOption('北京')
- for(const [i,value] of ['公司','中国','北京','A座','2层','东区'].entries())await panel.getByLabel(`位置第 ${i+1} 级`,{exact:true}).selectOption(value)
- await expect(panel.getByLabel('分配会议室').locator('option')).toHaveCount(2)
- await panel.getByLabel('位置第 4 级',{exact:true}).selectOption('B座')
- await expect(panel.getByLabel('位置第 6 级',{exact:true})).toHaveCount(0)
- await expect(panel.getByLabel('分配会议室')).toHaveValue('')
- await panel.getByLabel('位置第 5 级',{exact:true}).selectOption('3层')
- await panel.getByLabel('分配会议室').selectOption('omm_other')
- await panel.getByLabel('地区 / 园区',{exact:true}).selectOption('上海')
- await expect(panel.getByLabel('分配会议室')).toHaveValue('')
- await expect(panel.getByLabel('位置第 2 级',{exact:true})).toHaveCount(0)
- await panel.getByLabel('分配会议室').selectOption('omm_shanghai')
- await panel.getByLabel('会议室关键词',{exact:true}).fill('不存在')
- await expect(panel.getByLabel('分配会议室')).toHaveValue('')
+import {test,expect} from '@playwright/test'
+import {fixture,selectDeployment} from './configuration.fixture'
+test('地区后只出现下级位置，任意深度筛选不会重复祖先',async({page})=>{
+ await fixture(page);await page.goto('/control');await page.getByLabel('地区',{exact:true}).selectOption('bj');await expect(page.locator('tbody tr')).toHaveCount(2)
+ await expect(page.getByLabel('园区 / 楼栋')).not.toContainText('公司');await expect(page.getByLabel('园区 / 楼栋')).not.toContainText('北京')
+ await page.getByLabel('园区 / 楼栋').selectOption('bja');await page.getByLabel('楼层',{exact:true}).selectOption('bja2');await page.getByLabel('下级位置 3').selectOption('bja2e');await expect(page.locator('tbody tr')).toHaveCount(1)
+ const panel=await selectDeployment(page);await panel.getByLabel('园区 / 楼栋').selectOption('bjb');await expect(panel.getByLabel('下级位置 3')).toHaveCount(0);await expect(panel.getByLabel('分配会议室')).toHaveValue('');await panel.getByLabel('地区',{exact:true}).selectOption('sh');await panel.getByLabel('分配会议室').selectOption('omm_shanghai');await panel.getByLabel('会议室关键词').fill('不存在');await expect(panel.getByLabel('分配会议室')).toHaveValue('')
 })
-test('模板新建和编辑独立于批量选择，保存不自动下发',async({page})=>{
- const state=await setup(page);await page.goto('/control')
- await page.getByRole('button',{name:'配置模板',exact:true}).click()
- await page.getByRole('button',{name:'新建模板',exact:true}).click()
- await page.getByLabel('模板名称',{exact:true}).fill('竖版模板')
- await page.getByLabel('屏幕方向',{exact:true}).selectOption('true')
- await page.getByRole('button',{name:'保存模板',exact:true}).click()
- await expect(page.getByRole('status')).toContainText('模板已保存')
- expect(state.writes).toHaveLength(1);expect(state.writes[0].method).toBe('POST')
- expect(state.writes[0].body.config.portrait).toBe(true)
- await page.getByRole('article').filter({hasText:'横版模板'}).getByRole('button',{name:'编辑',exact:true}).click()
- await page.getByLabel('模板名称',{exact:true}).fill('修改后的模板')
- await page.getByRole('button',{name:'保存模板',exact:true}).click()
- await expect(page.getByRole('article').filter({hasText:'修改后的模板'})).toBeVisible()
- expect(state.writes[1].method).toBe('PUT');expect(state.writes[1].body.expected_revision).toBe(1)
- await page.screenshot({path:'/tmp/roombeacon-templates.png',fullPage:true})
+test('软件模板保存草稿、发布版本、编辑和保留旧版本均不自动部署',async({page})=>{
+ const state=await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.getByRole('button',{name:'新建软件模板'}).click();await page.getByLabel('模板名称').fill('夜间英文');await page.getByLabel('日夜模式').selectOption('dark');await page.getByLabel('页面语言').selectOption('en');await page.getByRole('button',{name:'保存草稿'}).click()
+ const card=page.locator('.v6-template-item').filter({has:page.getByRole('heading',{name:'夜间英文',exact:true})});await expect(card).toContainText('草稿');await card.getByRole('button',{name:'发布版本'}).click();await expect(card).toContainText('已发布 v1');await card.getByRole('button',{name:'编辑',exact:true}).click();await page.getByLabel('页面语言').selectOption('zh-CN');await page.getByRole('button',{name:'保存草稿'}).click()
+ const row=state.catalog.find(t=>t.name==='夜间英文')!;expect((row.versions[0].spec as any).language).toBe('en');expect((row.spec as any).language).toBe('zh-CN');expect(state.writes.some(w=>w.path==='/api/v6/admin/deployments')).toBe(false)
 })
-test('只读账号只能查看模板，筛选结果为空有明确提示',async({page})=>{
- await setup(page,'viewer');await page.goto('/control')
- await page.getByLabel('搜索设备').fill('不存在')
- await expect(page.getByText('没有匹配的设备',{exact:true})).toBeVisible()
- await page.getByRole('button',{name:'配置模板',exact:true}).click()
- await expect(page.getByRole('button',{name:'新建模板',exact:true})).toHaveCount(0)
- await expect(page.getByRole('button',{name:'编辑',exact:true})).toHaveCount(0)
+test('硬件模板可编辑电平与 GPIO，方向只存在于硬件模板',async({page})=>{
+ const state=await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'硬件安装模板',exact:true}).click();await page.getByRole('button',{name:'新建硬件安装模板'}).click();await page.getByLabel('模板名称').fill('竖屏高电平');await page.getByLabel('安装方向').selectOption('true');await page.getByLabel('灯控',{exact:true}).selectOption('true');await page.getByLabel('点亮电平').selectOption('1');await page.getByLabel('红灯 GPIO').selectOption('154');await page.getByLabel('绿灯 GPIO').selectOption('148');await page.getByRole('button',{name:'保存草稿'}).click();expect(state.writes[0].body.spec).toMatchObject({portrait:true,active_level:1,pins:{red:154,green:148,blue:147}})
+ await page.getByRole('button',{name:'设备台账',exact:true}).click();await page.getByRole('button',{name:'配置与部署'}).first().click();await expect(page.getByLabel('安装方向')).toHaveCount(0);await expect(page.getByText('保留当前设备配置')).toHaveCount(0)
 })
-
-test('单台下发保留选择时的模板版本，刷新后编辑冲突不丢失草稿',async({page})=>{
- const state=await setup(page);await page.goto('/control')
- await page.getByRole('button',{name:'配置',exact:true}).first().click()
- await page.getByLabel('硬件安装模板',{exact:true}).selectOption('template1')
- state.templates[0].revision=2;state.templates[0].config.portrait=true
- await page.getByRole('button',{name:'刷新状态',exact:true}).evaluate((el:HTMLElement)=>el.click())
- await page.getByRole('button',{name:'保存并下发'}).click()
- await expect.poll(()=>state.writes.length).toBe(1)
- expect(state.writes[0].template_revision).toBe(1)
- expect(state.writes[0].config.portrait).toBe(false)
- await page.getByRole('button',{name:'配置模板',exact:true}).click()
- await page.getByRole('article').filter({hasText:'横版模板'}).getByRole('button',{name:'编辑',exact:true}).click()
- await page.getByLabel('模板名称',{exact:true}).fill('保留的编辑')
- await page.route('**/api/v6/admin/templates/template1',route=>route.fulfill({status:409,json:{code:409}}))
- await page.getByRole('button',{name:'保存模板',exact:true}).click()
- await expect(page.getByRole('alert')).toContainText('配置已变化')
- await expect(page.getByLabel('模板名称',{exact:true})).toHaveValue('保留的编辑')
+test('模板编辑冲突保持草稿，切换页面也保留编辑',async({page})=>{const state=await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.locator('.v6-template-item:visible').getByRole('button',{name:'编辑',exact:true}).click();await page.getByLabel('模板名称').fill('保留草稿');await page.getByRole('button',{name:'设备台账',exact:true}).click();await page.getByRole('button',{name:'软件模板',exact:true}).click();await expect(page.getByLabel('模板名称')).toHaveValue('保留草稿');state.conflict=true;await page.getByRole('button',{name:'保存草稿'}).click();await expect(page.getByRole('alert')).toContainText('配置已变化');await expect(page.getByLabel('模板名称')).toHaveValue('保留草稿')})
+test('设备、会议室与软件模板使用范围可交叉查看',async({page})=>{const state=await fixture(page);await page.goto('/control');const panel=await selectDeployment(page);await panel.getByRole('button',{name:'检查兼容性与变更范围'}).click();await panel.getByRole('button',{name:'确认部署'}).click();await page.getByRole('button',{name:'会议室',exact:true}).click();await expect(page.locator('tbody tr')).toHaveCount(3);await expect(page.locator('tbody tr').first()).toContainText('测试中文软件 · v1');await expect(page.locator('tbody tr').first()).toContainText('测试横屏硬件 · v1');expect(state.configuration.devices[state.devices[0].id].hardware_id).toBe('hw')})
+test('会议室更换软件模板须明确确认影响范围',async({page})=>{const state=await fixture(page);state.configuration.rooms.omm_beijing={room_id:'omm_beijing',software_id:'other',software_version:1,revision:4,controller_id:state.devices[0].id,rules:{owner:'official',mode:'off',early_minutes:5,grace_minutes:10,release_delay_seconds:60},policy_state:'applied',error:'',room_name:'同名会议室',location:'北京'};await page.goto('/control');const panel=await selectDeployment(page);await expect(panel.getByText('更换该会议室软件模板，并更新其所有已关联设备')).toBeVisible();await panel.getByLabel('更换该会议室软件模板，并更新其所有已关联设备').check();await panel.getByRole('button',{name:'检查兼容性与变更范围'}).click();expect(state.writes.at(-1)?.body).toMatchObject({replace_room_software:true,expected_room_revision:4})})
+test('日志展示人名、设备、模板与字段差异',async({page})=>{await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'操作记录'}).click();const row=page.locator('tbody tr');await expect(row).toContainText('测试管理员');await expect(row).toContainText('设备 ABC234');await expect(row).toContainText('测试中文软件');await row.getByText('变更明细').click();await expect(row).toContainText('语言：中文 → English')})
+test('窄屏模板编辑不会横向溢出',async({page})=>{await fixture(page);await page.setViewportSize({width:390,height:844});await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.getByRole('button',{name:'新建软件模板'}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'/tmp/roombeacon-configuration-mobile.png',fullPage:true})})
+test('批量部署在预览后提交固定版本和设备修订号',async({page})=>{
+ const state=await fixture(page);await page.route('**/api/v6/admin/deployment-batches/preview',route=>route.fulfill({json:{code:0,data:{devices:[{code:'ABC234',room_name:'同名会议室',hardware:'测试横屏硬件'}]}}}));await page.goto('/control');await page.locator('tbody tr').first().getByRole('checkbox').check();await page.getByLabel('批量硬件模板',{exact:true}).selectOption('hw');await page.getByLabel('批量软件模板',{exact:true}).selectOption('sw');await page.getByRole('button',{name:'检查批量部署',exact:true}).click();await expect(page.getByText('实际影响 1 台设备')).toBeVisible();await page.getByRole('button',{name:'确认批量部署',exact:true}).click();expect(state.writes.at(-1)?.body).toMatchObject({devices:{[state.devices[0].id]:2},hardware_version:1,software_version:1})
 })
-
-test('切换地区清理不可见的批量选择，会议室列表共享地区筛选',async({page})=>{
- await setup(page);await page.goto('/control')
- await page.getByLabel('选择 ABC234',{exact:true}).check()
- await page.getByLabel('地区 / 园区',{exact:true}).selectOption('上海')
- await expect(page.locator('.v6-batch')).toHaveCount(0)
- await page.getByRole('button',{name:'会议室',exact:true}).click()
- await expect(page.locator('.v6-room-grid article')).toHaveCount(1)
- await expect(page.locator('.v6-room-grid')).toContainText('上海')
- await expect(page.getByRole('button',{name:'业务方案',exact:true})).toBeVisible()
- await page.getByRole('button',{name:'配置模板',exact:true}).click()
- await page.getByRole('button',{name:'新建模板',exact:true}).click()
- await page.setViewportSize({width:390,height:844})
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
-})
-
-test('会议室业务方案独立保存，不修改设备或模板',async({page})=>{
- const state=await setup(page),updates:any[]=[]
- const policy={owner:'official',mode:'off',early_minutes:10,grace_minutes:10,release_delay_seconds:60,native_policy_cleared:false,release_verified:false,revision:'policy1'}
- await page.route('**/api/room-control/usage/omm_beijing**',route=>{
-  if(route.request().method()==='PUT'){
-   expect(route.request().headers()['x-rb-csrf']).toBe('csrf')
-   updates.push(route.request().postDataJSON())
-  }
-  return route.fulfill({json:{data:{usage:{policy,paused:true,record:null},audit:[],global_audit:[],writes_enabled:false}}})
- })
- await page.goto('/control');await page.getByRole('button',{name:'会议室',exact:true}).click()
- await page.locator('.v6-room-grid article').filter({hasText:'东区'}).getByRole('button',{name:'业务方案'}).click()
- await expect(page.getByRole('dialog',{name:'会议室业务方案'})).toBeVisible()
- await page.getByLabel('签到方案').selectOption('v5')
- await page.getByRole('button',{name:'保存房间规则'}).click()
- await expect.poll(()=>updates.length).toBe(1)
- expect(updates[0].owner).toBe('v5');expect(state.writes).toHaveLength(0)
+test('软件模板预览即使服务器允许主控签到也保持只读',async({page})=>{
+ await fixture(page);const now=Date.now();await page.route('**/api/room-control/preview?**',route=>route.fulfill({json:{code:0,data:{room:{room_id:'omm_beijing',name:'预览会议室',capacity:8,enabled:true},events:[],synced_at:new Date(now).toISOString(),valid_until:new Date(now+60000).toISOString(),server_time:new Date(now).toISOString(),titles_available:true,usage_owner:'v5'}}}));await page.route('**/api/room-control/usage/omm_beijing',route=>route.fulfill({json:{code:0,data:{control_confirm_enabled:true,usage:{room_id:'omm_beijing',valid_until:new Date(now+60000).toISOString(),policy:{owner:'v5',mode:'observe'},record:null,can_confirm:true}}}}));await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.locator('.v6-template-item:visible').getByRole('button',{name:'编辑',exact:true}).click();await page.getByLabel('签到方案',{exact:true}).selectOption('v5');await page.getByLabel('预览会议室').selectOption('omm_beijing');await page.getByRole('button',{name:'预览当前草稿',exact:true}).click();await expect(page.getByText('V5 预览 · 操作不可用')).toBeVisible();await expect(page.getByRole('button',{name:'签到',exact:true})).toHaveCount(0)
 })

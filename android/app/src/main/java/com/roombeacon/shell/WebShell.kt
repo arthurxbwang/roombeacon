@@ -31,6 +31,15 @@ class WebShell(
     private var lightRequest = 0
     private val lightPoll = Runnable { pollLight() }
 
+    fun reportViewport(report: (String) -> Unit) {
+        val view = web ?: return
+        if (!policy.allows(view.url ?: "")) return
+        view.evaluateJavascript("JSON.stringify({viewport_width:innerWidth,viewport_height:innerHeight,dpr:devicePixelRatio})") { result ->
+            val value = org.json.JSONTokener(result).nextValue()
+            if (value is String) report(value)
+        }
+    }
+
     private fun stopLight() {
         lightRequest++
         lightHandler.removeCallbacksAndMessages(null)

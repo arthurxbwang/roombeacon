@@ -9,6 +9,8 @@ from pathlib import Path
 
 from ..core.config import settings
 from ..core.exceptions import AppError
+from .catalog_store import SCHEMA as CATALOG_SCHEMA
+from .catalog_store import initialize
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
@@ -55,9 +57,11 @@ def database():
         db.execute('PRAGMA journal_mode=WAL')
         db.execute('PRAGMA busy_timeout=5000')
         db.executescript(SCHEMA)
+        db.executescript(CATALOG_SCHEMA)
         db.execute("INSERT OR IGNORE INTO meta VALUES ('signing_key', ?)", (secrets.token_hex(32),))
         db.commit()
         db.execute('BEGIN IMMEDIATE')
+        initialize(db)
         yield db
         db.commit()
     except sqlite3.Error as exc:
@@ -68,8 +72,16 @@ def database():
 
 
 def audit(db, actor, action, target, detail=None):
+    detail = dict(detail or {})
+    person = db.execute('SELECT name FROM users WHERE subject=?', (actor,)).fetchone()
+    target_device = db.execute('SELECT code FROM devices WHERE id=?', (target,)).fetchone()
+    source = db.execute('SELECT code FROM devices WHERE id=?', (actor,)).fetchone()
+    detail.setdefault('actor_name', person['name'] if person else '设备 ' + source['code'] if source else
+                      {'control': '主控管理员', 'legacy-admin': '主控管理员', 'system': '系统任务', 'migration': '配置迁移'}.get(actor, '历史身份'))
+    if target_device:
+        detail.setdefault('target_name', '设备 ' + target_device['code'])
     db.execute('INSERT INTO audit(time,actor,action,target,detail) VALUES (?,?,?,?,?)',
-               (int(time.time()), actor, action, target, json.dumps(detail or {}, ensure_ascii=False)))
+               (int(time.time()), actor, action, target, json.dumps(detail, ensure_ascii=False)))
 
 
 def rate_limit(key, maximum=30, window=60):

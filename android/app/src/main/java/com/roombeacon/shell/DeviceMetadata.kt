@@ -64,7 +64,10 @@ object DeviceMetadata {
             .put("serial_source", if (serial.isEmpty()) "unavailable" else "android")
             .put("android", Build.VERSION.RELEASE.take(40)).put("apk", BuildConfig.VERSION_NAME)
             .put("network", network).put("interfaces", interfaces)
-            .put("firmware", Build.DISPLAY.take(160)).put("config_schema", 2)
+            .put("firmware", Build.DISPLAY.take(160)).put("config_schema", 3)
+            .put("screen", JSONObject().put("pixel_width",context.resources.displayMetrics.widthPixels)
+                .put("pixel_height",context.resources.displayMetrics.heightPixels)
+                .put("density",context.resources.displayMetrics.density.toDouble()))
             .put("light_supported", RoomLight.supports(Build.MODEL, Build.DISPLAY))
     }
 }

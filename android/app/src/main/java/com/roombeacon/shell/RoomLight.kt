@@ -9,9 +9,15 @@ class RoomLight(
     private val report: (String) -> Unit,
     private val profile: Profile = Profile.RK3568_R,
 ) {
-    enum class Profile(val redPin: Int, val greenPin: Int, val off: Int) {
-        RK3568_R(154, 148, 0),
-        BX68(148, 154, 1),
+    data class Profile(val redPin: Int, val greenPin: Int, val off: Int, val bluePin: Int = 147) {
+        init {
+            require(setOf(redPin,greenPin,bluePin) == setOf(147,148,154)) { "不支持的 RGB GPIO" }
+            require(off in 0..1) { "不支持的点亮电平" }
+        }
+        companion object {
+            val RK3568_R = Profile(154,148,0)
+            val BX68 = Profile(148,154,1)
+        }
     }
     private var last: List<Int>? = null
     private var errorReported = false

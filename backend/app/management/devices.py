@@ -46,6 +46,11 @@ def get_row(db, identity):
     return row
 
 
+def require_legacy_configuration(db, identity):
+    if db.execute('SELECT 1 FROM device_installations WHERE device_id=?', (identity,)).fetchone():
+        raise AppError(409, '此设备已关联版本模板，请使用新的部署或回退流程', 409)
+
+
 def update(db, row, config, room_id, status, who, action, confirmed=False):
     mismatch = False
     if status == 'active' and action != 'reload':
@@ -55,6 +60,7 @@ def update(db, row, config, room_id, status, who, action, confirmed=False):
     result = get_row(db, row['id'])
     save_history(db, result)
     audit(db, who, action, row['id'], {'revision': result['revision'], 'room_id': room_id, 'status': status,
+                                     'before': json.loads(row['config']), 'after': config,
                                      'device_profile': config.get('device_profile', 'auto'),
                                      'model_override': mismatch,
                                      'device_model': json.loads(row['metadata']).get('model', '')})
@@ -104,6 +110,8 @@ def sync(body: Sync, request: Request):
         apply_error = body.error
         if row['status'] == 'active' and config['room_light'] and config['device_profile'] not in ('auto', 'generic') and body.metadata.config_schema < 2:
             apply_error = apply_error or '模板已下发；当前 APK 不支持模板灯控，请升级 APK 0.6.2'
+        if config.get('light_wiring') and body.metadata.config_schema < 3:
+            apply_error = '当前 APK 不支持自定义接线，请升级 APK 0.7.0'
         db.execute('UPDATE devices SET metadata=?,last_seen=?,reported_revision=?,error=? WHERE id=?',
                    (body.metadata.model_dump_json(), int(time.time()), body.reported_revision, apply_error, row['id']))
         value = {'protocol': 1, 'id': row['id'], 'code': row['code'], 'status': row['status'],
@@ -128,6 +136,7 @@ async def configure(identity: str, body: Configure, request: Request):
                                     not any(r['room_id'] == body.room_id for r in await cached_directory())):
         raise AppError(422, '请选择有效会议室', 422)
     with database() as db:
+        require_legacy_configuration(db, identity)
         row = get_row(db, identity)
         if row['revision'] != body.expected_revision:
             raise conflict()
@@ -162,6 +171,7 @@ async def rollback(identity: str, body: Rollback, request: Request):
     user = actor(request, write=True)
     rooms = await cached_directory()
     with database() as db:
+        require_legacy_configuration(db, identity)
         row = get_row(db, identity)
         old = db.execute('SELECT value FROM history WHERE device_id=? AND revision=?',
                          (identity, body.revision)).fetchone()
@@ -230,6 +240,8 @@ def batch(body: Batch, request: Request):
     user = actor(request, write=True)
     with database() as db:
         rows = [get_row(db, identity) for identity in body.devices]
+        for row in rows:
+            require_legacy_configuration(db, row['id'])
         if any(row['revision'] != body.devices[row['id']] or row['status'] != 'active' for row in rows):
             raise conflict()
         selected = selected_config(db, body)
@@ -244,8 +256,17 @@ def batch(body: Batch, request: Request):
 def audit_log(request: Request):
     actor(request)
     with database() as db:
-        return ok([dict(row) | {'detail': json.loads(row['detail'])} for row in db.execute(
-            'SELECT * FROM audit ORDER BY id DESC LIMIT 200')])
+        values = []
+        users = {r['subject']: r['name'] for r in db.execute('SELECT subject,name FROM users')}
+        devices = {r['id']: '设备 ' + r['code'] for r in db.execute('SELECT id,code FROM devices')}
+        rooms = {r['room_id']: r['room_name'] for r in db.execute('SELECT room_id,room_name FROM room_configurations')}
+        labels = users | devices | rooms | {'legacy-admin': '主控管理员', 'control': '主控管理员', 'system': '系统任务'}
+        for row in db.execute('SELECT * FROM audit ORDER BY id DESC LIMIT 200'):
+            detail = json.loads(row['detail'])
+            detail.setdefault('actor_name', labels.get(row['actor'], '历史身份（未记录姓名）'))
+            detail.setdefault('target_name', labels.get(row['target'], detail.get('name', '历史对象（未记录名称）')))
+            values.append(dict(row) | {'detail': detail})
+        return ok(values)
 
 
 @router.get('/admin/nodes')

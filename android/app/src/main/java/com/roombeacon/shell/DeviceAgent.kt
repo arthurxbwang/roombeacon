@@ -22,6 +22,7 @@ class DeviceAgent(private val context: Context, private val identity: DeviceIden
     @Volatile private var connection: HttpsURLConnection? = null
     @Volatile var appliedRevision = 0
     @Volatile var applyError = ""
+    @Volatile var viewport = ""
     private var enrolled = prefs.getBoolean("enrolled", false)
     private var generation = 0
 
@@ -49,6 +50,12 @@ class DeviceAgent(private val context: Context, private val identity: DeviceIden
                 var metadata = JSONObject()
                 try {
                     metadata = DeviceMetadata.collect(context)
+                    val observed = viewport
+                    if (observed.isNotEmpty()) {
+                        val dimensions = JSONObject(observed)
+                        val screen = metadata.getJSONObject("screen")
+                        for (key in listOf("viewport_width","viewport_height","dpr")) screen.put(key,dimensions.getDouble(key))
+                    }
                     val body = JSONObject().put("protocol", 1).put("metadata", metadata)
                         .put("reported_revision", appliedRevision).put("error", applyError.take(160))
                     if (!enrolled) {

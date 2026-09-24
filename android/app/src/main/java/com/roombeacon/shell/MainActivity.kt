@@ -114,7 +114,7 @@ class MainActivity : Activity() {
         val session = value.getString("web_session")
         try { ManagedPolicy.validate(config.getString("version"), config.getString("node_id"), revision,
             value.getString("id"), session)
-            ManagedPolicy.lightProfile(config.optString("device_profile", "auto"), Build.MODEL, Build.DISPLAY)
+            lightProfile(config)
         }
         catch (_: IllegalArgumentException) {
             agent?.applyError = "服务器配置校验失败"
@@ -147,7 +147,7 @@ class MainActivity : Activity() {
         root.addView(container, FrameLayout.LayoutParams(-1, -1)); root.addView(overlay, FrameLayout.LayoutParams(-1, -1))
         setContentView(root); immersive()
         val wantsLight = config.getBoolean("room_light")
-        val profile = ManagedPolicy.lightProfile(config.optString("device_profile", "auto"), Build.MODEL, Build.DISPLAY)
+        val profile = lightProfile(config)
         agent?.applyError = if (wantsLight && profile == null) "当前配置未识别侧边灯接线" else ""
         val light = if (wantsLight && profile != null) try {
             RoomLight.forProfile(profile) { Log.e("RoomBeacon", it); agent?.applyError = "灯控操作失败" }
@@ -161,11 +161,23 @@ class MainActivity : Activity() {
             entryPath = ManagedPolicy.displayPath(config.getString("version"), config.optString("theme_mode", "auto"),
                 config.optString("language", "zh-CN"))) { message ->
             overlay.text = message ?: ""; overlay.visibility = if (message == null) View.GONE else View.VISIBLE
-            if (message == null) agent?.appliedRevision = revision
+            if (message == null) {
+                agent?.appliedRevision = revision
+                shell?.reportViewport { agent?.viewport = it }
+            }
         }
         if (resumed) shell?.resume()
     }
     override fun onResume() { super.onResume(); resumed = true; immersive(); agent?.start(); shell?.resume() }
+    private fun lightProfile(config: JSONObject): RoomLight.Profile? {
+        val wiring = config.optJSONObject("light_wiring")
+        if (wiring != null) {
+            require(RoomLight.supports(Build.MODEL,Build.DISPLAY)) { "设备未支持灯控驱动" }
+            val pins = wiring.getJSONObject("pins")
+            return ManagedPolicy.wiring(pins.getInt("red"),pins.getInt("green"),pins.getInt("blue"),wiring.getInt("active_level"))
+        }
+        return ManagedPolicy.lightProfile(config.optString("device_profile","auto"),Build.MODEL,Build.DISPLAY)
+    }
     override fun onPause() { resumed = false; agent?.stop(); shell?.pause(); super.onPause() }
     override fun onDestroy() { agent?.stop(); shell?.destroy(); super.onDestroy() }
     @Deprecated("Dedicated display does not navigate backwards")

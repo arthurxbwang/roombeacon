@@ -49,7 +49,10 @@ async def fresh_monitor_targets(room_id, now, policy):
     return [Occurrence.model_validate(event.model_dump()) for event in candidates]
 
 
-async def save_policy(store, room_id, policy):
+async def save_policy(store, room_id, policy, *, persist=True):
+    if persist:
+        from ..management.configuration_delivery import ensure_template_rules
+        ensure_template_rules(room_id, policy)
     if policy.owner == 'official' and policy.mode != 'off':
         raise conflict('官方方案必须关闭 RoomBeacon 确认与释放')
     if policy.mode == 'auto' and not (policy.native_policy_cleared and policy.release_verified):

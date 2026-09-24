@@ -107,7 +107,9 @@ def test_preferences_delivered_only_to_authenticated_device_without_mutating_cac
     client.cookies.set(DEVICE_COOKIE, value['web_session'])
     result = client.get('/api/meeting-rooms/display')
     assert result.status_code == 200
-    assert result.json()['data']['display_preferences'] == {'theme_mode': 'light', 'language': 'en'}
+    preferences = result.json()['data']['display_preferences']
+    assert preferences['theme_mode'] == 'light' and preferences['language'] == 'en'
+    assert preferences['layout'] == 'standard' and preferences['background_day'] == ''
     assert snapshot.display_preferences is None
     assert configure(client, item['id'], 2, status='revoked').status_code == 200
     assert client.get('/api/meeting-rooms/display').status_code == 401

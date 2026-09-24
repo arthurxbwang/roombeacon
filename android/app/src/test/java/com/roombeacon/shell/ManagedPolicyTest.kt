@@ -26,9 +26,10 @@ class ManagedPolicyTest {
             ManagedPolicy.lightProfile("invalid", "RK3568", "custom")
         }
     }
-    @Test fun presentationPathOnlyAllowsDayOrAutoAndSupportedLanguages() {
+    @Test fun presentationPathAllowsDayNightAutoAndSupportedLanguages() {
         assertEquals("/?version=v6&managed=1&theme=light&lang=en", ManagedPolicy.displayPath("v6", "light", "en"))
-        assertThrows(IllegalArgumentException::class.java) { ManagedPolicy.displayPath("v6", "dark", "en") }
+        assertEquals("/?version=v6&managed=1&theme=dark&lang=en", ManagedPolicy.displayPath("v6", "dark", "en"))
+        assertThrows(IllegalArgumentException::class.java) { ManagedPolicy.displayPath("v6", "dark&server=evil", "en") }
         assertThrows(IllegalArgumentException::class.java) { ManagedPolicy.displayPath("v6", "auto", "en&server=evil") }
     }
     @Test fun trustedBindingAccepted() {
