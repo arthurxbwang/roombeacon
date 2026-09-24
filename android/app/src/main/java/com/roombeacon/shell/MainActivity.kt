@@ -113,8 +113,14 @@ class MainActivity : Activity() {
         val config = value.getJSONObject("config")
         val session = value.getString("web_session")
         try { ManagedPolicy.validate(config.getString("version"), config.getString("node_id"), revision,
-            value.getString("id"), session) }
-        catch (_: IllegalArgumentException) { agent?.applyError = "服务器配置校验失败"; return }
+            value.getString("id"), session)
+            ManagedPolicy.lightProfile(config.optString("device_profile", "auto"), Build.MODEL, Build.DISPLAY)
+        }
+        catch (_: IllegalArgumentException) {
+            agent?.applyError = "服务器配置校验失败"
+            showWaiting(metadata, "配置内容不支持，请联系管理员")
+            return
+        }
         applying = true
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setCookie(DeviceAgent.ORIGIN,
@@ -123,7 +129,7 @@ class MainActivity : Activity() {
             if (!resumed) return@setCookie
             if (!accepted) { agent?.applyError = "网页会话写入失败"; return@setCookie }
             if (revision != configuredRevision || shell == null) {
-                try { showDisplay(config, revision, metadata.optBoolean("light_supported")) }
+                try { showDisplay(config, revision) }
                 catch (failure: Exception) {
                     Log.e("RoomBeacon", "configuration_failed:${failure.javaClass.simpleName}")
                     agent?.applyError = "设备配置应用失败"
@@ -132,7 +138,7 @@ class MainActivity : Activity() {
             }
         }
     }
-    private fun showDisplay(config: JSONObject, revision: Int, lightSupported: Boolean) {
+    private fun showDisplay(config: JSONObject, revision: Int) {
         shell?.destroy(); shell = null
         requestedOrientation = if (config.getBoolean("portrait")) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         val root = FrameLayout(this)
@@ -141,13 +147,19 @@ class MainActivity : Activity() {
         root.addView(container, FrameLayout.LayoutParams(-1, -1)); root.addView(overlay, FrameLayout.LayoutParams(-1, -1))
         setContentView(root); immersive()
         val wantsLight = config.getBoolean("room_light")
-        val light = if (wantsLight && lightSupported) RoomLight.forSample(Build.MODEL, Build.DISPLAY) {
-            Log.e("RoomBeacon", it); agent?.applyError = "灯控操作失败"
+        val profile = ManagedPolicy.lightProfile(config.optString("device_profile", "auto"), Build.MODEL, Build.DISPLAY)
+        agent?.applyError = if (wantsLight && profile == null) "当前配置未识别侧边灯接线" else ""
+        val light = if (wantsLight && profile != null) try {
+            RoomLight.forProfile(profile) { Log.e("RoomBeacon", it); agent?.applyError = "灯控操作失败" }
+        } catch (failure: Exception) {
+            Log.e("RoomBeacon", "light_setup_failed:${failure.javaClass.simpleName}")
+            agent?.applyError = "模板灯控暂不可用，显示配置已应用"
+            null
         } else null
-        agent?.applyError = if (wantsLight && !lightSupported) "当前型号不支持侧边灯" else ""
         configuredRevision = revision
         shell = WebShell(this, container, OriginPolicy(DeviceAgent.ORIGIN, false), light,
-            entryPath = "/?version=${config.getString("version")}&managed=1") { message ->
+            entryPath = ManagedPolicy.displayPath(config.getString("version"), config.optString("theme_mode", "auto"),
+                config.optString("language", "zh-CN"))) { message ->
             overlay.text = message ?: ""; overlay.visibility = if (message == null) View.GONE else View.VISIBLE
             if (message == null) agent?.appliedRevision = revision
         }

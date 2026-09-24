@@ -4,6 +4,20 @@ package com.roombeacon.shell
 object ManagedPolicy {
     fun validMac(value: String): Boolean = value.matches(Regex("(?i)[0-9a-f]{2}(:[0-9a-f]{2}){5}")) &&
         value.lowercase() !in setOf("02:00:00:00:00:00", "00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff")
+    fun displayPath(version: String, theme: String, language: String): String {
+        require(version in setOf("v4", "v5", "v6")) { "不支持的页面版本" }
+        require(theme in setOf("auto", "light")) { "不支持的昼夜模式" }
+        require(language in setOf("zh-CN", "en")) { "不支持的门牌语言" }
+        return "/?version=$version&managed=1&theme=$theme&lang=$language"
+    }
+    // Model matching and overrides belong to the management console.
+    fun lightProfile(profile: String, model: String, firmware: String): RoomLight.Profile? = when (profile) {
+        "auto" -> RoomLight.profileFor(model, firmware) // Legacy configurations keep auto detection.
+        "generic" -> null
+        "bx68" -> RoomLight.Profile.BX68
+        "rk3568_r" -> RoomLight.Profile.RK3568_R
+        else -> throw IllegalArgumentException("未知型号配置")
+    }
     fun validate(version: String, node: String, revision: Int, identity: String, session: String) {
         require(version in setOf("v4", "v5", "v6")) { "不支持的页面版本" }
         require(node == "central") { "尚未支持该服务节点" }

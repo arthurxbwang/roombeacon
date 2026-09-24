@@ -1,6 +1,7 @@
 package com.roombeacon.shell
 
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -13,6 +14,22 @@ class ManagedPolicyTest {
         assertTrue(ManagedPolicy.validMac("54:01:4A:A5:AA:53"))
         for (value in listOf("02:00:00:00:00:00", "00:00:00:00:00:00", "unknown", "../../secrets", "FF:FF:FF:FF:FF:FF"))
             assertFalse(ManagedPolicy.validMac(value))
+    }
+    @Test fun namedProfilesUseServerChoiceEvenOnDifferentModelOrFirmware() {
+        assertEquals(RoomLight.Profile.BX68, ManagedPolicy.lightProfile("bx68", "special", "custom"))
+        assertEquals(RoomLight.Profile.RK3568_R, ManagedPolicy.lightProfile("rk3568_r", "RK3568", "custom"))
+        assertEquals(null, ManagedPolicy.lightProfile("generic", "unknown", "unknown"))
+        assertEquals(null, ManagedPolicy.lightProfile("auto", "unknown", "unknown"))
+        assertEquals(RoomLight.Profile.RK3568_R,
+            ManagedPolicy.lightProfile("auto", "rk3568_r", "rk3568-11.0-20230426.150223"))
+        assertThrows(IllegalArgumentException::class.java) {
+            ManagedPolicy.lightProfile("invalid", "RK3568", "custom")
+        }
+    }
+    @Test fun presentationPathOnlyAllowsDayOrAutoAndSupportedLanguages() {
+        assertEquals("/?version=v6&managed=1&theme=light&lang=en", ManagedPolicy.displayPath("v6", "light", "en"))
+        assertThrows(IllegalArgumentException::class.java) { ManagedPolicy.displayPath("v6", "dark", "en") }
+        assertThrows(IllegalArgumentException::class.java) { ManagedPolicy.displayPath("v6", "auto", "en&server=evil") }
     }
     @Test fun trustedBindingAccepted() {
         for (version in listOf("v4", "v5", "v6")) ManagedPolicy.validate(version, "central", 2, id, session)

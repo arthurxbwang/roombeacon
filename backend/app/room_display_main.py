@@ -14,7 +14,7 @@ from .management.auth import router as auth_router
 from .management.devices import router as devices_router
 from .management.security import DEVICE_COOKIE, actor, authenticate_web
 from .room_usage_routes import usage_router
-from .schemas.meeting_room import RoomSchedule
+from .schemas.meeting_room import DisplayPreferences, RoomSchedule
 from .services.room_checkin import checkin_qr
 from .services.room_display_collector import cached_directory as directory
 from .services.room_display_collector import cached_schedule as schedule_for
@@ -62,7 +62,8 @@ async def decorate(snapshot):
 async def display(response: Response, user: dict = Depends(get_current_user)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(user["room_id"])
-    return ok(await decorate(snapshot))
+    return ok((await decorate(snapshot)).model_copy(update={
+        "display_preferences": DisplayPreferences(**user["display_preferences"]) if "display_preferences" in user else None}))
 
 
 async def require_admin(request: Request, authorization: str = Header(default="")) -> dict:

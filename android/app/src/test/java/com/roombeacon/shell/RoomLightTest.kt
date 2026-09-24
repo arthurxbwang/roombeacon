@@ -8,6 +8,16 @@ class RoomLightTest {
         "RK3568", "RK3568_BX68_Android 11_64-20260331.094925_ZX-keys",
     ))
 
+    @Test fun forcedTemplateUsesSelectedWiringInsteadOfDetectedModel() {
+        val profile = requireNotNull(ManagedPolicy.lightProfile("bx68", "rk3568_r", "rk3568-11.0-20230426.150223"))
+        val values = mutableMapOf(154 to 0, 148 to 0, 147 to 0)
+        val light = RoomLight({ p, v -> values[p] = v }, { values.getValue(it) }, { fail(it) }, profile)
+        light.apply("free")
+        assertEquals(listOf(0, 1, 1), values.values.toList())
+        light.apply("unknown")
+        assertEquals(listOf(1, 1, 1), values.values.toList())
+    }
+
     @Test fun bx68UsesActiveLowGreenRedBlueAndTurnsOffBetweenColors() {
         val values = mutableMapOf(154 to 1, 148 to 1, 147 to 1)
         val writes = mutableListOf<Pair<Int, Int>>()

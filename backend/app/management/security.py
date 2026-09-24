@@ -1,6 +1,7 @@
 """V6 browser sessions and independently revocable device credentials."""
 import hashlib
 import hmac
+import json
 import re
 import secrets
 import time
@@ -110,4 +111,8 @@ def authenticate_web(token):
         if not row or row['status'] != 'active' or row['revision'] != int(match[2]) or not row['room_id']:
             raise UnauthorizedError('设备绑定已变化')
         # Stable throughout a binding: cookie renewal must not reset V5 business health.
-        return {'room_id': row['room_id'], 'digest': digest(f"v6:{row['id']}:{row['revision']}")}
+        config = json.loads(row['config'])
+        return {'room_id': row['room_id'],
+                'display_preferences': {key: config.get(key, default)
+                                        for key, default in [('theme_mode', 'auto'), ('language', 'zh-CN')]},
+                'digest': digest(f"v6:{row['id']}:{row['revision']}")}

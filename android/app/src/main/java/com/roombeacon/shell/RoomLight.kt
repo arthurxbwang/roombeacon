@@ -53,7 +53,10 @@ class RoomLight(
         fun supports(model: String, display: String) = profileFor(model, display) != null
 
         fun forSample(model: String, display: String, report: (String) -> Unit): RoomLight {
-            val profile = requireNotNull(profileFor(model, display)) { "Unsupported light wiring" }
+            return forProfile(requireNotNull(profileFor(model, display)) { "Unsupported light wiring" }, report)
+        }
+
+        fun forProfile(profile: Profile, report: (String) -> Unit): RoomLight {
             pins.forEach { pin ->
                 check(File("/sys/class/gpio/gpio$pin/direction").readText().trim() == "out")
             }

@@ -216,7 +216,7 @@ def test_enrollment_rate_limit_and_expired_web_cookie(client):
     client.cookies.set(DEVICE_COOKIE, 'v6w:' + 'a' * 32 + ':1:1:' + 'b' * 64)
     assert client.get('/api/meeting-rooms/display').status_code == 401
     with database() as db:
-        assert len(json.loads(db.execute('SELECT config FROM devices LIMIT 1').fetchone()[0])) == 5
+        assert json.loads(db.execute('SELECT config FROM devices LIMIT 1').fetchone()[0])['node_id'] == 'central'
 
 
 @pytest.mark.asyncio

@@ -64,6 +64,7 @@ object DeviceMetadata {
             .put("serial_source", if (serial.isEmpty()) "unavailable" else "android")
             .put("android", Build.VERSION.RELEASE.take(40)).put("apk", BuildConfig.VERSION_NAME)
             .put("network", network).put("interfaces", interfaces)
+            .put("firmware", Build.DISPLAY.take(160)).put("config_schema", 2)
             .put("light_supported", RoomLight.supports(Build.MODEL, Build.DISPLAY))
     }
 }

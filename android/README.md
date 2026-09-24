@@ -4,6 +4,8 @@
 
 系统 WebView 加载服务器门牌页面，业务页面不打包进 APK。支持 Android 8.0+（API 26），当前首个实机目标为 Android 11 / WebView 106 / RK3568 / 2GB。支持范围不等于所有系统已完成实测。
 
+> 本地待发布 0.6.2：增加固件与配置能力上报、执行后台选定的型号模板接线及昼夜／语言入口参数（型号差异由后台确认）。先升级后端，再升级 APK；尚未安装样机，见[型号模板说明](../docs/device-model-templates.md)。
+
 ## 构建
 
 需要 JDK 17、Android SDK 平台 35 和 Build Tools 34.0.0。配置 `ANDROID_HOME` 或本目录被忽略的 `local.properties` 中的 `sdk.dir`。

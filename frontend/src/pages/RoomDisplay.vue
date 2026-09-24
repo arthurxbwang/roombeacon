@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import RoomCheckinCard from '@/components/RoomCheckinCard.vue'
 import RoomUsageCard from '@/components/RoomUsageCard.vue'
 import { meetingRoomsApi, type RoomSchedule, type RoomEvent } from '@/api/meetingRooms'
+import { displayLanguage, translateDisplayText } from '@/utils/displayLanguage'
 import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
@@ -21,11 +22,14 @@ const token = ref(managed ? '@managed' : localStorage.getItem(storageKey) || '')
 const input = ref('')
 const snapshot = ref<RoomSchedule | null>(null)
 const now = ref(Date.now())
-const themeMode = computed(() => props.controlTheme || 'auto')
+const language=computed(()=>snapshot.value?.display_preferences?.language || (managed && route.query.lang==='en' ? 'en' : 'zh-CN'))
+provide(displayLanguage,language)
+const t=(value:string)=>translateDisplayText(value,language.value)
+const themeMode = computed(() => props.controlTheme || snapshot.value?.display_preferences?.theme_mode || (managed && route.query.theme==='light' ? 'light' : 'auto'))
 const timezone = computed(() => snapshot.value?.daylight?.timezone || 'Asia/Shanghai')
 const daylightKnown = computed(() => !!snapshot.value?.daylight?.city && now.value < Date.parse(snapshot.value.daylight.valid_until))
-const isLight = computed(() => themeMode.value === 'light' || (themeMode.value === 'auto' && daylightKnown.value && snapshot.value?.daylight?.windows.some(w => Date.parse(w.start) <= now.value && now.value < Date.parse(w.end))))
-const themeLabel = computed(() => themeMode.value === 'auto' ? daylightKnown.value ? `${snapshot.value?.daylight?.city} · ${isLight.value ? '日间' : '夜间'}` : '城市待配置' : '手动预览')
+const isLight = computed(() => themeMode.value === 'light' || (themeMode.value === 'auto' && (daylightKnown.value ? snapshot.value?.daylight?.windows.some(w => Date.parse(w.start) <= now.value && now.value < Date.parse(w.end)) : managed || !!snapshot.value?.display_preferences)))
+const themeLabel = computed(() => themeMode.value === 'auto' ? daylightKnown.value ? `${snapshot.value?.daylight?.city} · ${t(isLight.value ? '日间' : '夜间')}` : t('城市待配置') : t(props.controlTheme ? '手动预览' : '始终白天'))
 watch(isLight, value => emit('theme-change', value ? 'light' : 'dark'), { immediate: true })
 const failed = ref(false)
 const message = ref('')
@@ -52,7 +56,7 @@ const windowStart = computed(() => {
 })
 const ticks = computed(() => Array.from({ length: 7 }, (_, i) => windowStart.value + i * 2 * 3600000))
 const timelineEvents = computed(() => allEvents.value.filter(e => Date.parse(e.end_time) > windowStart.value && Date.parse(e.start_time) < windowStart.value + 43200000))
-const tickLabel = (value: number) => `${dateKey(value) < dateKey(now.value) ? '昨 ' : dateKey(value) > dateKey(now.value) ? '明 ' : ''}${time(value)}`
+const tickLabel = (value: number) => `${dateKey(value) < dateKey(now.value) ? (language.value==='en'?'Yesterday ':'昨 ') : dateKey(value) > dateKey(now.value) ? (language.value==='en'?'Tomorrow ':'明 ') : ''}${time(value)}`
 const current = computed(() => events.value.find(e => Date.parse(e.start_time) <= now.value && now.value < Date.parse(e.end_time)))
 const futureEvents = computed(() => allEvents.value.filter(e => Date.parse(e.start_time) > now.value).sort((a, b) => Date.parse(a.start_time) - Date.parse(b.start_time)))
 const next = computed(() => isV3.value ? futureEvents.value[0] : events.value.find(e => Date.parse(e.start_time) > now.value))
@@ -66,10 +70,10 @@ const remainingEvents = computed(() => events.value.filter(e => Date.parse(e.end
 const pastEvents = computed(() => events.value.filter(e => Date.parse(e.end_time) <= now.value))
 const agendaEvents = computed(() => isV3.value ? futureEvents.value.slice(0, 2) : isV2.value ? [current.value, next.value].filter((event): event is RoomEvent => !!event) : fresh.value ? remainingEvents.value : events.value)
 const progress = computed(() => current.value ? Math.min(100, Math.max(0, (now.value - Date.parse(current.value.start_time)) / (Date.parse(current.value.end_time) - Date.parse(current.value.start_time)) * 100)) : 0)
-const time = (value: string | number) => new Date(value).toLocaleTimeString('zh-CN', { timeZone: timezone.value, hour: '2-digit', minute: '2-digit', hour12: false })
-const date = computed(() => new Date(now.value).toLocaleDateString('zh-CN', { timeZone: timezone.value, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }))
-const lastSynced = computed(() => snapshot.value ? new Date(snapshot.value.synced_at).toLocaleString('zh-CN', { timeZone: timezone.value, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '')
-const title = (event: RoomEvent) => event.summary || '已预约会议'
+const time = (value: string | number) => new Date(value).toLocaleTimeString(language.value, { timeZone: timezone.value, hour: '2-digit', minute: '2-digit', hour12: false })
+const date = computed(() => new Date(now.value).toLocaleDateString(language.value, { timeZone: timezone.value, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }))
+const lastSynced = computed(() => snapshot.value ? new Date(snapshot.value.synced_at).toLocaleString(language.value, { timeZone: timezone.value, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '')
+const title = (event: RoomEvent) => event.summary || t('已预约会议')
 function position(value: string | number) {
   return Math.min(100, Math.max(0, (new Date(value).getTime() - windowStart.value) / 43200000 * 100))
 }
@@ -118,75 +122,75 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="door" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5 }]" :style="{ '--accent': accent }">
+  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5 }]" :style="{ '--accent': accent }">
     <form v-if="!bound" class="binding" @submit.prevent="bind">
-      <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>绑定会议门牌</h1>
-      <p>请输入管理员为这间会议室生成的设备凭证。</p>
+      <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>{{ t('绑定会议门牌') }}</h1>
+      <p>{{ t('请输入管理员为这间会议室生成的设备凭证。') }}</p>
       <input v-model="input" aria-label="设备凭证" type="password" autocomplete="off" placeholder="粘贴设备凭证" />
-      <button type="submit">绑定并显示</button><p role="status">{{ message }}</p>
+      <button type="submit">{{ t('绑定并显示') }}</button><p role="status">{{ t(message) }}</p>
     </form>
     <template v-else>
       <header class="door-header">
         <div class="room-identity"><p class="eyebrow">ARGUS / MEETING ROOM </p>
-          <h1 :title="snapshot?.room.name">{{ snapshot?.room.name || '正在获取会议室' }}</h1>
-          <p class="capacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a6 6 0 0 1 3 5v2"/></svg>{{ snapshot ? `可容纳 ${snapshot.room.capacity} 人` : '正在同步' }}</p></div>
+          <h1 :title="snapshot?.room.name">{{ snapshot?.room.name || t('正在获取会议室') }}</h1>
+          <p class="capacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a6 6 0 0 1 3 5v2"/></svg>{{ snapshot ? (language==='en' ? `Capacity ${snapshot.room.capacity}` : `可容纳 ${snapshot.room.capacity} 人`) : t('正在同步') }}</p></div>
         <div class="clock"><strong>{{ time(now) }}</strong><p>{{ date }}</p><span class="theme-control">{{ themeLabel }}</span></div>
       </header>
-      <p v-if="snapshot && !fresh" class="history-warning" role="status">历史日程 · 最后同步 {{ lastSynced }} · 正在重试，当前状态待确认</p>
+      <p v-if="snapshot && !fresh" class="history-warning" role="status">{{ t('历史日程 · 最后同步') }} {{ lastSynced }} {{ t('· 正在重试，当前状态待确认') }}</p>
       <div class="content">
         <section class="current" :class="{ 'is-free': fresh && !disabled && !current, 'is-soon': state === '即将开始', 'with-checkin': (isV5 || (isV3 && !!snapshot?.checkin_qr)) && !disabled }">
           <div class="primary-info">
-            <span class="status" :class="{ 'large-status': isV3 && ['使用中', '即将开始', '空闲可用'].includes(state) }" role="status"><i aria-hidden="true" /><span class="status-text">{{ state }}</span></span>
+            <span class="status" :class="{ 'large-status': isV3 && ['使用中', '即将开始', '空闲可用'].includes(state) }" role="status"><i aria-hidden="true" /><span class="status-text">{{ t(state) }}</span></span>
             <div class="primary-body">
             <template v-if="snapshot && !disabled">
               <div v-if="current || state === '即将开始'" class="hero">
-                <p class="hero-label">{{ current ? '距本场结束还有' : '距下场开始还有' }}</p>
-                <p class="countdown"><strong>{{ minutes }}</strong><span>分钟</span></p>
+                <p class="hero-label">{{ current ? t('距本场结束还有') : t('距下场开始还有') }}</p>
+                <p class="countdown"><strong>{{ minutes }}</strong><span>{{ t('分钟') }}</span></p>
               </div>
               <div v-else class="hero">
-                <template v-if="next"><p class="hero-label">{{ fresh ? '当前可用至' : '历史预约空档至' }}</p><p class="available-until">{{ time(next.start_time) }}</p></template>
-                <h2 v-else class="all-free">{{ fresh ? '全天无后续预约' : '暂无可参考的后续预约' }}</h2>
+                <template v-if="next"><p class="hero-label">{{ fresh ? t('当前可用至') : t('历史预约空档至') }}</p><p class="available-until">{{ time(next.start_time) }}</p></template>
+                <h2 v-else class="all-free">{{ fresh ? t('全天无后续预约') : t('暂无可参考的后续预约') }}</h2>
               </div>
               <div v-if="active" class="meeting-detail">
-                <p class="detail-label">{{ current ? '当前会议' : '下一场会议' }}</p>
+                <p class="detail-label">{{ current ? t('当前会议') : t('下一场会议') }}</p>
                 <h2 :title="title(active)">{{ title(active) }}</h2>
                 <p class="meeting-time">{{ time(active.start_time) }} — {{ time(active.end_time) }}</p>
-                <p class="organizer">组织者 · {{ active.organizer || '信息不可见' }}</p>
+                <p class="organizer">{{ t('组织者 ·') }} {{ active.organizer || t('信息不可见') }}</p>
               </div>
-              <div v-if="current" class="meeting-progress" role="progressbar" aria-label="本场会议进度" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100"><span :style="{ width: `${progress}%` }" /></div>
-              <div v-else-if="fresh && !isV3" class="booking-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 11h18m-13 5h8"/></svg><div><strong>扫码预订</strong><p>预约入口待接入</p></div></div>
+              <div v-if="current" class="meeting-progress" role="progressbar" :aria-label="t('本场会议进度')" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100"><span :style="{ width: `${progress}%` }" /></div>
+              <div v-else-if="fresh && !isV3" class="booking-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 11h18m-13 5h8"/></svg><div><strong>{{ t('扫码预订') }}</strong><p>{{ t('预约入口待接入') }}</p></div></div>
             </template>
-            <template v-else><h2 class="unavailable">{{ disabled && fresh ? '暂不可使用' : '等待日程同步' }}</h2><p class="organizer">{{ message || '正在确认最新预约状态' }}</p></template>
+            <template v-else><h2 class="unavailable">{{ disabled && fresh ? t('暂不可使用') : t('等待日程同步') }}</h2><p class="organizer">{{ t(message || '正在确认最新预约状态') }}</p></template>
             </div>
           </div>
           <RoomUsageCard v-if="isV5 && snapshot && !disabled" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
-          <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">本房间使用 V5 确认，请切换到 V5 页面</p>
+          <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">{{ t('本房间使用 V5 确认，请切换到 V5 页面') }}</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
         <section class="agenda">
-          <header class="agenda-header"><h3>{{ isV3 ? '后续会议' : isV2 ? '本场与下一场' : '今日安排' }} <span v-if="!fresh">· 上次同步数据</span></h3><span v-if="!isV2 && fresh && remainingEvents.length" class="agenda-count">{{ remainingEvents.length }} 场待完成</span></header>
+          <header class="agenda-header"><h3>{{ isV3 ? t('后续会议') : isV2 ? t('本场与下一场') : t('今日安排') }} <span v-if="!fresh">{{ t('· 上次同步数据') }}</span></h3><span v-if="!isV2 && fresh && remainingEvents.length" class="agenda-count">{{ remainingEvents.length }} 场待完成</span></header>
           <div class="agenda-body">
             <article v-for="event in agendaEvents" :key="`${event.uid}:${event.original_time}:${event.start_time}`" :class="{ active: fresh && event === current, upcoming: fresh && event === next && state === '即将开始' }">
-              <div class="event-top"><p><small v-if="isV3" class="event-day">{{ dateKey(Date.parse(event.start_time)) === dateKey(now) ? '今天' : new Date(event.start_time).toLocaleDateString('zh-CN', { timeZone: timezone, month: 'numeric', day: 'numeric' }) }}</small>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><span class="tag">{{ !fresh ? '预约' : event === current ? '进行中' : event === next ? '下一场' : '待开始' }}</span></div>
-              <h4 :title="title(event)">{{ title(event) }}</h4><p class="event-organizer">组织者 · {{ event.organizer || '信息不可见' }}</p>
+              <div class="event-top"><p><small v-if="isV3" class="event-day">{{ dateKey(Date.parse(event.start_time)) === dateKey(now) ? t('今天') : new Date(event.start_time).toLocaleDateString(language, { timeZone: timezone, month: 'numeric', day: 'numeric' }) }}</small>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><span class="tag">{{ !fresh ? t('预约') : event === current ? t('进行中') : event === next ? t('下一场') : t('待开始') }}</span></div>
+              <h4 :title="title(event)">{{ title(event) }}</h4><p class="event-organizer">{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</p>
             </article>
             <div v-if="fresh && (isV3 ? !agendaEvents.length : !remainingEvents.length)" class="agenda-empty">
               <svg class="empty-art" viewBox="0 0 160 120" fill="none" aria-hidden="true"><rect x="38" y="23" width="84" height="78" rx="12" stroke="currentColor" stroke-width="2"/><path d="M38 46h84M58 14v18m44-18v18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m62 73 12 12 25-26" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <h4>{{ disabled ? '会议室已停用' : isV3 ? '暂无后续会议' : !events.length ? '今日全天空闲' : '今日会议已结束' }}</h4><p>{{ disabled ? '会议室当前已停用' : '为下一次交流，留出空间' }}</p>
-              <div class="room-fact"><strong>{{ snapshot?.room.capacity || 0 }}</strong><span>人 · 会议空间</span></div>
+              <h4>{{ disabled ? t('会议室已停用') : isV3 ? t('暂无后续会议') : !events.length ? t('今日全天空闲') : t('今日会议已结束') }}</h4><p>{{ disabled ? t('会议室当前已停用') : t('为下一次交流，留出空间') }}</p>
+              <div class="room-fact"><strong>{{ snapshot?.room.capacity || 0 }}</strong><span>{{ t('人 · 会议空间') }}</span></div>
             </div>
-            <p v-else-if="!agendaEvents.length" class="pending-message">等待获取日程</p>
-            <details v-if="!isV2 && fresh && pastEvents.length" class="history"><summary>已结束 · {{ pastEvents.length }} 场</summary><div v-for="event in pastEvents" :key="`${event.uid}:${event.start_time}`"><p>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><h4>{{ title(event) }}</h4><small>组织者 · {{ event.organizer || '信息不可见' }}</small></div></details>
+            <p v-else-if="!agendaEvents.length" class="pending-message">{{ t('等待获取日程') }}</p>
+            <details v-if="!isV2 && fresh && pastEvents.length" class="history"><summary>已结束 · {{ pastEvents.length }} 场</summary><div v-for="event in pastEvents" :key="`${event.uid}:${event.start_time}`"><p>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><h4>{{ title(event) }}</h4><small>{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</small></div></details>
           </div>
 
         </section>
       </div>
-      <section class="timeline" aria-label="滚动12小时预约时间轴">
-        <p class="timeline-label"><span>近 12 小时</span><span v-if="!isV2">预约时间轴</span><span v-else class="timeline-legend"><span><i />可约</span><span><i class="reserved" />已约</span><span><i class="finished" />已结束</span></span></p>
+      <section class="timeline" :aria-label="t('滚动12小时预约时间轴')">
+        <p class="timeline-label"><span>{{ t('近 12 小时') }}</span><span v-if="!isV2">{{ t('预约时间轴') }}</span><span v-else class="timeline-legend"><span><i />{{ t('可约') }}</span><span><i class="reserved" />{{ t('已约') }}</span><span><i class="finished" />{{ t('已结束') }}</span></span></p>
         <div class="track" :class="{ unknown: isV2 && (!fresh || disabled) }"><span v-for="event in timelineEvents" :key="`${event.uid}:${event.start_time}`" :style="bar(event)" :class="{ elapsed: Date.parse(event.end_time) <= now }" /><i :style="{ left: `${position(now)}%` }" /></div>
         <div class="ticks"><span v-for="value in ticks" :key="value">{{ tickLabel(value) }}</span></div>
       </section>
-      <footer :class="{ stale: !fresh }"><span>{{ fresh ? '● 日程已同步' : '● 日程待更新' }} · 飞书预约日程{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="snapshot && !snapshot.titles_available">部分会议主题不可见</span></footer>
+      <footer :class="{ stale: !fresh }"><span>{{ fresh ? t('● 日程已同步') : t('● 日程待更新') }} {{ t('· 飞书预约日程') }}{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="snapshot && !snapshot.titles_available">{{ t('部分会议主题不可见') }}</span></footer>
     </template>
   </main>
 </template>
