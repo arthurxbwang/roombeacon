@@ -1,5 +1,7 @@
 # 设备台账、安装模板与会议室业务方案
 
+> 2026-09-24：#25 已随 PR #26 合并完成。以下快照配置模型由 #27 的硬件安装版本、房间软件版本和显式部署关联接续；已转换设备不再使用旧配置/回退接口。本文保留原设计追溯，当前操作见 [ADR 0005](adr/0005-versioned-configuration.md)。
+
 2026-09-23，已部署并完成真实 HTTPS 管理页验收，运行 SHA 为 `4b65ecc`，见[发布与回退记录](production-inventory-templates-2026-09-23.md)。需求 [#25](https://github.com/arthurxbwang/roombeacon/issues/25)，接续已部署的 [#23](https://github.com/arthurxbwang/roombeacon/issues/23) 型号模板；开发基线为 `3cb966e`，前序生产版本见[型号模板发布记录](production-model-templates-2026-09-23.md)。
 
 ## 关联方式与选择理由

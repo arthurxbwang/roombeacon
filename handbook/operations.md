@@ -8,7 +8,7 @@
 
 > 当前生产服务器为`roombeacon.thundersoft.com`，SSH使用`root`、私有`aw.key`和端口`8081`；部署目录`/data/roombeacon`。已验证登录主机`tsm-eed-ts-bj`。用户已完成部署；历史SSH80及首次部署待办不能覆盖当前状态，见[连接与历史部署记录](../docs/production-10.0.53.174.md)。
 
-> 改期自动核验尚未部署。先完成日历权限与专用日历配置，再从准确GitHub SHA发布；启用和回退不能重置已保护记录。见[操作与权限清单](../docs/v5-reschedule-autoverify.md)。
+> 2026-09-24 核对：改期自动核验代码已随生产 `3359332` 部署，但实际日历映射为 0，尚未启用该核验路径。先完成专用日历访问与准确映射，记录配置变更及回退，不因启用而重置已保护记录。业务参数随软件版本部署，房间资格独立记录；已转换设备回退使用兼容历史模板版本组合。见[操作与权限清单](../docs/v5-reschedule-autoverify.md)及[ADR 0005](../docs/adr/0005-versioned-configuration.md)。
 
 > 2026-09-21 当前后端374db89、静态da63152，提前结束已关闭。连续三场非重复验收通过，只有IT灯塔-Test获V5写入资格；新预约仍需逐实例登记。见[验收记录](../docs/v5-retest-acceptance.md)，回退沿用[504修复记录](../docs/v5-three-bookings-verification.md)所列备份。下方旧版本为历史记录。
 

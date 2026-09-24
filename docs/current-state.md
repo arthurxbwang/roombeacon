@@ -2,6 +2,12 @@
 
 更新：2026-09-24。本页是新任务的状态入口；详细历史保留在各次验证记录中。当前生产已按用户授权发布V6，准确版本与实机证据见下方发布记录。
 
+## GitHub 收尾与待办校准（2026-09-24）
+
+PR #24 → #26 → #28 已依次合入 `main`，最终应用合并提交 `a9143250e0ae9d156d362696d9612fe15ccd7033`；Issue #23、#25、#27 按已完成关闭。合并树与重构分支 `4c9025c` 完全一致，后者相对生产 `3359332` 仅有文档差异。本轮未重新部署；只读核对生产 102 个源文件一致，BX68 APK 0.7.0、协议 3、回执 7/7、无错误。详情见[事项校准与合并回执](issue-reconciliation-2026-09-24.md)。
+
+旧配置模型由 [ADR 0005](adr/0005-versioned-configuration.md) 接续：业务参数随软件版本显式部署，房间资格和预约逐实例核验独立保留。已转换设备拒绝旧配置及旧回退接口。#10 只跟踪设备接入、网络切换和长稳；#16 跟踪无 ADB 更新与恢复，自动关闭网络 ADB 另见 #29。2026-09-22 的 ADB 关闭是历史实测，#29 的 2026-09-24 检查记录其已重新可连接。
+
 ## 配置模型重构已部署（2026-09-24）
 
 [#27](https://github.com/arthurxbwang/roombeacon/issues/27)：硬件安装和软件模板独立编辑、不可覆盖的发布版本、设备显式部署、会议室与模板三处反查、可读审计已实现。生产应用 `3359332b5b84343318693f7266d7966d3a950619`；BX68 APK 0.7.0，硬件 v2＋软件 v1 回执 7/7，原参数与 V5 策略不变。324 项后端、108 项浏览器覆盖和 19 项 Android 测试通过；真实验收及回退见[本次发布](production-configuration-2026-09-24.md)，关系定义见 [ADR 0005](adr/0005-versioned-configuration.md)。以下旧版本记录按日期保留。
@@ -48,9 +54,12 @@
 
 | 工作 | 当前边界 | 入口 |
 |---|---|---|
-| 日历自动核验与改期 | 代码及隔离回归已存在，生产日历映射为空，真实联调待完成 | [2: 专用日历授权、自动核验与改期联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
+| 日历自动核验与改期 | 代码已部署，生产实际日历映射为 0，启用与真实联调待完成 | [2: 专用日历映射、自动核验启用与改期真实联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
 | V5 剩余验收及长稳 | 每日重复有历史通过记录；周／月重复、故障及跨日场景仍有缺口 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
 | 飞书忙闲 504 诊断 | 已有限次只读重试；失败追踪与根因尚未闭环 | [4: 飞书忙闲 504 脱敏诊断与故障链路闭环](https://github.com/arthurxbwang/roombeacon/issues/4) |
+| V6 实机验收 | 旧北京201接入、PoE/有线切换、72小时/7天及跨昼夜长稳待完成；当前台账只有1台设备 | [10: V6 设备接入、PoE/有线切换与长稳验收](https://github.com/arthurxbwang/roombeacon/issues/10) |
+| 无 ADB 更新与恢复 | 已有配置回执；H5 更新回退、独立 APK 升级通道及现场恢复仍待完成 | [16: 无 ADB 运维](https://github.com/arthurxbwang/roombeacon/issues/16) |
+| 认证后关闭网络 ADB | 已有厂家接口分析，仅规划；普通应用权限、维护规则及开关实测待完成 | [29: 自动关闭网络 ADB](https://github.com/arthurxbwang/roombeacon/issues/29) |
 | DP72 人体存在传感器 | 协议评估已移交；Android 串口驱动和真实传感器集成尚未实现 | [5: DP72_DRT RS485 人体存在传感器只读接入](https://github.com/arthurxbwang/roombeacon/issues/5) |
 
 总规划见[下一阶段计划](../plan/next-phase.md)。上述事项不能因为旧任务归档而标记完成；ESP32 仍仅规划。

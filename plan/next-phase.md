@@ -1,18 +1,20 @@
 # RoomBeacon 下一阶段规划
 
-更新：2026-09-22。GitHub 总入口：[6: RoomBeacon 下一阶段规划与交付跟踪](https://github.com/arthurxbwang/roombeacon/issues/6)。
+更新：2026-09-24。GitHub 总入口：[6: RoomBeacon 后续工作总览](https://github.com/arthurxbwang/roombeacon/issues/6)。
 
 本计划承接已整合的 `main`，将需求和验收状态从历史任务迁入 GitHub。当前版本与生产边界见[当前状态](../docs/current-state.md)，旧记录继续作为证据保留。
 
-## 配置模型重构（已部署，待源码审阅）
+## 配置模型重构（已部署并合入 main）
 
 [#27](https://github.com/arthurxbwang/roombeacon/issues/27)：分离硬件安装／软件模板及发布版本，设备部署、会议室和模板使用范围交叉查询，增加可读审计；当前 `3359332` 与 APK 0.7.0、回执 7/7，见[发布记录](../docs/production-configuration-2026-09-24.md)。此前 #25 的界面和配置关系由此版本接续。
 
-## 设备台账与安装模板（已部署，待源码审阅）
+PR #24、#26、#28 已顺序合并，应用合并提交为 `a914325`；#23、#25、#27 已按完成关闭，不再列为研发待办。本次没有新部署，见[收尾回执](../docs/issue-reconciliation-2026-09-24.md)。
+
+## 设备台账与安装模板（已完成，模型由 #27 接续）
 
 [#25](https://github.com/arthurxbwang/roombeacon/issues/25)：地区与多级位置筛选、模板新建／编辑及方向归属、硬件安装与会议室业务方案分离。接续 #23 实现；用户后续授权先上线验收再推送，前后端 `4b65ecc` 已发布并通过真实验收，见[发布记录](../docs/production-inventory-templates-2026-09-23.md)。
 
-## V6 已确认新增需求
+## V6 已交付能力与剩余验收
 
 [#23](https://github.com/arthurxbwang/roombeacon/issues/23)：型号模板、昼夜和语言设置、后台异型号确认已部署；BX68 APK 0.6.2 与配置回执 5/5 通过，见[发布记录](../docs/production-model-templates-2026-09-23.md)。本次使用用户临时开启的 ADB，不代表 #16 的无 ADB 升级完成。
 
@@ -20,16 +22,23 @@
 
 [#10](https://github.com/arthurxbwang/roombeacon/issues/10)：用户授权一次性实施并部署 V6；范围为飞书登录、管理员/只读、设备自动注册认领、六位短码、Wi-Fi/有线兼容、远程配置/模板/回执/回退。地区节点先预留协议，不部署未提供的异地环境。详见 [V6 文档](../docs/v6-device-management.md)。飞书应用配置与首位员工真实扫码已完成；余下硬件验收见Issue #10，无ADB更新与维护见[#16](https://github.com/arthurxbwang/roombeacon/issues/16)。
 
+#10 已缩小为旧设备接入、PoE/有线切换与长稳验收。#16 按新版部署/回退流程跟踪 H5、独立 APK 更新与现场恢复；已有配置回执不重复开发。[#29](https://github.com/arthurxbwang/roombeacon/issues/29) 单独跟踪认证后自动关闭网络 ADB 与现场维护规则，尚未实施。
+
 ## 执行顺序
 
 | 顺序 | 工作 | 完成条件 | GitHub |
 |---|---|---|---|
-| 1 | 日历自动核验和改期联调 | 专用日历可读、映射明确、实例证据完整；改期重新签到且只影响当次 | [2: 专用日历授权、自动核验与改期联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
+| 1 | 日历自动核验启用和改期联调 | 代码已部署；补齐专用日历读取与映射，改期重新签到且只影响当次 | [2: 专用日历映射、自动核验启用与改期真实联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
 | 2 | V5 剩余验收与长稳 | 更新 B01—B12、C02 的逐项证据，区分隔离测试与真实结果 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
 | 并行排查 | 504 根因与诊断 | 记录脱敏追踪号和耗时，持续失败时维持未知及保护状态 | [4: 飞书忙闲 504 脱敏诊断与故障链路闭环](https://github.com/arthurxbwang/roombeacon/issues/4) |
+| 设备验收 | 旧机、PoE/有线与长稳 | 真实接入及身份保持，72小时/7天与跨昼夜证据；与 #3 共用观察窗口 | [10: V6 实机验收](https://github.com/arthurxbwang/roombeacon/issues/10) |
+| 原生维护 | 无 ADB 更新与现场恢复 | H5 更新回退、独立 APK 更新及失败恢复，复用 #10 网络验收 | [16: 无 ADB 运维](https://github.com/arthurxbwang/roombeacon/issues/16) |
+| 原生开发 | 认证后关闭网络 ADB | 普通应用身份调用、真实状态核验、维护优先级和现场重开闭环 | [29: 自动关闭网络 ADB](https://github.com/arthurxbwang/roombeacon/issues/29) |
 | 独立硬件阶段 | RS485 人体存在传感器 | 先只读接入和三态显示，串口错误为未知，不直接授权签到或释放 | [5: DP72_DRT RS485 人体存在传感器只读接入](https://github.com/arthurxbwang/roombeacon/issues/5) |
 
 日历自动核验先准备准确日历标识及应用读取范围。权限、凭证或测试预约未准备好时，Issue 写明缺少的具体条件，继续可独立完成的代码和隔离验证。传感器阶段须先落实供电、接线和样机，再确定实施时间。
+
+#2/#3 的业务参数按软件模板草稿→发布版本→显式部署管理；房间资格、日历映射和逐实例授权不能由模板代替或复制。已转换设备回退需选择兼容历史版本组合部署，旧配置/回退接口不再适用。#29 与 #16 协调关闭触发及维护恢复路径，避免重复或冲突实现。
 
 ## 已归档的非阻塞事项
 
@@ -44,7 +53,7 @@
 5. 发布单独记录前后端准确 SHA、目标、配置变化、验证和回退。GitHub 合并不自动代表服务器已部署，也不自动扩大飞书写入或样机操作范围。
 6. 每个任务结束前更新仓库文档和 Issue。新任务先读[当前状态](../docs/current-state.md)与本计划，不要求重新阅读所有历史对话。
 
-本次用户授权包含建立标签、整理文档和 Issues、合并本次整理 PR、清理已合并历史分支及工作树、归档旧任务。它不意味着未来每个功能、生产发布或真实预约操作都已自动获得执行授权。
+2026-09-22 的历史整理授权包含标签、文档、Issues 和已合并历史分支清理。2026-09-24 本轮用户批准合并 #24/#26/#28、关闭已完成事项并校准剩余 Issue 与文档；它不意味着全部剩余功能、生产发布或真实预约操作都已自动获得执行授权。
 
 ## 延续的约定
 
