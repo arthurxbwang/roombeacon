@@ -134,3 +134,25 @@ def test_moving_only_controller_clears_old_room_reference(client, monkeypatch):
     assert client.post('/api/v6/admin/deployments', headers=v6.admin(), json=body).status_code == 200
     with database() as db:
         assert db.execute('SELECT controller_id FROM room_configurations WHERE room_id=?', (v6.ROOM,)).fetchone()[0] == ''
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('legacy', [False, True])
+async def test_directory_name_failure_retains_previous_location_tree(legacy):
+    from datetime import UTC, datetime
+
+    from app.services.room_display_collector import DIRECTORY, refresh_directory
+    from app.services.room_display_directory import directory_rows
+    raw = [{'room_id': v6.ROOM, 'name': '测试', 'path': ['org', 'cn', 'bj', 'a']}]
+    previous = directory_rows(raw, {'org': '公司', 'cn': '中国', 'bj': '北京', 'a': 'A座'})
+    if legacy:
+        previous[0].pop('location_nodes')
+        previous[0].pop('region_id')
+    cache = AsyncMock()
+    cache.get.side_effect = lambda key: json.dumps(previous) if key == DIRECTORY else '0'
+    upstream = AsyncMock()
+    upstream.list_rooms.return_value = raw
+    upstream.room_levels.side_effect = TimeoutError('mock upstream unavailable')
+    rows = await refresh_directory(cache, upstream, datetime.now(UTC))
+    for key in ('location', 'region', 'floor', 'location_nodes', 'region_id'):
+        assert rows[0].get(key) == previous[0].get(key)

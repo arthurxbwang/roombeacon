@@ -66,8 +66,11 @@ async def refresh_directory(cache, client, now: datetime) -> list[dict]:
             rows = directory_rows(raw, {})
             for row in rows:
                 if row['room_id'] in previous:
-                    for field in ('location', 'region', 'floor'):
-                        row[field] = previous[row['room_id']][field]
+                    for field in ('location', 'region', 'floor', 'location_nodes', 'region_id'):
+                        if field in previous[row['room_id']]:
+                            row[field] = previous[row['room_id']][field]
+                        elif field in ('location_nodes', 'region_id'):
+                            row.pop(field, None)
         await cache.set(DIRECTORY, json.dumps(rows, ensure_ascii=False), ex=HISTORY_SECONDS)
         await cache.set('rooms:collector:directory-time', str(now.timestamp()), ex=HISTORY_SECONDS)
         return rows
