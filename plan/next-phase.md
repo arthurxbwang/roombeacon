@@ -2,7 +2,7 @@
 
 ## V7 品牌签到门牌（2026-09-28）
 
-[#31](https://github.com/arthurxbwang/roombeacon/issues/31) 用户确认方案 A 精简设计并授权开发。本地实现与验证见 [V7 说明](../docs/v7-brand-checkin.md)；后续源码推送／PR 和生产部署分别授权，部署前确定模板版本、实际 5+5 规则、准确 SHA 和回退组合。原有剩余业务及硬件验收继续保留。
+[#31](https://github.com/arthurxbwang/roombeacon/issues/31) 用户确认方案 A 并授权上线；PR #32 已合入，生产 `9f21d96`、W9TW7S 回执 8/8，5+5 规则已应用。见[V7 说明](../docs/v7-brand-checkin.md)和[上线记录](../docs/production-v7-2026-09-28.md)。真实签到／释放及长稳仍沿原有业务与硬件事项验收，本次不操作真实预约补造结果。
 
 更新：2026-09-24。GitHub 总入口：[6: RoomBeacon 后续工作总览](https://github.com/arthurxbwang/roombeacon/issues/6)。
 
