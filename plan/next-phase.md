@@ -1,5 +1,9 @@
 # RoomBeacon 下一阶段规划
 
+## V7 品牌签到门牌（2026-09-28）
+
+[#31](https://github.com/arthurxbwang/roombeacon/issues/31) 用户确认方案 A 精简设计并授权开发。本地实现与验证见 [V7 说明](../docs/v7-brand-checkin.md)；后续源码推送／PR 和生产部署分别授权，部署前确定模板版本、实际 5+5 规则、准确 SHA 和回退组合。原有剩余业务及硬件验收继续保留。
+
 更新：2026-09-24。GitHub 总入口：[6: RoomBeacon 后续工作总览](https://github.com/arthurxbwang/roombeacon/issues/6)。
 
 本计划承接已整合的 `main`，将需求和验收状态从历史任务迁入 GitHub。当前版本与生产边界见[当前状态](../docs/current-state.md)，旧记录继续作为证据保留。

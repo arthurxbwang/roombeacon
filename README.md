@@ -1,5 +1,7 @@
 # RoomBeacon · 会议灯塔
 
+**V7 品牌签到门牌已在本地实现，尚未部署：公司动图、双阶段倒计时和精简签到按钮，可通过软件模板选择。使用与验证见 [V7 说明](docs/v7-brand-checkin.md)。**
+
 **V6 集中管理已上线：飞书登录、管理员/只读权限、设备自动纳管、短码核对、远程配置及按型号模板（昼夜、语言、固定灯控接线）。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
 
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。

@@ -9,13 +9,14 @@ import { displayLanguage, translateDisplayText } from '@/utils/displayLanguage'
 import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
-const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
+const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {display_version?:'v6'|'v7';language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
 const route = useRoute()
-const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
+const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
-const isV3 = computed(() => ['v3', 'v4', 'v5', 'v6'].includes(version.value))
-const isV4 = computed(() => ['v4', 'v5', 'v6'].includes(version.value))
-const isV5 = computed(() => version.value === 'v5' || (version.value === 'v6' && snapshot.value?.usage_owner === 'v5'))
+const isV3 = computed(() => ['v3', 'v4', 'v5', 'v6', 'v7'].includes(version.value))
+const isV4 = computed(() => ['v4', 'v5', 'v6', 'v7'].includes(version.value))
+const isV7 = computed(() => version.value === 'v7' || (version.value === 'v6' && preferences.value?.display_version === 'v7'))
+const isV5 = computed(() => version.value === 'v5' || (['v6', 'v7'].includes(version.value) && snapshot.value?.usage_owner === 'v5'))
 const managed = route.query.managed === '1' && !props.controlRoom
 const storageKey = 'argus_room_display'
 const token = ref(managed ? '@managed' : localStorage.getItem(storageKey) || '')
@@ -126,7 +127,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5,'layout-compact':preferences?.layout==='compact','with-custom-background':!!backgroundId&&!backgroundFailed }]" :style="{ '--accent': accent }">
+  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5, v7: isV7,'layout-compact':preferences?.layout==='compact','with-custom-background':!!backgroundId&&!backgroundFailed }]" :style="{ '--accent': accent }">
     <img v-if="backgroundId&&!backgroundFailed" class="template-background" :src="'/api/v6/assets/'+backgroundId" :style="{objectFit:preferences?.background_fit==='contain'?'contain':'cover'}" alt="" @error="backgroundFailed=true" />
     <form v-if="!bound" class="binding" @submit.prevent="bind">
       <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>{{ t('绑定会议门牌') }}</h1>
@@ -136,7 +137,7 @@ onUnmounted(() => {
     </form>
     <template v-else>
       <header class="door-header">
-        <div class="room-identity"><p class="eyebrow">ARGUS / MEETING ROOM </p>
+        <div class="room-identity"><p class="eyebrow">{{ isV7 ? 'ROOMBEACON' : 'ARGUS' }} / MEETING ROOM </p>
           <h1 :title="snapshot?.room.name">{{ snapshot?.room.name || t('正在获取会议室') }}</h1>
           <p class="capacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a6 6 0 0 1 3 5v2"/></svg>{{ snapshot ? (language==='en' ? `Capacity ${snapshot.room.capacity}` : `可容纳 ${snapshot.room.capacity} 人`) : t('正在同步') }}</p></div>
         <div class="clock"><strong>{{ time(now) }}</strong><p>{{ date }}</p><span class="theme-control">{{ themeLabel }}</span></div>
@@ -148,7 +149,8 @@ onUnmounted(() => {
             <span class="status" :class="{ 'large-status': isV3 && ['使用中', '即将开始', '空闲可用'].includes(state) }" role="status"><i aria-hidden="true" /><span class="status-text">{{ t(state) }}</span></span>
             <div class="primary-body">
             <template v-if="snapshot && !disabled">
-              <div v-if="current || state === '即将开始'" class="hero">
+              <div v-if="isV7 && active" class="hero"><p class="hero-label">{{ t(current ? '本场结束于' : '本场开始于') }}</p><p class="available-until">{{ time(current ? active.end_time : active.start_time) }}</p></div>
+              <div v-else-if="current || state === '即将开始'" class="hero">
                 <p class="hero-label">{{ current ? t('距本场结束还有') : t('距下场开始还有') }}</p>
                 <p class="countdown"><strong>{{ minutes }}</strong><span>{{ t('分钟') }}</span></p>
               </div>
@@ -168,7 +170,7 @@ onUnmounted(() => {
             <template v-else><h2 class="unavailable">{{ disabled && fresh ? t('暂不可使用') : t('等待日程同步') }}</h2><p class="organizer">{{ t(message || '正在确认最新预约状态') }}</p></template>
             </div>
           </div>
-          <RoomUsageCard :read-only="!!templatePreferences" v-if="isV5 && snapshot && !disabled && snapshot.display_preferences?.usage_control!==false" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
+          <RoomUsageCard :branded="isV7" :read-only="!!templatePreferences" v-if="isV5 && snapshot && !disabled && snapshot.display_preferences?.usage_control!==false" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
           <p v-else-if="isV5&&snapshot?.display_preferences?.usage_control===false" class="organizer">{{language==='en'?'Please check in on the primary display':'请在本会议室主控门牌签到'}}</p>
           <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">{{ t('本房间使用 V5 确认，请切换到 V5 页面') }}</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
@@ -274,3 +276,5 @@ onUnmounted(() => {
   .v5 .agenda-empty{border-radius:16px}
 }
 </style>
+
+<style scoped src="./roomDisplayV7.css"></style>

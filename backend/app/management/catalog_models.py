@@ -53,6 +53,7 @@ class Rules(StrictModel):
 
 
 class SoftwareSpec(StrictModel):
+    display_version: Literal['v6', 'v7'] = 'v6'
     layout: Literal['standard', 'compact'] = 'standard'
     orientation: Literal['any', 'landscape', 'portrait'] = 'any'
     min_width: int = Field(default=0, ge=0, le=8192)

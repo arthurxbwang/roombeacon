@@ -16,6 +16,7 @@ export interface UsageState {
   target_id: string | null
   monitored_occurrence_ids?: string[]
   auto_verify_enabled?: boolean
+  release_enabled?: boolean
 }
 export const usageLabels: Record<string, string> = {
   pending: '请确认使用', confirmed: '已确认使用', observed: '已超时 · 仅记录',

@@ -1,5 +1,7 @@
 # RoomBeacon 项目交接
 
+> 2026-09-28：V7 品牌签到门牌已在本地分支 `codex/31-v7-brand-checkin` 实现，未推送源码、未部署。新增模板界面选择与可选 5+5 预设，仍复用 V6 托管入口及 V5 签到协议。接续见 [V7 说明](v7-brand-checkin.md) 和 [Issue #31](https://github.com/arthurxbwang/roombeacon/issues/31)。
+
 > 2026-09-24 事项收尾：PR #24/#26/#28 已合入 main（应用合并提交 `a914325`），Issue #23/#25/#27 已完成关闭；#10/#16 缩小范围，#2/#3 更新为已部署代码上的启用与验收，#6 纳入 #29。生产仍为 `3359332`，无新部署。先读[当前状态](current-state.md)和[收尾回执](issue-reconciliation-2026-09-24.md)，下面“待合并”和旧配置回退流程仅作历史。
 
 > 2026-09-24 配置模型重构已上线：生产 `3359332`，BX68 APK 0.7.0、回执 7/7，真实原参数／策略不变；未写飞书会议室或预约。先读[当前状态](current-state.md)和[发布回退记录](production-configuration-2026-09-24.md)。
