@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
 async function scene(page: Page, phase = 'pending', options: { paused?: boolean; verified?: boolean; mode?: string; bound?: boolean } = {}) {
-  await page.clock.install({ time: new Date('2026-09-22T08:01:00Z') })
+  await page.clock.install({ time: new Date('2026-09-22T08:00:59Z') })
+  await page.clock.pauseAt(new Date('2026-09-22T08:01:00Z'))
   await page.setViewportSize({ width: 1280, height: 720 })
   await page.addInitScript(bound => {
     localStorage.setItem('argus_room_display', 'fixture')

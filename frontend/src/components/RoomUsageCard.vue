@@ -4,9 +4,10 @@ const t=useDisplayText()
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
+import V7CheckinPanel from './V7CheckinPanel.vue'
 import type { RoomEvent } from '@/api/meetingRooms'
 
-const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; readOnly?: boolean; controlToken?: string; managed?: boolean; event?: RoomEvent }>()
+const props = defineProps<{ roomId: string; roomName: string; timezone: string; now: number; fresh: boolean; preview: boolean; branded?: boolean; readOnly?: boolean; controlToken?: string; managed?: boolean; event?: RoomEvent }>()
 const emit = defineEmits<{ changed: [] }>()
 const storageKey = `argus_room_usage_v5:${props.roomId}${props.preview ? ":control-test" : ""}`
 const pendingKey = `${storageKey}:unresolved`
@@ -29,7 +30,7 @@ const matches = computed(() => !record.value || (props.event && props.event.uid 
   Date.parse(props.event.end_time) === Date.parse(record.value.occurrence.end_time)))
 const fresh = computed(() => props.fresh && matches.value && !failed.value && !!state.value && props.now < Date.parse(state.value.valid_until))
 const canConfirm = computed(() => !props.readOnly && fresh.value && state.value?.policy.owner === 'v5' && state.value?.can_confirm && record.value && props.now < Date.parse(record.value.release_at || record.value.deadline))
-const label = computed(() => props.preview && !testing.value ? 'V5 预览 · 操作不可用' : !token.value ? '签到暂不可用' :
+const label = computed(() => props.preview && !testing.value ? (props.branded ? 'V7 预览 · 操作不可用' : 'V5 预览 · 操作不可用') : !token.value ? '签到暂不可用' :
   !fresh.value ? '确认状态待同步' : state.value?.policy.owner !== 'v5' ? '本房间使用官方方案，请切换到 V4' : state.value?.policy.mode === 'off' ? '确认使用已关闭' :
   record.value ? (record.value.state === 'pending' ? '请签到' : usageLabels[record.value.state]) || '状态待核实' : props.preview && !state.value?.target_id ? '当前没有可签到的预约' : '等待下一场确认窗口')
 const countdown = computed(() => {
@@ -121,8 +122,10 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
 </script>
 
 <template>
-  <aside class="usage-card" aria-label="V5 确认使用">
+  <aside class="usage-card" :class="{ 'brand-usage': branded }" :aria-label="branded ? 'V7 确认使用' : 'V5 确认使用'">
     <div class="usage-body">
+    <V7CheckinPanel v-if="branded" :state="state" :now="now" :fresh="!!fresh" :available="(!preview || testing) && !!token" :can-confirm="!!canConfirm" :pending="pending" :label="label" @confirm="confirm" />
+    <template v-else>
     <h4 class="usage-state" :class="record?.state" role="status">{{ t(label) }}</h4>
     <p v-if="preview && testing" class="notice">主控签到测试 · 仅记录确认；自动释放仍需平板在线</p>
     <template v-if="(!preview || testing) && token && fresh && state?.policy.owner === 'v5' && state?.policy.mode !== 'off'">
@@ -146,6 +149,7 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       </div>
       <p v-else-if="record?.state === 'waiting' && fresh && !state?.paused && record.verified && state?.policy.mode === 'auto'" class="notice">{{ t('正在同步释放状态') }}</p>
       <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? t('正在提交…') : t('签到') }}</span></button>
+    </template>
     </template>
     <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
     <p v-if="error" role="alert">{{ t(error) }}</p>

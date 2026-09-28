@@ -1,6 +1,17 @@
 import {inject,type ComputedRef,type InjectionKey} from 'vue'
 export const displayLanguage:InjectionKey<ComputedRef<string>>=Symbol('displayLanguage')
 const english:Record<string,string>={
+  "本场开始于": "Meeting starts at",
+  "本场结束于": "Meeting ends at",
+  "距离会议开始": "Meeting starts in",
+  "未签到将释放 · 剩余": "Check in before release",
+  "释放前补签到 · 剩余": "Final check-in before release",
+  "签到剩余时间": "Check in within",
+  "立即签到": "Check in now",
+  "已签到": "Checked in",
+  "签到窗口已结束": "Check-in window has ended",
+  "自动释放尚未启用": "Automatic release is not enabled",
+  "V7 预览 · 操作不可用": "V7 preview · actions unavailable",
   "日间": "Day",
   "夜间": "Night",
   "城市待配置": "City not configured",

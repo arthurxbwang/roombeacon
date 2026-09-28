@@ -87,6 +87,10 @@ async def view(store, room_id, now=None):
               'policy': policy, 'paused': await store.get('paused', True),
               'server_time': now.isoformat(), 'valid_until': (now + timedelta(seconds=30)).isoformat(),
               'record': None, 'can_confirm': False, 'can_end': False}
+    result['release_enabled'] = (settings.ROOM_DISPLAY_USAGE_ENABLED and room_writes_enabled(room_id)
+                                 and policy.get('owner') == 'v5' and policy['mode'] == 'auto'
+                                 and policy['native_policy_cleared'] and policy['release_verified']
+                                 and not result['paused'])
     result['target_id'] = None
     result['monitored_occurrence_ids'] = []
     if not settings.ROOM_DISPLAY_USAGE_ENABLED or policy.get('owner') != 'v5' or policy['mode'] == 'off':
