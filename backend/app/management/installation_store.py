@@ -3,6 +3,7 @@ import json
 import time
 
 from ..core.exceptions import AppError
+from .runtime_health import management_online, page_health
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS install_executors (
@@ -70,8 +71,14 @@ def job_view(db, value):
 
 
 def ready(device):
-    return bool(device and device['status'] == 'active' and device['room_id'] and not device['error'] and
-                device['revision'] == device['reported_revision'] and time.time() - device['last_seen'] < 60)
+    if not (device and device['status'] == 'active' and device['room_id'] and not device['error'] and
+            device['revision'] == device['reported_revision'] and management_online(device['last_seen'])):
+        return False
+    metadata = json.loads(device['metadata'])
+    if metadata.get('runtime') is None:
+        return True  # Existing APKs still need explicit physical acceptance; page evidence is unknown.
+    health = page_health(metadata, device['last_seen'])
+    return health['state'] == 'ready' and health['terminal_state'] in ('free', 'busy', 'soon')
 
 
 def matches_release(db, device, job):

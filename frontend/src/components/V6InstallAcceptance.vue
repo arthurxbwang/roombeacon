@@ -3,6 +3,7 @@ import {computed,onUnmounted,ref,watch} from 'vue'
 import axios from 'axios'
 import {management,type ManagedDevice} from '@/api/management'
 import {installationBase,installationError,type InstallJob} from '@/api/installation'
+import V6DeviceHealth from './V6DeviceHealth.vue'
 const props=defineProps<{job:InstallJob;device?:ManagedDevice}>()
 const emit=defineEmits<{close:[];changed:[]}>()
 const abort=new AbortController(),busy=ref(false),error=ref(''),location=ref(''),port=ref('')
@@ -26,7 +27,8 @@ onUnmounted(()=>abort.abort())
  <div class="v6-backdrop" @click.self="!busy&&emit('close')"><section class="v6-panel" role="dialog" aria-modal="true" aria-label="现场交付验收">
   <button class="secondary" :disabled="busy" @click="emit('close')">关闭</button><h2>现场交付验收 · {{job.device_code}}</h2>
   <p>逐项完成实物核验后勾选。这份记录由验收人员确认；安装成功和管理心跳不能代替现场检查。</p>
-  <p v-if="!job.device_ready" class="v6-error">设备须在线、已分配房间、配置回执一致且无错误后才能完成验收。</p>
+  <V6DeviceHealth :device="device" />
+  <p v-if="!job.device_ready" class="v6-error">设备须在线、已分配房间、配置回执一致且无错误；已上报页面状态的设备还须页面正常且业务数据有效。</p>
   <form @submit.prevent="save"><label class="install-field">安装位置<input v-model="location" required maxlength="160" /></label><label class="install-field">交换机与物理端口<input v-model="port" required maxlength="160" placeholder="现场已核对的交换机名称 / 端口" /></label>
    <label v-for="item in items" :key="item.id" class="install-check"><input v-model="checks" type="checkbox" :value="item.id" />{{item.label}}</label>
    <p v-if="error" class="v6-error" role="alert">{{error}}</p><button :disabled="busy||!canSave">保存现场验收记录</button>

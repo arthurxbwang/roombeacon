@@ -27,6 +27,7 @@ from .installation_store import (
     row,
 )
 from .installation_store import installation_audit as audit
+from .runtime_health import management_online
 from .security import actor
 from .store import database, digest
 
@@ -167,7 +168,7 @@ def associate(identity: str, body: Association, request: Request):
         if value['state'] != 'installed':
             raise conflict('须先取得安装及启动回执')
         device = db.execute('SELECT * FROM devices WHERE code=?', (body.code,)).fetchone()
-        if not device or device['status'] == 'revoked' or time.time() - device['last_seen'] >= 60:
+        if not device or device['status'] == 'revoked' or not management_online(device['last_seen']):
             raise conflict('短码对应的设备不存在、已撤销或离线')
         metadata = json.loads(device['metadata'])
         manifest = json.loads(row(db, 'install_releases', value['release_id'])['manifest'])

@@ -13,6 +13,7 @@ import javax.net.ssl.HttpsURLConnection
 
 /** Native control channel; the tablet opens outbound HTTPS only. */
 class DeviceAgent(private val context: Context, private val identity: DeviceIdentity,
+    private val runtime: RuntimeHealth, private val faults: ApplyFaults,
     private val result: (JSONObject?, JSONObject, String?) -> Unit) {
     companion object { const val ORIGIN = "https://roombeacon.thundersoft.com" }
     private val handler = Handler(Looper.getMainLooper())
@@ -21,7 +22,6 @@ class DeviceAgent(private val context: Context, private val identity: DeviceIden
     @Volatile private var active = false
     @Volatile private var connection: HttpsURLConnection? = null
     @Volatile var appliedRevision = 0
-    @Volatile var applyError = ""
     @Volatile var viewport = ""
     private var enrolled = prefs.getBoolean("enrolled", false)
     private var generation = 0
@@ -50,6 +50,7 @@ class DeviceAgent(private val context: Context, private val identity: DeviceIden
                 var metadata = JSONObject()
                 try {
                     metadata = DeviceMetadata.collect(context)
+                    metadata.put("runtime", JSONObject(runtime.snapshot().fields()))
                     val observed = viewport
                     if (observed.isNotEmpty()) {
                         val dimensions = JSONObject(observed)
@@ -57,7 +58,7 @@ class DeviceAgent(private val context: Context, private val identity: DeviceIden
                         for (key in listOf("viewport_width","viewport_height","dpr")) screen.put(key,dimensions.getDouble(key))
                     }
                     val body = JSONObject().put("protocol", 1).put("metadata", metadata)
-                        .put("reported_revision", appliedRevision).put("error", applyError.take(160))
+                        .put("reported_revision", appliedRevision).put("error", faults.error())
                     if (!enrolled) {
                         val registration = request("/api/v6/device/enroll", body)
                         prefs.edit().putBoolean("enrolled", true).putString("code", registration.getString("code")).apply()

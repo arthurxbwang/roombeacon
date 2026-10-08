@@ -1,9 +1,16 @@
 import axios from 'axios'
 export interface DeviceConfig { version: 'v4'|'v5'|'v6'; portrait: boolean; room_light: boolean; node_id: 'central'; reload: number; theme_mode: 'auto'|'light'; language: 'zh-CN'|'en'; device_profile: string }
 export interface ConfigTemplate {id:string;name:string;revision:number;config:DeviceConfig}
+export interface PageHealth {
+  state: 'unknown'|'offline'|'stale'|'waiting'|'loading'|'ready'|'failed'|'paused'
+  error: ''|'network'|'http'|'tls'|'renderer'|'timeout'|'unresponsive'|'initialization'|'blocked'
+  age_seconds: number|null; page_release: string; webview: string
+  terminal_state: 'free'|'busy'|'soon'|'unknown'; light_state: 'disabled'|'unknown'|'ok'|'failed'
+}
 export interface ManagedDevice {
   id: string; code: string; status: string; room_id: string; revision: number; reported_revision: number
   online: boolean; last_seen: number; error: string; config: DeviceConfig
+  page_health?: PageHealth
   metadata: { model?: string; firmware?: string; config_schema?: number; serial?: string; apk?: string; android?: string; network?: string; light_supported?: boolean
     screen?:{pixel_width?:number;pixel_height?:number;viewport_width?:number;viewport_height?:number;dpr?:number}
     interfaces?: { name: string; mac: string; addresses: string[] }[] }

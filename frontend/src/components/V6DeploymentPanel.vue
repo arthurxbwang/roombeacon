@@ -4,6 +4,7 @@ import {management,managementError,type ManagedDevice,type Room} from '@/api/man
 import {stateLabel,templateName,type CatalogTemplate,type Configuration,type Deployment,type HardwareSpec} from '@/api/configuration'
 import {emptyScope,matchesScope,roomMatches,type RoomScope} from '@/composables/roomScope'
 import V6RoomFilter from './V6RoomFilter.vue'
+import V6DeviceHealth from './V6DeviceHealth.vue'
 import {configurationChanges} from '@/utils/configurationText'
 const props=defineProps<{device:ManagedDevice;rooms:Room[];catalog:CatalogTemplate[];configuration:Configuration;initialScope:RoomScope;editable:boolean}>()
 const emit=defineEmits<{close:[];changed:[]}>()
@@ -43,6 +44,8 @@ onUnmounted(()=>abort.abort())
  <div class="v6-backdrop" @click.self="emit('close')"><section class="v6-panel v6-deployment-panel" role="dialog" aria-modal="true" aria-label="设备部署">
   <header><div><p class="v6-eyebrow">设备配置与部署</p><h2>{{device.code}}</h2></div><button class="secondary" @click="emit('close')">关闭</button></header>
   <dl class="v6-facts"><div><dt>型号 / 固件</dt><dd>{{device.metadata.model||'未上报'}}<small>{{device.metadata.firmware}}</small></dd></div><div><dt>APK / 网络状态</dt><dd>{{device.metadata.apk||'未上报'}} · {{device.online?'在线':'离线'}}</dd></div><div><dt>当前硬件模板</dt><dd>{{templateName(catalog,installation?.hardware_id,installation?.hardware_version)}}</dd></div><div><dt>当前软件模板</dt><dd>{{templateName(catalog,configuration.rooms[device.room_id]?.software_id,configuration.rooms[device.room_id]?.software_version)}}</dd></div></dl>
+  <p class="v6-muted">配置回执：期望版本 {{device.revision}} · 已应用 {{device.reported_revision}}</p>
+  <V6DeviceHealth :device="device" />
   <p class="v6-muted">网页视口：{{device.metadata.screen?.viewport_width?`${device.metadata.screen.viewport_width} × ${device.metadata.screen.viewport_height}，DPR ${device.metadata.screen.dpr}`:'设备尚未上报'}}</p><p v-if="!installation" class="v6-muted">历史配置尚未关联模板。转换将按当前参数建立模板，不改变设备运行配置。</p><button v-if="!installation&&device.status==='active'&&editable" class="secondary" :disabled="busy" @click="adopt">转换当前配置为模板</button>
   <p v-if="device.error" class="v6-error">设备回执：{{device.error}}</p><p v-if="error" class="v6-error" role="alert">{{error}}</p><p v-if="info" class="v6-info">{{info}}</p>
   <form @submit.prevent="check"><fieldset :disabled="!editable||busy">

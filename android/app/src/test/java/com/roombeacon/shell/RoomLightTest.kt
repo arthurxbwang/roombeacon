@@ -4,6 +4,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RoomLightTest {
+    @Test fun recoveryClearsPreviouslyReportedManagedLightError() {
+        val values = mutableMapOf(154 to 0, 148 to 0, 147 to 0)
+        var broken = true
+        var managedError = ""
+        val light = RoomLight({ pin, value ->
+            if (broken && pin == 148) throw java.io.IOException()
+            values[pin] = value
+        }, { values.getValue(it) }, { managedError = it })
+        light.apply("free")
+        assertTrue(managedError.isNotEmpty())
+        broken = false
+        light.apply("free")
+        assertEquals("", managedError)
+    }
+
     @org.junit.Test fun customWiringRejectsUnsupportedPinsAndPolarity() {
         for (values in listOf(listOf(116,148,147,0),listOf(148,148,147,0),listOf(148,154,147,2))) {
             try { ManagedPolicy.wiring(values[0],values[1],values[2],values[3]); org.junit.Assert.fail("invalid wiring accepted") }

@@ -28,7 +28,10 @@ class MainActivity : Activity() {
     private var configuredRevision = 0
     private var waiting: TextView? = null
     private var applying = false
+    private var configurationGeneration = 0L
     private var currentCode = ""
+    private val runtime = RuntimeHealth { android.os.SystemClock.elapsedRealtime() }
+    private val faults = ApplyFaults()
     private val prefs by lazy { getSharedPreferences("managed_state", MODE_PRIVATE) }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -40,7 +43,7 @@ class MainActivity : Activity() {
         try {
             val identity = DeviceIdentity(this)
             identity.token // Resolve once on startup; do not silently replace unreadable identity.
-            agent = DeviceAgent(this, identity) { value, metadata, error -> accept(value, metadata, error) }
+            agent = DeviceAgent(this, identity, runtime, faults) { value, metadata, error -> accept(value, metadata, error) }
         } catch (error: Exception) {
             Log.e("RoomBeacon", "identity_failed:${error.javaClass.simpleName}")
             showWaiting(JSONObject(), "设备身份不可用，请联系管理员恢复")
@@ -66,7 +69,9 @@ class MainActivity : Activity() {
         text = value; textSize = size; setTextColor(color); gravity = Gravity.CENTER; setPadding(20, 8, 20, 8)
     }
     private fun showWaiting(metadata: JSONObject, message: String) {
+        configurationGeneration++; applying = false
         if (shell != null) { shell?.destroy(); shell = null; configuredRevision = 0 }
+        runtime.waiting(); runtime.light("disabled")
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundColor(0xff0c172b.toInt())
@@ -105,7 +110,7 @@ class MainActivity : Activity() {
                 "__Host-rb_device=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict")
             showWaiting(metadata, if (value.getString("status") == "revoked") "设备已撤销，请联系管理员" else "已连接，等待管理员分配")
             agent?.appliedRevision = value.getInt("revision")
-            agent?.applyError = ""
+            faults.clear()
             return
         }
         if (applying) return
@@ -117,22 +122,24 @@ class MainActivity : Activity() {
             lightProfile(config)
         }
         catch (_: IllegalArgumentException) {
-            agent?.applyError = "服务器配置校验失败"
+            faults.set(ApplyFaults.Source.CONFIGURATION, "服务器配置校验失败")
             showWaiting(metadata, "配置内容不支持，请联系管理员")
             return
         }
         applying = true
+        val current = ++configurationGeneration
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setCookie(DeviceAgent.ORIGIN,
             "__Host-rb_device=$session; Path=/; Max-Age=300; Secure; HttpOnly; SameSite=Strict") { accepted ->
+            if (!resumed || current != configurationGeneration) return@setCookie
             applying = false
-            if (!resumed) return@setCookie
-            if (!accepted) { agent?.applyError = "网页会话写入失败"; return@setCookie }
+            if (!accepted) { faults.set(ApplyFaults.Source.SESSION, "网页会话写入失败"); return@setCookie }
+            faults.set(ApplyFaults.Source.SESSION, "")
             if (revision != configuredRevision || shell == null) {
                 try { showDisplay(config, revision) }
                 catch (failure: Exception) {
                     Log.e("RoomBeacon", "configuration_failed:${failure.javaClass.simpleName}")
-                    agent?.applyError = "设备配置应用失败"
+                    faults.set(ApplyFaults.Source.CONFIGURATION, "设备配置应用失败")
                     showWaiting(metadata, "配置应用失败，正在重试")
                 }
             }
@@ -148,24 +155,30 @@ class MainActivity : Activity() {
         setContentView(root); immersive()
         val wantsLight = config.getBoolean("room_light")
         val profile = lightProfile(config)
-        agent?.applyError = if (wantsLight && profile == null) "当前配置未识别侧边灯接线" else ""
+        faults.set(ApplyFaults.Source.LIGHT, if (wantsLight && profile == null) "当前配置未识别侧边灯接线" else "")
+        runtime.light(if (!wantsLight) "disabled" else if (profile == null) "failed" else "unknown")
         val light = if (wantsLight && profile != null) try {
-            RoomLight.forProfile(profile) { Log.e("RoomBeacon", it); agent?.applyError = "灯控操作失败" }
+            RoomLight.forProfile(profile) {
+                if (it.isNotEmpty()) Log.e("RoomBeacon", it)
+                faults.set(ApplyFaults.Source.LIGHT, if (it.isEmpty()) "" else "灯控操作失败")
+            }
         } catch (failure: Exception) {
             Log.e("RoomBeacon", "light_setup_failed:${failure.javaClass.simpleName}")
-            agent?.applyError = "模板灯控暂不可用，显示配置已应用"
+            faults.set(ApplyFaults.Source.LIGHT, "模板灯控暂不可用，显示配置已应用")
+            runtime.light("failed")
             null
         } else null
         configuredRevision = revision
         shell = WebShell(this, container, OriginPolicy(DeviceAgent.ORIGIN, false), light,
             entryPath = ManagedPolicy.displayPath(config.getString("version"), config.optString("theme_mode", "auto"),
-                config.optString("language", "zh-CN"))) { message ->
+                config.optString("language", "zh-CN")), runtime = runtime) { message ->
             overlay.text = message ?: ""; overlay.visibility = if (message == null) View.GONE else View.VISIBLE
             if (message == null) {
                 agent?.appliedRevision = revision
                 shell?.reportViewport { agent?.viewport = it }
             }
         }
+        faults.set(ApplyFaults.Source.CONFIGURATION, "")
         if (resumed) shell?.resume()
     }
     override fun onResume() { super.onResume(); resumed = true; immersive(); agent?.start(); shell?.resume() }
@@ -178,7 +191,12 @@ class MainActivity : Activity() {
         }
         return ManagedPolicy.lightProfile(config.optString("device_profile","auto"),Build.MODEL,Build.DISPLAY)
     }
-    override fun onPause() { resumed = false; agent?.stop(); shell?.pause(); super.onPause() }
+    override fun onPause() {
+        resumed = false; configurationGeneration++; applying = false
+        if (shell == null) runtime.pause() else shell?.pause()
+        // Management reports paused; H5 business heartbeat and light activity remain stopped.
+        super.onPause()
+    }
     override fun onDestroy() { agent?.stop(); shell?.destroy(); super.onDestroy() }
     @Deprecated("Dedicated display does not navigate backwards")
     override fun onBackPressed() { immersive() }

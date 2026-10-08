@@ -22,7 +22,8 @@ class RoomLight(
     private var last: List<Int>? = null
     private var errorReported = false
 
-    fun apply(state: String) {
+    /** An empty report clears only a previous light failure, after a successful readback. */
+    fun apply(state: String): Boolean {
         val enabled = when (state) {
             "busy" -> setOf(profile.redPin)
             "free" -> setOf(profile.greenPin)
@@ -31,18 +32,21 @@ class RoomLight(
         }
         val values = pins.map { if (it in enabled) 1 - profile.off else profile.off }
         try {
-            if (last == values && pins.map(read) == values) return
+            if (last == values && pins.map(read) == values) return true
             // Turn channels off before enabling a new color, avoiding a transient green.
             pins.forEach { write(it, profile.off) }
             pins.zip(values).filter { it.second != profile.off }.forEach { (pin, value) -> write(pin, value) }
             check(pins.map(read) == values) { "readback mismatch" }
             last = values
+            if (errorReported) report("")
             errorReported = false
+            return true
         } catch (error: Exception) {
             last = null
             pins.forEach { pin -> try { write(pin, profile.off) } catch (_: Exception) { /* Report below. */ } }
             if (!errorReported) report("灯控失败，已尝试熄灯：${error.javaClass.simpleName}")
             errorReported = true
+            return false
         }
     }
 

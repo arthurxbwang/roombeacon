@@ -13,6 +13,7 @@ from .catalog_models import DeployRequest, DeviceStatus
 from .catalog_store import encode, version_row
 from .devices import conflict, get_row, update
 from .profiles import PROFILES
+from .runtime_health import management_online
 from .security import actor
 from .store import audit, database
 
@@ -73,7 +74,7 @@ def deployment_view(db, row):
         state = 'partial'
     else:
         state = 'applied'
-    result.update(state=state, online=time.time() - device['last_seen'] < 60,
+    result.update(state=state, online=management_online(device['last_seen']),
                   error=device['error'] or (room['error'] if room else ''),
                   policy_state=room['policy_state'] if room else 'unknown',
                   reported_revision=device['reported_revision'], delivery_revision=device['revision'])
