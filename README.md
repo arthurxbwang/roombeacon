@@ -2,6 +2,8 @@
 
 **RoomBeacon 1.0.0 正式版：V7 品牌签到门牌，提前 5 分钟开放、开始后 5 分钟截止、无额外补签到；长期策略持久化，精简保护状态文案。已上线 W9TW7S，配置回执 9/9；准确版本和回退见 [正式上线记录](docs/production-v1-2026-10-08.md)。**
 
+**正式运行边界：会议展示与签到可日常使用，新预约无人值守自动释放仍需正确日历及读取权、自动核验启用和真实联调。1.0.1 提示清理及重启签到恢复补丁进度见 [整体核查](docs/production-readiness-2026-10-08.md)。**
+
 **V6 集中管理已上线：飞书登录、管理员/只读权限、设备自动纳管、短码核对、远程配置及按型号模板（昼夜、语言、固定灯控接线）。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
 
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。

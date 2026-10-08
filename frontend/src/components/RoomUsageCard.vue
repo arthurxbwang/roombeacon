@@ -3,7 +3,7 @@ import {useDisplayText} from '@/utils/displayLanguage'
 const t=useDisplayText()
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import axios from 'axios'
-import { usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
+import { usageDisplayError, usageError, usageLabels, usageRequest, type UsageState } from '@/api/roomUsage'
 import V7CheckinPanel from './V7CheckinPanel.vue'
 import type { RoomEvent } from '@/api/meetingRooms'
 
@@ -19,6 +19,7 @@ const token = ref(props.preview ? props.controlToken || '' : props.managed ? '@m
 const testAllowed = ref(false), receipt = ref('')
 const testing = computed(() => props.preview && !props.readOnly && testAllowed.value)
 const input = ref(''), error = ref('')
+const describeError = (err: unknown) => props.branded && !props.preview ? usageDisplayError(err) : usageError(err)
 const state = ref<UsageState | null>(null)
 const pending = ref(false), failed = ref(false)
 const abort = new AbortController()
@@ -85,7 +86,7 @@ async function refresh() {
     failed.value = false; error.value = ''
   } catch (err) {
     if (axios.isCancel(err)) return
-    failed.value = true; error.value = usageError(err)
+    failed.value = true; error.value = describeError(err)
     if (record.value && ['pending', 'waiting', 'checking', 'end_requested'].includes(record.value.state)) markUnresolved(record.value.id)
     if (axios.isAxiosError(err) && err.response?.status === 401) {
       if (!props.preview) localStorage.removeItem(storageKey)
@@ -114,7 +115,7 @@ async function confirm() {
     accept(result)
     failed.value = false; emit('changed')
   } catch (err) {
-    if (!axios.isCancel(err)) { failed.value = true; error.value = usageError(err) }
+    if (!axios.isCancel(err)) { failed.value = true; error.value = describeError(err) }
   } finally { pending.value = false }
 }
 onMounted(() => { refresh(); timer = setInterval(refresh, 10000) })

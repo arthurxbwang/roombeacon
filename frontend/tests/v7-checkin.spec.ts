@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { fixture } from './configuration.fixture'
 
-async function scene(page: Page, options: { time?: string; phase?: string; height?: number; dark?: boolean; mode?: string; paused?: boolean; verified?: boolean; managed?: boolean; control?: boolean; owner?: string; deadline?: string; releaseEnabled?: boolean; buffer?: number } = {}) {
+async function scene(page: Page, options: { time?: string; phase?: string; height?: number; dark?: boolean; mode?: string; paused?: boolean; verified?: boolean; managed?: boolean; control?: boolean; owner?: string; deadline?: string; releaseEnabled?: boolean; buffer?: number; language?: 'zh-CN' | 'en'; organizer?: string } = {}) {
   const time = options.time || '2026-09-28T06:10:00Z'
   await page.clock.install({ time: new Date(Date.parse(time) - 1000) })
   await page.clock.pauseAt(new Date(time))
@@ -19,8 +19,8 @@ async function scene(page: Page, options: { time?: string; phase?: string; heigh
   await page.route('**/api/meeting-rooms/display', async route => route.fulfill({ json: { data: {
     room: { room_id: 'omm_fixture', name: 'V7 模拟会议室', capacity: 4, enabled: true },
     server_time: new Date(await currentTime()).toISOString(), synced_at: time, valid_until: '2026-09-28T07:00:00Z', usage_owner: options.owner || 'v5', titles_available: true,
-    display_preferences: { theme_mode: options.dark ? 'dark' : 'light', language: 'zh-CN', display_version: options.managed ? 'v7' : 'v6', usage_control: options.control !== false },
-    events: [{ ...occurrence, summary: '模拟预约 · 非真实会议', organizer: '测试数据' }, { ...occurrence, uid: 'next', start_time: '2026-09-28T06:30:00Z', end_time: '2026-09-28T06:45:00Z', summary: '下一场模拟预约', organizer: '测试数据' }],
+    display_preferences: { theme_mode: options.dark ? 'dark' : 'light', language: options.language || 'zh-CN', display_version: options.managed ? 'v7' : 'v6', usage_control: options.control !== false },
+    events: [{ ...occurrence, summary: '模拟预约 · 非真实会议', organizer: options.organizer ?? '测试数据' }, { ...occurrence, uid: 'next', start_time: '2026-09-28T06:30:00Z', end_time: '2026-09-28T06:45:00Z', summary: '下一场模拟预约', organizer: options.organizer ?? '测试数据' }],
     checkin_qr: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="white"/></svg>'),
   } } }))
   for (const path of ['usage', 'usage/heartbeat']) await page.route(`**/api/meeting-rooms/${path}`, async route => {
@@ -57,23 +57,23 @@ test('会前跨越会议开始，重新显示会后五分钟', async ({ page }) 
   await scene(page, { time: '2026-09-28T06:14:59Z' })
   await expect(page.getByLabel('距离会议开始', { exact: true })).toHaveText('00:01')
   await page.clock.fastForward(1000)
-  await expect(page.getByLabel('未签到将释放 · 剩余', { exact: true })).toHaveText('05:00')
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('05:00')
   await expect(page.locator('.v7-checkin')).toHaveAttribute('data-phase', 'after')
 })
 
 test('以服务器期限为准，不伪造五分钟；截止后等待核验', async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:19:59Z', deadline: '2026-09-28T06:22:00Z' })
-  await expect(page.getByLabel('未签到将释放 · 剩余', { exact: true })).toHaveText('02:01')
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('02:01')
   await page.clock.fastForward(122000)
   await expect(page.getByRole('timer')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
-  await expect(page.getByText('正在同步释放状态', { exact: true })).toBeVisible()
+  await expect(page.getByText('签到已截止', { exact: true })).toBeVisible()
   await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
 })
 
 test('补签到使用服务器 release_at，成功后清除倒计时', async ({ page }) => {
   const state = await scene(page, { time: '2026-09-28T06:20:15Z', phase: 'waiting' })
-  await expect(page.getByLabel('释放前补签到 · 剩余', { exact: true })).toHaveText('00:45')
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('00:45')
   let calls = 0
   await page.route('**/api/meeting-rooms/usage/confirm', async route => {
     calls++
@@ -89,11 +89,11 @@ test('补签到使用服务器 release_at，成功后清除倒计时', async ({ 
 for (const options of [{ releaseEnabled: false }, { paused: true }, { verified: false }, { mode: 'observe' }, { phase: 'blocked' }]) test(`保护状态不承诺自动释放 ${JSON.stringify(options)}`, async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:16:00Z', ...options })
   await expect(page.getByLabel('未签到将释放 · 剩余', { exact: true })).toHaveCount(0)
-  if (options.phase === 'blocked') {
-    await expect(page.getByText('本次预约受保护，不会自动释放', { exact: true })).toHaveCount(0)
-    await expect(page.locator('.v7-protection')).toHaveCount(0)
-    await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('04:00')
-  } else await expect(page.locator('.v7-protection')).toBeVisible()
+  await expect(page.locator('.v7-protection')).toHaveCount(0)
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('04:00')
+  for (const message of ['正在核验预约，暂不自动释放', '观察模式 · 仅记录，不自动释放', '自动释放已由管理员暂停', '自动释放尚未启用']) {
+    await expect(page.getByText(message, { exact: true })).toHaveCount(0)
+  }
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toBeEnabled()
 })
 
@@ -159,7 +159,7 @@ test('V7 模板预览始终只读', async ({ page }) => {
 
 test('保护预约截止不声称正在释放', async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:20:00Z', paused: true })
-  await expect(page.getByText('签到窗口已结束', { exact: true })).toBeVisible()
+  await expect(page.getByText('签到已截止', { exact: true })).toBeVisible()
   await expect(page.getByText('正在同步释放状态', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
 })
@@ -190,7 +190,44 @@ test('无补签到窗口在五分钟截止时隐藏按钮，等待核验结果',
 test('正式版不显示保护说明，截止后也不误报释放', async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:20:00Z', phase: 'blocked', buffer: 0 })
   await expect(page.getByText('本次预约受保护，不会自动释放', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('签到窗口已结束', { exact: true })).toBeVisible()
+  await expect(page.getByText('签到已截止', { exact: true })).toBeVisible()
   await expect(page.getByText('正在同步释放状态', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+test('正式门牌隐藏正常态配置诊断，失联仍明确显示未知', async ({ page }) => {
+  await scene(page, { verified: false })
+  for (const value of ['城市待配置', '正在核验预约，暂不自动释放', '● 日程已同步']) {
+    await expect(page.getByText(value, { exact: false })).toHaveCount(0)
+  }
+  await expect(page.locator('.theme-control')).toHaveCount(0)
+  await expect(page.locator('footer')).toHaveCount(0)
+  await page.route('**/api/meeting-rooms/display', route => route.fulfill({ status: 502, json: {} }))
+  await page.clock.fastForward(16000)
+  await expect(page.getByText('状态暂不可确认', { exact: true })).toBeVisible()
+  await expect(page.locator('.history-warning')).toBeVisible()
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+for (const [phase, expected] of [['confirmed', '已签到'], ['released', '预约已释放'], ['checking', '签到已截止'], ['uncertain', '会议状态待确认']]) test(`正式门牌结果 ${phase}`, async ({ page }) => {
+  await scene(page, { time: '2026-09-28T06:20:00Z', phase, buffer: 0 })
+  await expect(page.locator('.v7-status')).toHaveText(expected)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+test('签到服务异常给使用者可理解的提示，不暴露版本诊断', async ({ page }) => {
+  await scene(page)
+  await page.route('**/api/meeting-rooms/usage', route => route.fulfill({ status: 503, json: {} }))
+  await page.clock.fastForward(10000)
+  await expect(page.getByRole('alert')).toHaveText('签到服务暂不可用')
+  await expect(page.getByText('V5 功能尚未启用，预约展示不受影响', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+test('英文正式门牌不显示未知组织者占位或运维诊断', async ({ page }) => {
+  await scene(page, { time: '2026-09-28T06:16:00Z', language: 'en', organizer: '', verified: false })
+  await expect(page.getByLabel('Check in within', { exact: true })).toHaveText('04:00')
+  await expect(page.getByRole('button', { name: 'Check in now', exact: true })).toBeEnabled()
+  await expect(page.locator('.organizer,.event-organizer')).toHaveCount(0)
+  await expect(page.locator('.v7-protection')).toHaveCount(0)
 })

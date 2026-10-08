@@ -1,5 +1,9 @@
 # RoomBeacon 当前状态
 
+## 正式运行逻辑核查（2026-10-08）
+
+显示/签到可日常使用；新预约无人值守自动释放尚未完整就绪：日历映射为 0，当前应用可读日历 1 个，但读取 10:40 实例返回 404，待正确日程链接/calendar_id 和读取权联调。正在准备 1.0.1，清理门牌运维诊断并修复重启后旧会话锁签到问题；5+5/零补签到与权限边界保持。证据与真实/隔离验收区分见 [整体核查](production-readiness-2026-10-08.md)，接续 #37/#2。
+
 ## RoomBeacon 1.0.0 正式版已上线（2026-10-08）
 
 [#34](https://github.com/arthurxbwang/roombeacon/issues/34) 经 [PR #35](https://github.com/arthurxbwang/roombeacon/pull/35) 合入，正式 [v1.0.0](https://github.com/arthurxbwang/roombeacon/releases/tag/v1.0.0) / 生产应用为 `6ac52034fb3473ecbcd67ed20c99c619a3fdf423`。W9TW7S 已应用 V7 软件 v2：提前/宽限各 5 分钟、补确认 0 秒；移除保护说明、保留保护判断。长期策略/暂停持久化及托管身份核验上线，自动释放恢复。设备回执 9/9、无错误、真实心跳健康，硬件 v2、APK 0.7.0-debug 不变；343 间采集正常，17 条旧保护记录保持，其他 342 间未扩大写入权限。本地/生产后端各 345 项、浏览器 129 项通过。准确版本、验收边界和回退见 [正式上线记录](production-v1-2026-10-08.md)。

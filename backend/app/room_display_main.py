@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
             await asyncio.gather(usage_worker, return_exceptions=True)
 
 
-app = FastAPI(lifespan=lifespan, title="Meeting room display", version="1.0.0",
+app = FastAPI(lifespan=lifespan, title="Meeting room display", version="1.0.1",
               docs_url=None, redoc_url=None, openapi_url=None)
 app.add_exception_handler(AppError, app_error_handler)
 

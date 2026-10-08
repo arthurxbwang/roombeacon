@@ -25,13 +25,30 @@ async def healthy_terminal(store, room_id, now, record=None, policy=None):
         return False
     if not 0 <= now.timestamp() - hb['time'] < 45:
         return False
-    if hb['actor'] != await store.cache.get(KEY + room_id):
-        from ..management.security import current_usage_actor
-        if not current_usage_actor(room_id, hb['actor']):
-            return False
+    if not await current_actor(store, room_id, hb['actor']):
+        return False
     if policy and hb['policy_revision'] != policy['revision']:
         return False
     return not record or (hb['session_id'] == record.get('session_id') and covers_occurrence(hb, record['id']))
+
+
+async def current_actor(store, room_id, actor):
+    if actor == await store.cache.get(KEY + room_id):
+        return True
+    from ..management.security import current_usage_actor
+    return current_usage_actor(room_id, actor)
+
+
+async def confirmation_session_current(store, room_id, actor, request, policy, now):
+    """A real current page may explicitly sign a protected booking after restart."""
+    hb = await store.get('heartbeat:' + room_id)
+    return bool(hb and hb.get('protocol') == 2
+                and hb.get('operation_state') in {'ready', 'submitting'}
+                and hb.get('actor') == actor and hb.get('session_id') == request.session_id
+                and hb.get('occurrence_id') == request.occurrence_id
+                and hb.get('policy_revision') == policy['revision']
+                and 0 <= now.timestamp() - hb['time'] < 45
+                and await current_actor(store, room_id, actor))
 
 
 async def heartbeat(store, room_id, actor, request, now=None):
