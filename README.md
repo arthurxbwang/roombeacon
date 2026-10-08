@@ -47,6 +47,8 @@ npm run dev
 
 ## 文档
 
+- [2026-10-01 阶段开发汇报：HTML 动态版与 PDF（脱敏历史归档）](docs/reports/2026-10-01/README.md)
+
 - [独立飞书应用：11项权限与迁移清单](docs/feishu-permissions.md)
 
 - [2026-09-22 全部分支整合与代码分析](docs/source-consolidation-2026-09-22.md)

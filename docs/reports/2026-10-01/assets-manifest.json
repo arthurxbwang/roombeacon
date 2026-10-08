@@ -1,0 +1,65 @@
+[
+  {
+    "file": "admin-1.png",
+    "size": [
+      1440,
+      1000
+    ],
+    "masked_regions": 2,
+    "sha256": "2d15375876ed1ece53c959930c422d5268488943f466e6560ad76f1ef06d1dc1"
+  },
+  {
+    "file": "admin-2.png",
+    "size": [
+      1440,
+      1000
+    ],
+    "masked_regions": 3,
+    "sha256": "0d551e51c0b7925ec35fa755a53504a590179eff042319b6f29d26de2ccf59a5"
+  },
+  {
+    "file": "admin-3.png",
+    "size": [
+      1440,
+      1000
+    ],
+    "masked_regions": 0,
+    "sha256": "bd1081e9b96563208de529eb73c7b56241c28e7430f00512a5a7009cdc7cea7a"
+  },
+  {
+    "file": "admin-4.png",
+    "size": [
+      1440,
+      1000
+    ],
+    "masked_regions": 9,
+    "sha256": "6a5e784de9bbe69a7d2d929e10283c4f90a29fbd71f8e8e86606211f569ef730"
+  },
+  {
+    "file": "admin-5.png",
+    "size": [
+      1440,
+      1000
+    ],
+    "masked_regions": 4,
+    "sha256": "9f83814ad67c8bf4826fb788a025775f1d3f9705cb76293dbdbfca07563f5151"
+  },
+  {
+    "file": "field-redacted.png",
+    "size": [
+      2940,
+      1684
+    ],
+    "masked_regions": 3,
+    "sha256": "e78b91a21cc7465ae2c1b86eb72fcd1020854e460fdb786a23e8d4ac5e57b730"
+  },
+  {
+    "file": "brand-art.gif",
+    "size": [
+      750,
+      360
+    ],
+    "frames": 91,
+    "sha256": "befad201ecd8c6866bebb0f1626b216d7c71eec6a730fdc7b1f2eb097c5d3ee0"
+  }
+]
