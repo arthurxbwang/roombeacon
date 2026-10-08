@@ -1,0 +1,4 @@
+# 汇报产物按二进制保存，避免 Git 把 PDF 内部格式当作文本检查或合并。
+*.pdf binary
+*.png binary
+*.gif binary

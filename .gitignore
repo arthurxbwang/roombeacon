@@ -9,6 +9,7 @@ local.properties
 *.keystore
 *.jks
 # Generated files
+/output/
 .venv/
 __pycache__/
 *.pyc
