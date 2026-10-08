@@ -150,3 +150,31 @@ test('probe expires before confirmation and failures allow another check',async(
  await expect(page.getByRole('button',{name:'检测设备',exact:true})).toBeEnabled()
  await expect(page.getByRole('button',{name:'确认初始化',exact:true})).toHaveCount(0)
 })
+
+for(const width of [1440,390])test(`installation layout keeps aligned padding and contains expanded settings at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await setup(page)
+ const card=page.locator('.installation'),heading=page.getByRole('heading',{name:'首装与交付',exact:true})
+ const input=page.getByLabel('设备 IP',{exact:true}),advanced=card.locator('details.advanced')
+ const records=page.getByRole('heading',{name:'安装任务与交付记录'})
+ const bounds=await card.boundingBox(),title=await heading.boundingBox()
+ expect(title!.x-bounds!.x).toBeGreaterThanOrEqual(16)
+ for(const item of [input,advanced,records]){
+  const box=await item.boundingBox();expect(Math.abs(box!.x-title!.x)).toBeLessThanOrEqual(1)
+  expect(box!.x+box!.width).toBeLessThanOrEqual(bounds!.x+bounds!.width-16)
+ }
+ const fold=await advanced.boundingBox()
+ expect(Math.abs(fold!.width-(bounds!.width-2*(title!.x-bounds!.x)))).toBeLessThanOrEqual(2)
+ const refresh=await page.getByRole('button',{name:'刷新安装任务'}).boundingBox()
+ expect(refresh!.height).toBeLessThanOrEqual(48)
+ await page.getByText('高级设置与现场助手',{exact:true}).click()
+ await page.getByText('1. 登记现场助手',{exact:true}).click()
+ await page.getByText('2. 登记已批准的正式 APK',{exact:true}).click()
+ for(const item of [page.getByLabel('电脑名称'),page.getByLabel('APK 清单 JSON')]){
+  const box=await item.boundingBox();expect(box!.x).toBeGreaterThan(title!.x)
+  expect(box!.x+box!.width).toBeLessThan(bounds!.x+bounds!.width-16)
+ }
+ expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+ await page.screenshot({path:`/tmp/installation-layout-${width}-expanded.png`,fullPage:true})
+ await page.getByText('高级设置与现场助手',{exact:true}).click()
+ await page.screenshot({path:`/tmp/installation-layout-${width}.png`,fullPage:true})
+})

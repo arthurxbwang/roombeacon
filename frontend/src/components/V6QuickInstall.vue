@@ -51,5 +51,29 @@ onUnmounted(()=>{abort.abort();clearInterval(timer)})
  </section>
 </template>
 <style scoped>
-.quick-install{max-width:820px;margin:24px 0}.steps{display:flex;gap:36px;padding-left:22px;color:#536173;margin-bottom:24px}.ip-row{display:flex;gap:12px;margin-top:10px}.ip-row input{flex:1;min-width:0;padding:12px;border:1px solid #ccd5e2;border-radius:8px}.hint{color:#68778b;font-size:14px}.result{margin-top:20px;padding:20px;background:#f6f8fc;border:1px solid #dce3ed;border-radius:12px}.result h3{margin-top:0}.result dl{display:grid;grid-template-columns:110px 1fr;gap:10px}.result dt{color:#68778b}.result dd{margin:0;overflow-wrap:anywhere}.quick-install button{flex-shrink:0}@media(max-width:600px){.steps{gap:20px;font-size:13px}.ip-row{flex-wrap:wrap}.result dl{grid-template-columns:90px 1fr}}
+.quick-install{max-width:760px;min-width:0;margin:0}
+.steps{display:flex;flex-wrap:wrap;gap:16px 28px;list-style:none;padding:0;margin:0 0 24px;color:#536173;counter-reset:step}
+.steps li{display:flex;align-items:center;gap:8px;font-size:14px;counter-increment:step}
+.steps li::before{content:counter(step);display:grid;place-items:center;width:24px;height:24px;flex-shrink:0;border-radius:50%;background:#edf2ff;color:#3159d7;font-size:12px;font-weight:600}
+.ip-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.ip-row input{flex:1;min-width:0;padding:12px;border:1px solid #ccd5e2;border-radius:8px;height:44px;box-sizing:border-box}
+.ip-row button{height:44px;white-space:nowrap}
+.hint{color:#68778b;font-size:13px;line-height:1.7;margin:10px 0 0}
+.result{margin-top:20px;padding:20px;background:#f6f8fc;border:1px solid #dce3ed;border-radius:12px}
+.result h3{margin:0 0 16px}
+.result dl{display:grid;grid-template-columns:110px 1fr;gap:10px;font-size:14px}
+.result dt{color:#68778b}
+.result dd{margin:0;overflow-wrap:anywhere}
+.result p{line-height:1.7;margin-top:16px}
+.quick-install button{flex-shrink:0}
+@media(max-width:600px){
+ .steps{gap:12px 18px}
+ .steps li{font-size:12px;gap:6px}
+ .steps li::before{width:20px;height:20px}
+ .ip-row{align-items:stretch;flex-direction:column;gap:10px}
+ .ip-row input{flex:auto}
+ .ip-row button{align-self:flex-start}
+ .result{padding:16px}
+ .result dl{grid-template-columns:90px minmax(0,1fr)}
+}
 </style>

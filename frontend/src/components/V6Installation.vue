@@ -54,7 +54,7 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);credential.value=''})
    <div v-else class="install-preview"><h3>确认安装 {{targets.length}} 台</h3><p>助手：{{data.executors.find(e=>e.id===executorId)?.name}} · APK：{{releaseName(releaseId)}}</p><p class="hash">文件 SHA-256：{{release?.manifest.sha256}}<br />签名 SHA-256：{{release?.manifest.certificate_sha256}}</p><ul><li v-for="t in targets" :key="t.serial">{{t.ip}}:{{t.port}} · {{t.serial}}</li></ul><p>助手只对序列号和型号核对一致的设备执行首装。已有其他 APK 时停止，保留数据。</p><button type="button" :disabled="busy" @click="submit">确认创建安装任务</button><button type="button" class="secondary" :disabled="busy" @click="preview=false">返回修改</button></div>
   </form>
   </details>
-  <h3>安装任务与交付记录</h3><p>显示最近 1000 条；现场验收为人工记录，当前在线与配置回执单独展示。</p>
+  <section class="install-records"><h3>安装任务与交付记录</h3><p class="records-description">显示最近 1000 条；现场验收为人工记录，当前在线与配置回执单独展示。</p>
   <div class="v6-table-wrap"><table><thead><tr><th>连接目标 / SN</th><th>APK / 助手</th><th>进度</th><th>设备 / 交付</th><th>操作</th></tr></thead><tbody><tr v-for="job in data.jobs" :key="job.id"><td>{{job.ip}}:{{job.port}}<small>{{job.serial}}</small></td><td>{{releaseName(job.release_id)}}<small>{{job.executor_id==='server'?'后台直接安装':data.executors.find(e=>e.id===job.executor_id)?.name}}</small></td><td>{{installState(job.state)}}<small v-if="job.error" class="v6-error">{{installError(job.error)}}</small></td><td>{{job.device_code||'等待关联短码'}}<small v-if="job.device_id">{{job.device_ready?'当前在线且配置已应用':'当前离线、未配置或待处理'}}</small><small v-if="job.state==='accepted'">{{job.acceptance_current?'已保存此配置的现场验收':'配置或身份已变化，须重新验收'}}</small><small v-if="job.acceptance.location">{{job.acceptance.location}} · {{job.acceptance.switch_port}}</small></td><td>
    <button v-if="job.device_id" class="secondary" @click="emit('device',job.device_id)">{{editable?'房间配置':'查看配置'}}</button>
    <template v-if="editable"><button v-if="job.state==='queued'" class="secondary" :disabled="busy" @click="act(()=>management('POST',`${base}/jobs/${job.id}/cancel`,abort.signal,{revision:job.revision}))">取消排队</button>
@@ -63,12 +63,45 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);credential.value=''})
     <button v-if="job.executor_id!=='server'&&['failed','uncertain'].includes(job.state)" class="secondary" :disabled="busy" @click="resolveJob={job,action:'retry'};stopped=false">核实后重试</button>
     <small v-if="job.executor_id==='server'&&job.state==='failed'">核实设备后，重新输入 IP 检测。</small>
     <button v-if="job.state==='uncertain'" class="secondary" :disabled="busy" @click="resolveJob={job,action:'resolve'};stopped=false">结束待核实任务</button>
-   </template></td></tr></tbody></table></div><p v-if="!data.jobs.length" class="v6-empty">尚无首装任务</p>
+   </template></td></tr></tbody></table></div><p v-if="!data.jobs.length" class="v6-empty">尚无首装任务</p></section>
  </section>
  <div v-if="associateJob" class="v6-backdrop"><section class="v6-panel" role="dialog" aria-modal="true" aria-label="关联屏幕短码"><button class="secondary" :disabled="busy" @click="associateJob=null">关闭</button><h2>关联 {{associateJob.ip}} · {{associateJob.serial}}</h2><form @submit.prevent="associate"><label>屏幕六位短码<input v-model="code" required maxlength="8" /></label><label class="install-check"><input v-model="identityChecked" type="checkbox" />已核对这一台实物的序列号与屏幕短码</label><p v-if="error" class="v6-error" role="alert">{{error}}</p><button :disabled="busy||!identityChecked">确认设备关联</button></form></section></div>
  <div v-if="resolveJob" class="v6-backdrop"><section class="v6-panel" role="dialog" aria-modal="true" aria-label="核实安装结果"><button class="secondary" :disabled="busy" @click="resolveJob=null">关闭</button><h2>{{resolveJob.action==='retry'?'核实后重试':'结束待核实任务'}}</h2><p>{{resolveJob.job.ip}} · {{resolveJob.job.serial}}</p><p>先检查现场 APK 与启动结果，确认原安装进程已停止。执行期限结束后才能操作；结束后可重新检测设备。</p><label class="install-check"><input v-model="stopped" type="checkbox" />我已核实现场结果并确认原安装进程已停止</label><p v-if="error" class="v6-error" role="alert">{{error}}</p><button :disabled="busy||!stopped" @click="resolve">确认{{resolveJob.action==='retry'?'重试':'结束'}}</button></section></div>
  <V6InstallAcceptance v-if="selectedAccept" :key="selectedAccept.id" :job="selectedAccept" :device="acceptanceDevice" @close="acceptJob=null" @changed="load();emit('changed')" />
 </template>
 <style scoped>
-.installation h2,.installation h3{margin:12px 0}.install-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.installation label{display:grid;gap:8px;margin:14px 0}.installation textarea{width:100%;resize:vertical;box-sizing:border-box;padding:10px;border:1px solid #ccd5e2;border-radius:8px}.installation details,.install-create,.install-preview{border:1px solid #dce3ed;border-radius:10px;padding:16px;margin:12px 0}.installation summary{cursor:pointer;font-weight:600}.installation button{margin:4px}.hash,.credential{overflow-wrap:anywhere}.credential{display:block;padding:12px;background:#eef4fa}.install-check{display:flex;gap:10px;margin:18px 0}.install-check input{width:auto}.installation small{display:block}@media(max-width:800px){.install-grid{grid-template-columns:1fr}}
+.installation{padding:24px;min-width:0}
+.installation > .v6-toolbar{padding:0;align-items:flex-start;margin-bottom:28px;gap:16px}
+.installation > .v6-toolbar > div{min-width:0;flex:1 1 400px}
+.installation > .v6-toolbar > button{flex-shrink:0;white-space:nowrap}
+.installation h2,.installation h3{margin:0 0 10px}
+.installation p{line-height:1.7}
+.installation > .v6-toolbar p,.records-description{color:#718096;font-size:14px}
+.install-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.install-grid > *{min-width:0}
+.installation label{display:grid;gap:8px;margin:14px 0}
+.installation textarea{width:100%;resize:vertical;box-sizing:border-box;padding:10px;border:1px solid #ccd5e2;border-radius:8px}
+.installation details,.install-create,.install-preview{border:1px solid #dce3ed;border-radius:10px;padding:16px;margin:12px 0;min-width:0}
+.installation details{max-width:none;font-size:14px}
+.installation details.advanced{margin:24px 0;background:#fafbfd}
+.installation details details,.install-create{background:white}
+.installation summary{cursor:pointer;font-weight:600;line-height:1.6}
+.installation summary:focus-visible{outline:2px solid #3159d7;outline-offset:5px;border-radius:3px}
+.installation details button{margin:4px 8px 4px 0}
+.install-records{border-top:1px solid #e7ecf3;padding-top:24px;margin-top:28px;min-width:0}
+.records-description{margin-bottom:16px}
+.install-records .v6-table-wrap{border:1px solid #e7ecf3;border-radius:8px}
+.installation .v6-empty{padding:40px 16px;margin:0}
+.hash,.credential{overflow-wrap:anywhere}
+.credential{display:block;padding:12px;background:#eef4fa}
+.install-check{display:flex;gap:10px;margin:18px 0}
+.install-check input{width:auto}
+.installation small{display:block}
+@media(max-width:800px){.install-grid{grid-template-columns:1fr;gap:12px}}
+@media(max-width:600px){
+ .installation{padding:18px}
+ .installation > .v6-toolbar{margin-bottom:24px}
+ .installation details,.install-create,.install-preview{padding:12px}
+ .install-records{margin-top:24px;padding-top:20px}
+}
 </style>
