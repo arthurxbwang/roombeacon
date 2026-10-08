@@ -1,6 +1,8 @@
 # V7 签到恢复与最终规则
 
-更新：2026-10-08。需求：[Issue #34](https://github.com/arthurxbwang/roombeacon/issues/34)。目标为独立生产 `roombeacon.thundersoft.com`、IT灯塔-Test、设备 W9TW7S；不涉及 Argus。
+更新：2026-10-08。正式版已上线：PR #35、Release v1.0.0、生产 `6ac5203`、W9TW7S 软件 v2/回执 9/9，自动释放已恢复；准确 SHA、真实验收和回退见 [正式上线记录](production-v1-2026-10-08.md)。
+
+需求：[Issue #34](https://github.com/arthurxbwang/roombeacon/issues/34)。目标为独立生产 `roombeacon.thundersoft.com`、IT灯塔-Test、设备 W9TW7S；不涉及 Argus。
 
 ## 已完成的线上恢复
 
@@ -12,7 +14,7 @@
 - 取消恢复策略的 TTL，保留原 revision，并留下 restore_policy_retention 审计，避免同一配置再在 7 天后失效。全局自动释放保持暂停，未发送真实飞书释放。
 - 私有回退材料位于生产 `/data/roombeacon/backups/checkin-restore-20261008T014807Z`，权限 700/600；原已核验资格来自 2026-09-28 私有基线。凭证、session_id 和私有原件不进入 Git。
 
-## 用户确认的最终规则（1.0.0 正式版，发布进行中）
+## 用户确认的最终规则（1.0.0 正式版，已上线）
 
 用户另行要求删除门牌「本次预约受保护，不会自动释放」说明行；页面不再展示该行，保护判断仍保留，不能把受保护预约的倒计时或结果说成自动释放。
 
