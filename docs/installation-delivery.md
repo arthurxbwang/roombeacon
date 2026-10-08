@@ -143,3 +143,15 @@ python scripts/roombeacon_installer.py run \
 修复卡片正文贴边、高级设置被全局 600px 限制、刷新按钮被拉高的问题。标题、IP 输入、折叠区和记录区使用同一内容边界；窄屏表单纵向排列，表格在自身容器内横向滚动。变更仅在两个首装 Vue 组件的结构和局部样式，API、ADB 与设备配置流程没有变更。
 
 新增桌面 1440px 和窄屏 390px 的折叠／展开布局回归，先确认旧版失败，再验证修复版通过；实际截图人工检查。发布前通过 TypeScript／Vite 构建、首装 9 项和全量 Chromium 145 项浏览器检查；准确发布 SHA 见关联 PR 回执。回退应用为 `e1cd49bed95643fac34368c166e0ae7ccf314456`，无需恢复数据库或改动 ADB 配置。
+
+## 后台默认正式包准备（2026-10-08）
+
+用户已确认没有指定公司签名，建立 RoomBeacon 专用发布签名，后续 APK 沿用同一身份。从原生源码 `4e95b7a54cdc8430566c74ad26326bfd629575e5` 构建 `com.roombeacon.shell` 0.7.0（versionCode 10），非 debuggable；准确适用型号 `RK3568`。APK SHA-256 为 `c2a6acc96872922edcc0aefae04725352098a61fb2479d9d0094440ded445c8b`，证书 SHA-256 为 `25507df796edaf177caafac66c3b88842fe423b002234a7cc8afa89ad54e687a`。旧的未签名构建产物不能直接用作当前正式版本。
+
+正式签名材料保存在开发机被忽略的 `.local-tools/release-signing/`，另备份至生产私有目录 `/data/roombeacon/shared/release-signing/`（root，0700；文件 0600）。包含 `roombeacon-release.jks`、`store.pass`、`key.pass`；密码不放在命令参数或日志中，后续签名分别通过独立密码文件传入 apksigner。不要重新生成签名身份，丢失时无法保证覆盖更新。管理员应按私有备份制度保存该目录，不把它放进 Git 或公开附件。
+
+后台仅使用已签 APK，路径 `/data/roombeacon/shared/installation-packages/roombeacon-0.7.0-c2a6acc96872.apk`，应用账号只读。固定此路径、证书指纹与型号至私有 `installation.env`，并配置 `ROOM_DISPLAY_INSTALL_AAPT`／`ROOM_DISPLAY_INSTALL_APKSIGNER`。校验工具放在 `/data/roombeacon/tools/installation/`，由 `scripts/production/installation-apksigner` 包装独立精简 Java 17，不更改全局 Java 或后台 PATH。签名私钥不交给后台服务。
+
+现场助手仍只用于后台连不到设备的现场网络；登记现场电脑只生成临时授权，必须在该电脑运行助手才会执行任务。它的清单不会配置后台直连的默认 APK。后台能连通时按 IP 检测并确认初始化即可。缺包时页面直接指出后台准备未完成，不再引导现场人员反复登记助手。
+
+本次自动验证：Android `testDebugUnitTest lintDebug assembleDebug assembleRelease`、正式包签名／对齐／包名核验；后端 403 项和 Chromium 146 项通过，新增缺包提示回归先复现再修复。真实设备仅针对已由用户卸载旧包的 `10.0.51.221`，安装前再次核对序列号，已有应用时不覆盖。准确后台部署 SHA、首装回执和回退证据在本次 PR 补充；后台回退版本为 `4e95b7a54cdc8430566c74ad26326bfd629575e5`，不恢复旧库或自动卸载新 APK。

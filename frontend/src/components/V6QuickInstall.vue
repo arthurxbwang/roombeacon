@@ -41,11 +41,12 @@ onUnmounted(()=>{abort.abort();clearInterval(timer)})
   <form @submit.prevent="detect"><label for="install-ip">设备 IP</label><div class="ip-row"><input id="install-ip" v-model="ip" required maxlength="15" inputmode="decimal" autocomplete="off" placeholder="例如：10.0.51.221" :disabled="!!busy" /><button :disabled="!!busy||!ip.trim()">{{busy==='probe'?'正在检测…':'检测设备'}}</button></div></form>
   <p class="hint">设备联网并开启网络 ADB 后，输入 IP 即可检测。</p>
   <p v-if="server&&!server.probe_ready" class="v6-info" role="status">{{server.blocker}} <button class="secondary" @click="load">重新检查设置</button></p>
+  <p v-if="server?.probe_ready&&!server.apk_configured" class="v6-error" role="alert">后台尚未准备默认安装包，设备检测仍可使用。无需登记现场助手，请联系后台维护人员准备安装包。</p>
   <p v-if="error" class="v6-error" role="alert">{{error}}</p>
   <p v-if="info" class="v6-info" role="status">{{info}}</p>
   <div v-if="probe" class="result">
    <h3>已连接到设备</h3><dl><dt>IP 地址</dt><dd>{{probe.ip}}:{{probe.port}}</dd><dt>设备型号</dt><dd>{{probe.model}}</dd><dt>序列号</dt><dd>{{probe.serial}}</dd><dt>Android 版本</dt><dd>{{probe.android||'未提供'}}</dd><dt v-if="probe.manifest">安装版本</dt><dd v-if="probe.manifest">{{probe.manifest.version_name}}</dd></dl>
-   <p v-if="probe.blocker" class="v6-info" role="status">{{probe.blocker}}</p>
+   <p v-if="probe.blocker" :class="probe.existing?'v6-info':'v6-error'" role="status">{{probe.blocker}}</p>
    <template v-if="probe.can_initialize"><p>确认后将安装并启动门牌应用。请核对上方设备信息。</p><p v-if="expired" role="status" class="v6-error">检测结果已过期，请重新检测设备。</p><button :disabled="!!busy||expired" @click="initialize">{{busy==='initialize'?'正在提交…':'确认初始化'}}</button></template>
   </div>
  </section>

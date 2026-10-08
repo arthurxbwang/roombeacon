@@ -206,3 +206,12 @@ def test_unexpected_worker_failure_does_not_publish_success(client, configured):
     assert job['state'] == 'uncertain'
     assert 'private diagnostic' not in client.get(BASE, headers=admin()).text
     assert 'private diagnostic' not in client.get('/api/v6/admin/audit', headers=admin()).text
+
+
+def test_missing_default_apk_does_not_direct_operator_to_field_assistant(monkeypatch):
+    monkeypatch.delenv('ROOM_DISPLAY_INSTALL_APK', raising=False)
+    with pytest.raises(runtime.AppError) as error:
+        runtime.default_apk()
+    assert '后台' in error.value.message
+    assert '高级设置' not in error.value.message
+    assert '无需登记现场助手' in error.value.message
