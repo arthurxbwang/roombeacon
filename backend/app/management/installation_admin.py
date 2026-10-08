@@ -16,6 +16,7 @@ from .installation_models import (
     Retry,
     Revision,
 )
+from .installation_server import router as server_router
 from .installation_store import (
     conflict,
     current,
@@ -30,6 +31,7 @@ from .security import actor
 from .store import database, digest
 
 router = APIRouter(prefix='/api/v6/admin/installation')
+router.include_router(server_router)
 
 
 @router.get('')

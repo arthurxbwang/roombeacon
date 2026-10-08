@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS install_jobs (
  result TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '',
  device_id TEXT NOT NULL DEFAULT '', acceptance TEXT NOT NULL DEFAULT '{}',
  created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS install_probes (
+ id TEXT PRIMARY KEY, subject TEXT NOT NULL, payload TEXT NOT NULL, expires INTEGER NOT NULL,
+ job_id TEXT NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS install_jobs_queue ON install_jobs(executor_id,state,created_at);
 """
 

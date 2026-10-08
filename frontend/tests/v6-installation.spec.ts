@@ -9,6 +9,7 @@ async function setup(page:Page,role='admin'){
  const state={value:{executors:[{id:'e'.repeat(32),name:'现场电脑',revoked:0,expires:Date.now()/1000+86400,last_seen:0}],releases:[{id:'f'.repeat(32),manifest,created_at:1}],jobs:[]} as InstallOverview,writes:[] as {path:string;body:any}[],fail:false,reads:0}
  await page.route('**/api/v6/admin/installation**',async route=>{
   const path=new URL(route.request().url()).pathname,ok=(data:unknown)=>route.fulfill({json:{code:0,data}})
+  if(path.endsWith('/server'))return ok({probe_ready:true,blocker:'',port:5555,apk_configured:true})
   if(route.request().method()==='GET'){state.reads++;return ok(state.value)}
   expect(route.request().headers()['x-rb-csrf']).toBe('csrf')
   const body=route.request().postDataJSON();state.writes.push({path,body})
@@ -30,6 +31,7 @@ function installedJob():InstallJob{return {id:'1'.repeat(32),batch_id:'batch',ex
 
 test('installation scope preview, idempotent retry and persisted task list',async({page})=>{
  const state=await setup(page)
+ await page.getByText('高级设置与现场助手',{exact:true}).click()
  await page.getByLabel('现场助手',{exact:true}).selectOption('e'.repeat(32))
  await page.getByLabel('正式 APK',{exact:true}).selectOption('f'.repeat(32))
  await page.getByLabel('设备清单').fill('10.0.1.2 TEST-0 5555')
@@ -90,6 +92,7 @@ test('uncertain tasks require field acknowledgement; one-time credential cleared
  await expect(dialog.getByRole('button',{name:'确认重试'})).toBeDisabled()
  await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'确认重试'}).click()
  expect(state.writes.at(-1)?.body.previous_executor_stopped).toBe(true)
+ await page.getByText('高级设置与现场助手',{exact:true}).click()
  await page.getByText('1. 登记现场助手',{exact:true}).click()
  await page.getByLabel('电脑名称').fill('交付电脑')
  await page.getByRole('button',{name:'生成一天有效的助手凭证'}).click()
@@ -98,4 +101,52 @@ test('uncertain tasks require field acknowledgement; one-time credential cleared
  const reads=state.reads;await page.waitForTimeout(1100);expect(state.reads).toBe(reads)
  await page.getByRole('button',{name:'首装与交付',exact:true}).click()
  await expect(page.getByText('rbi:test-one-time-credential',{exact:true})).toHaveCount(0)
+})
+
+async function quickProbe(page:Page,overrides:Record<string,unknown>={}){
+ const state=await setup(page)
+ await page.route('**/api/v6/admin/installation/probe',async route=>{
+  expect(route.request().headers()['x-rb-csrf']).toBe('csrf')
+  state.writes.push({path:'/probe',body:route.request().postDataJSON()})
+  return route.fulfill({json:{code:0,data:{id:'a'.repeat(32),ip:'10.0.1.2',port:5555,serial:'TEST-0',model:'BX68',android:'11',existing:false,manifest,can_initialize:true,blocker:'',expires:Date.now()/1000+300,...overrides}}})
+ })
+ await page.getByLabel('设备 IP',{exact:true}).fill('10.0.1.2')
+ await page.getByRole('button',{name:'检测设备',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'已连接到设备'})).toBeVisible()
+ return state
+}
+
+test('IP check reveals identity, initializes only on confirmation and keeps advanced setup hidden',async({page})=>{
+ const state=await quickProbe(page)
+ await expect(page.getByLabel('电脑名称')).not.toBeVisible()
+ await expect(page.getByLabel('APK 清单 JSON')).not.toBeVisible()
+ expect(state.writes).toEqual([{path:'/probe',body:{ip:'10.0.1.2',port:5555}}])
+ await page.getByRole('button',{name:'确认初始化',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'初始化任务已提交'})).toBeVisible()
+ expect(state.writes.at(-1)?.path).toBe(base+'/initialize')
+ expect(state.writes.at(-1)?.body).toEqual({probe_id:'a'.repeat(32),confirmed:true})
+})
+
+test('changing IP invalidates probe; missing APK and expired probes cannot initialize',async({page})=>{
+ const state=await quickProbe(page)
+ await page.getByLabel('设备 IP',{exact:true}).fill('10.0.1.3')
+ await expect(page.getByRole('button',{name:'确认初始化',exact:true})).toHaveCount(0)
+ expect(state.writes).toHaveLength(1)
+ await page.unroute('**/api/v6/admin/installation/probe')
+ await page.route('**/api/v6/admin/installation/probe',route=>route.fulfill({json:{code:0,data:{id:'a'.repeat(32),ip:'10.0.1.3',serial:'TEST-1',model:'BX68',android:'11',can_initialize:false,blocker:'尚未配置默认正式 APK',expires:0}}}))
+ await page.getByRole('button',{name:'检测设备',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'尚未配置默认正式 APK'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'确认初始化',exact:true})).toHaveCount(0)
+})
+
+test('probe expires before confirmation and failures allow another check',async({page})=>{
+ await quickProbe(page,{expires:1})
+ await expect(page.getByRole('button',{name:'确认初始化',exact:true})).toBeDisabled()
+ await expect(page.getByText('检测结果已过期，请重新检测设备。')).toBeVisible()
+ await page.unroute('**/api/v6/admin/installation/probe')
+ await page.route('**/api/v6/admin/installation/probe',route=>route.fulfill({status:409,json:{code:409,message:'设备尚未授权 ADB，请在设备上允许调试后重新检测'}}))
+ await page.getByRole('button',{name:'检测设备',exact:true}).click()
+ await expect(page.getByRole('alert').filter({hasText:'尚未授权 ADB'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'检测设备',exact:true})).toBeEnabled()
+ await expect(page.getByRole('button',{name:'确认初始化',exact:true})).toHaveCount(0)
 })

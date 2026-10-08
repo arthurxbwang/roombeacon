@@ -1,14 +1,46 @@
-# 首装助手与交付后台（#43）
+# 首装与交付：IP 检测和初始化（#43）
 
-更新：2026-10-08。后台已部署，真实首装仍待验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
+更新：2026-10-08。本次简化日常安装流程；正式 APK 和真实首装仍待验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
 
 ## 当前可以做什么
 
-后台 `/control` → **首装与交付**：登记现场助手、正式 APK 清单，粘贴 IP／实物序列号清单，预览后创建任务，查看安装结果，关联六位短码，打开已有房间配置面板，记录独立的现场交付验收。
+后台 `/control` → **首装与交付**，默认仅显示设备 IP 和“检测设备”。后台直连 ADB，返回型号、序列号、Android 版本和已有门牌应用情况。检测不安装、不启动应用、不修改设备设置。通过后点击“确认初始化”，自动安装默认正式 APK、拉回核验并启动，然后在下方任务关联屏幕短码、配置会议室和记录现场验收。
 
-助手在现场电脑运行，通过 HTTPS 领取任务；服务器不需要连接设备 ADB。首版采用本地 APK 文件，后台仅保存不可修改的批准清单，尚无 APK 文件托管或无 ADB 升级接口。只允许正式包名 `com.roombeacon.shell`；调试包、可调试 APK、未签名包和多个签名者的 APK 均被拒绝。正式签名证书须由发布负责人审批和保管，助手不生成或传输签名私钥。
+“高级设置与现场助手”默认收起。只有后台无法访问设备网络时，才使用原现场助手和批次清单；日常直连流程不需要登记电脑、手填序列号或粘贴 APK JSON。
 
-本轮沿用现有待部署短码、房间配置和原生回执。未修改 Android APK 或业务门牌，不提供交换机控制、自动关闭 ADB、厂家静默升级或应用守护按钮。这些仍需 #16／#29／#10 的独立实机验证。
+初始化是应用首装，不是恢复出厂设置。已装门牌的设备提示前往设备台账核对短码；默认 APK 缺失、签名未通过、型号不匹配时给出具体原因。正式签名证书由发布负责人审批保管，系统不生成或传输签名私钥。正式 APK 配置完成前可以检测设备，但不能以现有调试包冒充正式初始化。
+
+本轮只修改首装模块及其执行配置、测试和文档。沿用现有待部署短码、房间配置和原生回执；Android、门牌业务、签到和模板逻辑没有变更。ADB 手动关闭、PoE 断电复验继续使用原交付记录。
+
+## 后台直连的一次性配置
+
+配置由运维完成，保存在服务器私有环境文件；不要提交密钥或 APK 到仓库。工具和正式 APK 使用固定绝对路径，应用账号只读。服务端环境变量：
+
+| 变量 | 用途 |
+|---|---|
+| `ROOM_DISPLAY_INSTALL_NETWORKS` | 允许访问的 RFC1918 IPv4 CIDR，逗号分隔；默认空，禁止探测。初次可仅放行测试机 `/32`，批量交付前配置批准的实际设备网段 |
+| `ROOM_DISPLAY_INSTALL_PORT` | ADB 端口，默认 5555；输入 IP 不可连接其他端口 |
+| `ROOM_DISPLAY_INSTALL_ADB` | 受控 ADB 工具路径，须支持 transport ID |
+| `ROOM_DISPLAY_INSTALL_APK` | 默认已批准的正式 APK 文件路径 |
+| `ROOM_DISPLAY_INSTALL_AAPT` / `ROOM_DISPLAY_INSTALL_APKSIGNER` | SDK 工具路径；apksigner 需要 Java |
+| `ROOM_DISPLAY_INSTALL_CERT_SHA256` | 发布负责人批准的签名证书 SHA-256，64 位十六进制 |
+| `ROOM_DISPLAY_INSTALL_MODELS` | APK 适用的准确型号，逗号分隔 |
+
+安装前自动从 APK 快照生成清单，核对正式包名、非 debuggable、单一签名、批准的证书指纹、文件摘要和型号，不需要在后台手工登记 JSON。更换 APK 后旧检测结果不能用于安装。
+
+生产 ADB 建议采用仓库 `scripts/production/roombeacon-installation-adb.service`：专用无登录账号 `roombeacon-adb`，账号 home 为 `/data/roombeacon/shared/installation`，目录属该账号且 0700；受控 ADB 位于 `/data/roombeacon/tools/installation/adb`。服务只监听回环 5041，默认 ADB 密钥由这个独立账号在其 home 中生成，保留用于重启后连接，不复制开发机密钥。服务关闭 mDNS 自动连接与模拟器端口扫描。
+
+后台在单独的 `80-installation.conf` drop-in 引用私有 `installation.env`，加 `ANDROID_ADB_SERVER_PORT=5041`。正常应用部署不会覆盖此 drop-in；ADB 进程独立于应用重启。只配置网段和 ADB 即可先检测，正式 APK 缺失会显示未就绪。系统不开放公网 ADB，也不提供任意命令接口。
+
+## 直连任务和故障处理
+
+检测结果有效 5 分钟并绑定当前管理员。更改 IP 或过期需重新检测；确认请求只传检测 ID。后台保存探测身份和清单，安装时重新读取序列号、型号，并固定 ADB transport ID，防止 IP 被另一台设备复用。点击确认后持久化任务，再启动后台执行；重复确认或响应丢失后重试都返回同一任务。
+
+后台直连同一时刻只执行一台；现场助手与后台直连共用 IP／SN 占用保护。执行期限十分钟，进程退出、未预期错误或过期进入“结果待核实”，不会自动重装。失败后核实设备再重新检测；待核实任务需确认原进程已停止、等期限结束并显式结束任务后再检测。已安装的应用可通过原设备台账完成配置，不会为重试而卸载。
+
+新增接口均位于原安装模块：只读 `GET /server`；管理员及 CSRF 保护的 `POST /probe`、`POST /initialize`。新增 `install_probes` 表，其他表和设备协议兼容。真实检测结果只保存在受保护的安装接口和审计，不把 ADB 原始输出放入日志。
+
+以下为保留的现场助手方式。
 
 ## 现场准备
 
@@ -17,7 +49,7 @@
 3. 核对生产域名 HTTPS、设备可联网且首次 ADB 授权已完成。电脑须能够访问后台和这批设备；设备须能访问生产域名。不会扫描网段或自动接受设备授权。
 4. 取得同一正式签名的、非 debuggable 的完整单 APK。当前样机 `com.roombeacon.shell.debug` 不属于本工具的覆盖迁移目标；不能以卸载样机、清数据或临时调试签名代替正式发布。
 
-## 一次首装操作
+## 现场助手首装操作（网络不通时备用）
 
 以下为准备好正式 APK 后的命令示例，不代表该文件已生成或可直接发布。先验证并导出清单，型号必须是设备 `ro.product.model` 的准确值：
 
@@ -71,10 +103,10 @@ python scripts/roombeacon_installer.py run \
 - 管理员／只读会话：`GET /api/v6/admin/installation` 返回助手（无密钥）、批准清单、最近 1000 条任务和验收状态。
 - 管理员写接口：同前缀 `/executors`、`/executors/{id}/revoke`、`/releases`、`/batches`、`/jobs/{id}/{cancel,retry,resolve,associate,accept}`。浏览器写入校验 CSRF，所有任务写入检查修订号。
 - 助手专用凭证：`POST /api/v6/installer/claim`、`/jobs/{id}/check`、`/jobs/{id}/report`。任务执行凭证仅发给所属助手，不出现在列表和审计中。
-- 原有 V6 SQLite 库新增 `install_executors`、`install_releases`、`install_batches`、`install_jobs`。凭证只保存摘要；任务领取在数据库事务中串行化，不另开 ADB 服务器进程。
+- 原有 V6 SQLite 库新增 `install_executors`、`install_releases`、`install_batches`、`install_jobs`。凭证只保存摘要；任务领取在数据库事务中串行化；现场助手和后台直连各自使用受控 ADB 连接。
 - 原有设备、模板、API、Redis 键和浏览器存储协议保持兼容；新表自动创建。安装动作、短码关联和配置部署各自有审计，不扩大业务写入白名单或复制签到资格。
 
-## 本轮验证
+## 原现场助手版本验证（PR #44）
 
 - Ruff 0.16.7 与 `git diff --check` 通过；Python 单文件与 Vue 单文件符合仓库行数限制。
 - 后端全量 383 项通过、无跳过，包含新增 API／现场助手 25 项。测试 Redis 使用临时 Unix socket；飞书、ADB 设备与安装操作隔离模拟。
@@ -89,3 +121,9 @@ python scripts/roombeacon_installer.py run \
 应用回退前停止现场助手、撤销凭证、核实在途任务并备份当前 SQLite（含 WAL 的一致性备份）。旧应用可忽略新增表，但不得恢复旧库覆盖新设备身份和配置。APK 首装不自动回退：失败设备保留现场状态，按批准的恢复方式处理，不能以卸载清数据实现默认回退。
 
 未验证项：正式发布密钥／正式包、新批次 ADB 首次授权、Windows 工具调用、真实冷启动和 PoE 关闭保持、2GB 长稳、厂家静默安装／守护权限、交换机连接器与自动电源恢复。自动测试不替代这些实机证据。
+
+## IP 流程验证
+
+- 本地后端 402 项通过，含首装相关 44 项；覆盖权限和 CSRF、网段／端口限制、无 APK 仍可探测、已有应用和型号不符、探测过期／归属、APK 变化、并发幂等、执行超时及未知故障不误报成功。
+- Chromium 143 项通过，含首装 7 项；默认高级设置收起，检测不安装，明确确认后创建任务，输入变化／过期／未授权／缺包时不能误操作。Ruff、TypeScript／Vite 与差异检查通过。
+- 自动化安装场景隔离真实设备；正式签名 APK 首装、开机恢复、关闭 ADB 和 PoE 仍需独立实机验证。
