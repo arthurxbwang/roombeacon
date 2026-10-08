@@ -11,6 +11,7 @@ from ..core.config import settings
 from ..core.exceptions import AppError
 from .catalog_store import SCHEMA as CATALOG_SCHEMA
 from .catalog_store import initialize
+from .installation_store import SCHEMA as INSTALLATION_SCHEMA
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
@@ -75,6 +76,7 @@ def database():
         enable_wal(db)
         db.executescript(SCHEMA)
         db.executescript(CATALOG_SCHEMA)
+        db.executescript(INSTALLATION_SCHEMA)
         db.execute("INSERT OR IGNORE INTO meta VALUES ('signing_key', ?)", (secrets.token_hex(32),))
         db.commit()
         db.execute('BEGIN IMMEDIATE')

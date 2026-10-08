@@ -1,8 +1,10 @@
 # RoomBeacon 当前状态
 
-## 批量交付与维护计划（2026-10-08，未实施）
+## 首装与交付软件（2026-10-08，本地实现）
 
-用户确认设备均支持 PoE；新建本地分支 `codex/16-delivery-maintenance-plan`，整理[首装、前后台任务、低频 APK 更新与 PoE 恢复计划](../plan/device-delivery-maintenance.md)。现有自动纳管、模板与回执继续复用；按 IP 安装、安装助手、无 ADB APK 更新、自动关闭 ADB 和交换机控制为待建设／待验收。PoE 单端口实际断电及无 ADB 自动恢复仍待核验；分别接续 #16／#29／#10。此次仅修改计划与文档，生产版本不变。
+用户授权按计划实施；`codex/16-delivery-maintenance-plan` 已实现 [#43](https://github.com/arthurxbwang/roombeacon/issues/43) 的首装后台、批准 APK 清单、可撤销助手凭证、IP／SN 任务、短码关联及人工验收记录，复用现有房间模板配置。见[操作说明](installation-delivery.md)和[总计划](../plan/device-delivery-maintenance.md)。正式签名、新批次实机验收尚待完成；无 ADB APK 更新、自动关闭 ADB 和交换机控制继续 #16／#29／#10。本轮未推送、部署或操作生产设备。
+
+验证：Ruff 0.16.7、后端 383 项（无跳过）、前端构建及 Chromium 140 项通过；SDK 对现有调试包／未签名包正确拒绝。自动测试不代表实机交付通过。
 
 ## 1.0.1 正式门牌补丁与就绪核查（2026-10-08）
 
