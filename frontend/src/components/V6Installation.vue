@@ -40,8 +40,9 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);credential.value=''})
   <p v-if="error" class="v6-error" role="alert">{{error}}</p><p v-if="info" class="v6-info" role="status">{{info}}</p>
   <V6QuickInstall v-if="editable" @changed="load();emit('changed')" />
   <details v-if="editable" class="advanced"><summary>高级设置与现场助手</summary>
-   <p>后台直连由运维一次性配置设备网段、ADB 工具和默认正式 APK。安装包须通过正式签名和适用型号校验，日常安装无需登记助手或粘贴清单。</p>
-   <p>后台无法访问设备网络时，可使用下方现场助手方式；助手需在可连接设备的现场电脑上运行。</p>
+   <p>后台已能连接设备时，无需登记现场助手。</p>
+   <p>以下是备用的现场电脑安装方式：仅在后台无法访问设备网络时使用。登记电脑后取得临时授权，再在现场电脑运行安装助手，由它领取任务并安装；仅登记不会执行安装。</p>
+   <p>这里的 APK 清单供现场助手使用，不会设置后台直连使用的默认安装包。</p>
   <div class="install-grid">
    <details><summary>1. 登记现场助手</summary><form @submit.prevent="registerExecutor"><label>电脑名称<input v-model="executorName" required maxlength="80" placeholder="例如：交付电脑 1" /></label><button :disabled="busy">生成一天有效的助手凭证</button></form><div v-if="credential"><p>凭证仅展示一次，供现场助手隐藏输入。关闭页面后不再显示。</p><code class="credential">{{credential}}</code><button class="secondary" @click="credential=''">已保存，隐藏凭证</button></div>
     <p v-for="e in data.executors" :key="e.id">{{e.name}} · {{e.revoked?'已撤销':e.expires<Date.now()/1000?'已过期':'有效'}} <button v-if="!e.revoked" class="secondary" :disabled="busy" @click="act(()=>management('POST',`${base}/executors/${e.id}/revoke`,abort.signal,{}))">撤销 {{e.name}}</button></p><small>撤销会停止后续领取；已经启动的 ADB 操作须在现场核实。</small>

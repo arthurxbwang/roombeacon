@@ -64,7 +64,7 @@ def allowed(ip, port):
 def default_apk():
     apk, cert, models = setting('APK'), setting('CERT_SHA256'), setting('MODELS')
     if not apk or not cert or not models:
-        raise conflict('尚未配置默认正式 APK，请由运维在高级设置说明中完成一次性配置')
+        raise conflict('后台尚未准备默认安装包，暂不能初始化。无需登记现场助手，请联系后台维护人员准备安装包')
     if not all(tool_available(t) for t in tools()[1:]):
         raise conflict('后台尚未配置 APK 校验工具')
     try:

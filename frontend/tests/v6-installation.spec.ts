@@ -178,3 +178,15 @@ for(const width of [1440,390])test(`installation layout keeps aligned padding an
  await page.getByText('高级设置与现场助手',{exact:true}).click()
  await page.screenshot({path:`/tmp/installation-layout-${width}.png`,fullPage:true})
 })
+
+test('missing backend APK is visible before probing and does not send user to field setup',async({page})=>{
+ await setup(page)
+ await page.route('**/api/v6/admin/installation/server',route=>route.fulfill({json:{code:0,data:{probe_ready:true,blocker:'',port:5555,apk_configured:false}}}))
+ await page.getByRole('button',{name:'设备台账',exact:true}).click()
+ await page.getByRole('button',{name:'首装与交付',exact:true}).click()
+ await expect(page.getByRole('alert').filter({hasText:'后台尚未准备默认安装包'})).toBeVisible()
+ await page.getByLabel('设备 IP',{exact:true}).fill('10.0.1.2')
+ await expect(page.getByRole('button',{name:'检测设备',exact:true})).toBeEnabled()
+ await page.getByText('高级设置与现场助手',{exact:true}).click()
+ await expect(page.getByText('后台已能连接设备时，无需登记现场助手。',{exact:true})).toBeVisible()
+})

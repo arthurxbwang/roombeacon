@@ -1,0 +1,6 @@
+#!/bin/sh
+# Install next to the module-owned java/ and lib/apksigner.jar.
+# Keep Java selection local to APK verification, not the backend process PATH.
+set -eu
+tool_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$tool_dir/java/bin/java" -Xmx256m -jar "$tool_dir/lib/apksigner.jar" "$@"
