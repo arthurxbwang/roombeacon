@@ -30,7 +30,7 @@
 
 生产 ADB 建议采用仓库 `scripts/production/roombeacon-installation-adb.service`：专用无登录账号 `roombeacon-adb`，账号 home 为 `/data/roombeacon/shared/installation`，目录属该账号且 0700；受控 ADB 位于 `/data/roombeacon/tools/installation/adb`。服务只监听回环 5041，默认 ADB 密钥由这个独立账号在其 home 中生成，保留用于重启后连接，不复制开发机密钥。服务关闭 mDNS 自动连接与模拟器端口扫描。
 
-后台在单独的 `80-installation.conf` drop-in 引用私有 `installation.env`，加 `ANDROID_ADB_SERVER_PORT=5041`。正常应用部署不会覆盖此 drop-in；ADB 进程独立于应用重启。只配置网段和 ADB 即可先检测，正式 APK 缺失会显示未就绪。系统不开放公网 ADB，也不提供任意命令接口。
+后台使用 `scripts/production/roombeacon-installation.conf` 作为 `80-installation.conf` drop-in，引用私有 `installation.env`，后者加 `ANDROID_ADB_SERVER_PORT=5041`。生产应用账号 home 为 `/nonexistent`；ADB 客户端也会创建 `.android`，因此另建属 `roombeacon` 的 0700 目录 `/data/roombeacon/shared/installation-client`，仅在此服务命名空间映射到 `/nonexistent`。不修改系统账号 home 或环境变量，客户端与 ADB 服务密钥目录分开。正常应用部署不会覆盖此 drop-in；ADB 进程独立于应用重启。只配置网段和 ADB 即可先检测，正式 APK 缺失会显示未就绪。系统不开放公网 ADB，也不提供任意命令接口。
 
 ## 直连任务和故障处理
 
@@ -127,3 +127,13 @@ python scripts/roombeacon_installer.py run \
 - 本地后端 402 项通过，含首装相关 44 项；覆盖权限和 CSRF、网段／端口限制、无 APK 仍可探测、已有应用和型号不符、探测过期／归属、APK 变化、并发幂等、执行超时及未知故障不误报成功。
 - Chromium 143 项通过，含首装 7 项；默认高级设置收起，检测不安装，明确确认后创建任务，输入变化／过期／未授权／缺包时不能误操作。Ruff、TypeScript／Vite 与差异检查通过。
 - 自动化安装场景隔离真实设备；正式签名 APK 首装、开机恢复、关闭 ADB 和 PoE 仍需独立实机验证。
+
+## 2026-10-08 IP 流程生产回执
+
+- 生产应用 SHA：`e1cd49bed95643fac34368c166e0ae7ccf314456`，对应 PR #46／#47；从服务器 GitHub 仓库发布。当前文档与运行目录模板属于部署后的回执，不需要重新发布应用。
+- 精确回退应用：`3d0542dde4677ed1c43ae09b90051379f1d9fc08`。本次基线和 SQLite 一致性备份位于 `/data/roombeacon/backups/installation-20261008T105103Z`，部署脚本备份为 `/data/roombeacon/backups/v6-20261008T105652Z`；应用回退不覆盖 SQLite／Redis。回退后可停止独立 ADB 服务并移除 80-installation drop-in，保留模块目录及授权密钥以供审计或恢复。
+- SDK platform-tools 37.0.1 的 ADB 已单独安装，SHA-256 `a902be8f45c6c62e76c9efaf6947a0fa747c9cabd89a2ac8e0d16ecb30b3ed01`。专用账号 `roombeacon-adb`，仅监听 `127.0.0.1:5041`；后台账号使用单独客户端目录。该版本服务参数不支持显式主机名，使用 `-L tcp:5041` 且不传 `-a`。
+- 真实后台浏览器操作：输入 `10.0.51.221` 并点击检测，读取型号 `RK3568`、Android 11 和有效 SN；识别已有门牌应用，因此不给初始化按钮。新增任务 0、正式包 0，浏览器错误 0，CSRF 缺失返回 403，未登录返回 401。截图：备份目录的 `live-ip-flow.png`。
+- 19:02:11（北京时间）复核：样机 W9TW7S 在线、10/10、APK 0.7.0-debug、业务心跳正常；343 间会议室、18 个采集批次完成、0 失败；原 16 条记录、核验策略和暂停开关保持。仅检测，没有安装 APK、关闭 ADB、重启样机或操作 PoE。
+- 生产 Ruff／构建及后端 402 项通过；本地 Chromium 143 项通过，且生产新入口完成实际浏览器验证。现有 Starlette/httpx/anyio 弃用提醒不影响结果。
+- 当前仅放行样机 `/32`。批量新机交付前需一次性补齐批准网段、正式签名 APK、证书指纹和准确型号；实际 APK 首装尚未验收。
