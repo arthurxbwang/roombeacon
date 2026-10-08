@@ -37,6 +37,8 @@ Playwright 自动启动 127.0.0.1:4178 的构建预览，API 全部使用 fixtur
 
 ## 3. 迁移测试边界
 
+首装交付测试见 `backend/tests/test_installation.py`、`backend/tests/test_installation_assistant.py` 与 `frontend/tests/v6-installation.spec.ts`。Python 助手在 `scripts/roombeacon_installer.py`，单独纳入 Ruff 检查；测试模拟外部 ADB，不接触真实门牌。助手操作与实机验收边界见[首装说明](../docs/installation-delivery.md)。
+
 原独立服务、采集器、日程、太阳时间、层级与二维码测试继续运行。设备撤销/轮换断言从平台测试抽出，验证 RoomBeacon 的真实设备认证函数。
 
 Argus 平台管理页面和 webhook 需要用户 JWT/DB 等，不属于独立服务，本次不为运行旧平台测试而引入整套 Argus。它们完整保存在 docs/archive/platform/，没有在源仓库删除或跳过测试。

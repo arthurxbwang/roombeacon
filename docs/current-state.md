@@ -1,5 +1,11 @@
 # RoomBeacon 当前状态
 
+## 首装与交付软件（2026-10-08，本地实现）
+
+用户授权按计划实施；`codex/16-delivery-maintenance-plan` 已实现 [#43](https://github.com/arthurxbwang/roombeacon/issues/43) 的首装后台、批准 APK 清单、可撤销助手凭证、IP／SN 任务、短码关联及人工验收记录，复用现有房间模板配置。见[操作说明](installation-delivery.md)和[总计划](../plan/device-delivery-maintenance.md)。正式签名、新批次实机验收尚待完成；无 ADB APK 更新、自动关闭 ADB 和交换机控制继续 #16／#29／#10。本轮未推送、部署或操作生产设备。
+
+验证：Ruff 0.16.7、后端 383 项（无跳过）、前端构建及 Chromium 140 项通过；SDK 对现有调试包／未签名包正确拒绝。自动测试不代表实机交付通过。
+
 ## 1.0.1 正式门牌补丁与就绪核查（2026-10-08）
 
 PR #38 / Release v1.0.1 / 生产应用 `b574638beed5be65596e5ca647c98236da56cd17` 已上线，门牌运维提示已清理，重启显式签到恢复修复；W9TW7S刷新回执10/10、无错误、真实心跳健康，18条既有记录保持。本地/生产后端各358项、浏览器136项通过。展示/签到可日常使用。

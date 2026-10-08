@@ -19,6 +19,8 @@ from .management.configuration_migration import router as migration_router
 from .management.deployment_batch import router as batch_deployments_router
 from .management.deployments import router as deployments_router
 from .management.devices import router as devices_router
+from .management.installation_admin import router as installation_admin_router
+from .management.installation_agent import router as installation_agent_router
 from .management.security import DEVICE_COOKIE, actor, authenticate_web
 from .room_usage_routes import usage_router
 from .schemas.meeting_room import DisplayPreferences, RoomSchedule
@@ -126,6 +128,8 @@ async def control_preview(response: Response,
 app.include_router(usage_router(require_admin, require_reader))
 app.include_router(auth_router)
 app.include_router(devices_router)
+app.include_router(installation_admin_router)
+app.include_router(installation_agent_router)
 app.include_router(catalog_router)
 app.include_router(assets_router)
 app.include_router(migration_router)
