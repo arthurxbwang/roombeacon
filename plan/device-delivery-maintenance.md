@@ -1,6 +1,6 @@
 # 批量门牌建设、交付与长期维护计划
 
-更新：2026-10-08。状态：用户已授权实施；P1 首装与交付软件已本地实现并通过自动验证。P0 实机基线、P2／P3 尚待后续实施和验收。
+更新：2026-10-08。状态：用户已授权实施；P1 首装与交付后台已部署并通过自动验证及真实页面／接口检查。P0 实机基线、P2／P3 尚待后续实施和验收。
 
 本地分支：`codex/16-delivery-maintenance-plan`，基线 `main` / `c6f79e6816e58fb9a6d5c4c1cd7d5acbcefa0c59`。
 接续 [#16 无 ADB 运维](https://github.com/arthurxbwang/roombeacon/issues/16)、[#29 自动关闭网络 ADB](https://github.com/arthurxbwang/roombeacon/issues/29)、[#10 设备与网络验收](https://github.com/arthurxbwang/roombeacon/issues/10)。批量首装已建立 [#43](https://github.com/arthurxbwang/roombeacon/issues/43)，操作与边界见[首装助手说明](../docs/installation-delivery.md)。交换机连接器另建 Issue，保留各项独立验收边界。
@@ -11,7 +11,7 @@
 - 新设备现场手动联网，取得 IP；用户说明出厂网络 ADB 默认开启。新批次仍需确认端口、首次授权或配对要求，不从现有样机推断全部固件一致。
 - 后台录入 IP 后安排首次 APK 安装，设备自动注册；核对设备身份、分配房间及模板，验收后关闭网络 ADB。首版允许人员用厂家工具手动关闭。
 - 业务、布局和签到交互继续通过 H5／服务端更新；APK 作为低频维护底座，保留必要升级能力。系统 WebView 和厂家固件独立维护。
-- 用户在保存计划后明确要求开始实施；本轮开发首装后台、现场助手、短码关联和验收记录。未远程推送源码、部署服务、安装 APK、关闭 ADB 或操作 PoE。
+- 用户在保存计划后要求实施，随后明确要求部署后台并测试；PR #44 已合入并由生产从 GitHub 部署 `3d0542d`。真实页面和接口检查通过，未安装 APK、关闭 ADB 或操作 PoE，见[发布回执](../docs/production-installation-2026-10-08.md)。
 
 ## 2. 已有能力与缺口
 

@@ -1,8 +1,8 @@
 # RoomBeacon 当前状态
 
-## 首装与交付软件（2026-10-08，本地实现）
+## 首装与交付后台（2026-10-08，已上线）
 
-用户授权按计划实施；`codex/16-delivery-maintenance-plan` 已实现 [#43](https://github.com/arthurxbwang/roombeacon/issues/43) 的首装后台、批准 APK 清单、可撤销助手凭证、IP／SN 任务、短码关联及人工验收记录，复用现有房间模板配置。见[操作说明](installation-delivery.md)和[总计划](../plan/device-delivery-maintenance.md)。正式签名、新批次实机验收尚待完成；无 ADB APK 更新、自动关闭 ADB 和交换机控制继续 #16／#29／#10。本轮未推送、部署或操作生产设备。
+用户授权按计划实施；`codex/16-delivery-maintenance-plan` 已实现 [#43](https://github.com/arthurxbwang/roombeacon/issues/43) 的首装后台、批准 APK 清单、可撤销助手凭证、IP／SN 任务、短码关联及人工验收记录，复用现有房间模板配置。见[操作说明](installation-delivery.md)和[总计划](../plan/device-delivery-maintenance.md)。正式签名、新批次实机验收尚待完成；无 ADB APK 更新、自动关闭 ADB 和交换机控制继续 #16／#29／#10。用户随后明确要求部署并测试，PR #44 已合入并从 GitHub 部署准确应用 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`。生产 383 项后端／140 项浏览器、真实后台助手创建／撤销、CSRF 与权限检查通过；W9TW7S 仍 10/10、心跳健康、343 间采集正常，部署前 16 条现存记录和策略保持。详见[发布与回退记录](production-installation-2026-10-08.md)。未执行真实装机、平板升级或电源操作。
 
 验证：Ruff 0.16.7、后端 383 项（无跳过）、前端构建及 Chromium 140 项通过；SDK 对现有调试包／未签名包正确拒绝。自动测试不代表实机交付通过。
 

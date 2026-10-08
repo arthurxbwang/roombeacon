@@ -6,7 +6,7 @@
 
 **V6 集中管理已上线：飞书登录、管理员/只读权限、设备自动纳管、短码核对、远程配置及按型号模板（昼夜、语言、固定灯控接线）。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
 
-首装与交付（#43）已本地实现：后台按 IP／序列号安排任务，现场助手核对正式 APK 后安装，关联短码并记录交付验收。尚未上线与实机验收，见[首装操作说明](docs/installation-delivery.md)。
+首装与交付（#43）已部署到后台 `/control`：按 IP／序列号安排任务，现场助手核对正式 APK 后安装，关联短码并记录交付验收。生产页面与接口测试已通过，正式 APK 和真实装机仍待验收，见[发布回执](docs/production-installation-2026-10-08.md)及[操作说明](docs/installation-delivery.md)。
 
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。
 
