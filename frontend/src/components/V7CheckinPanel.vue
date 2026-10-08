@@ -9,9 +9,10 @@ const emit = defineEmits<{ confirm: [] }>()
 const t = useDisplayText()
 const ready = computed(() => props.available && props.fresh && props.state?.enabled && props.state.policy.owner === 'v5' && props.state.policy.mode !== 'off')
 const record = computed(() => ready.value ? props.state?.record : null)
+const protectedBooking = computed(() => record.value?.state === 'blocked')
 const protection = computed(() => {
   if (!record.value || !['pending', 'waiting', 'blocked'].includes(record.value.state)) return ''
-  if (record.value.state === 'blocked') return '本次预约受保护，不会自动释放'
+  if (protectedBooking.value) return ''
   if (props.state?.policy.mode === 'observe') return '观察模式 · 仅记录，不自动释放'
   if (props.state?.paused) return '自动释放已由管理员暂停'
   if (!record.value.verified || !props.state?.policy.native_policy_cleared || !props.state.policy.release_verified) return '正在核验预约，暂不自动释放'
@@ -29,13 +30,13 @@ const countdown = computed(() => {
   if (!Number.isFinite(seconds) || seconds <= 0) return null
   const duration = before ? props.state!.policy.early_minutes * 60 : item.state === 'waiting' ? props.state!.policy.release_delay_seconds : props.state!.policy.grace_minutes * 60
   return { phase: before ? 'before' : 'after',
-    label: before ? '距离会议开始' : protection.value ? '签到剩余时间' : item.state === 'waiting' ? '释放前补签到 · 剩余' : '未签到将释放 · 剩余',
+    label: before ? '距离会议开始' : protectedBooking.value || protection.value ? '签到剩余时间' : item.state === 'waiting' ? '释放前补签到 · 剩余' : '未签到将释放 · 剩余',
     text: `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`,
     progress: Math.min(100, Math.max(0, seconds / Math.max(1, duration) * 100)) }
 })
 const status = computed(() => {
   if (record.value?.state === 'confirmed') return '已签到'
-  if (record.value && ['pending', 'waiting', 'blocked'].includes(record.value.state) && props.now >= Date.parse(record.value.release_at || record.value.deadline)) return protection.value ? '签到窗口已结束' : '正在同步释放状态'
+  if (record.value && ['pending', 'waiting', 'blocked'].includes(record.value.state) && props.now >= Date.parse(record.value.release_at || record.value.deadline)) return protectedBooking.value || protection.value ? '签到窗口已结束' : '正在同步释放状态'
   if (protection.value && record.value?.state === 'waiting') return '确认状态待同步'
   return props.label
 })

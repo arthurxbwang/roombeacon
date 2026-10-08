@@ -1,5 +1,9 @@
 # RoomBeacon 下一阶段规划
 
+## V7 最终签到规则（2026-10-08，1.0.0 发布进行中）
+
+[#34](https://github.com/arthurxbwang/roombeacon/issues/34)：用户确认 V7、会前/开始后各 5 分钟、取消补签到；长期策略/暂停持久化和托管身份核验源码及回归已完成，用户已授权删除保护说明、推送 PR 及正式版本上线。线上 IT灯塔-Test 签到配置已恢复，原 9:45 场未代签、自动释放仍暂停；见 [本次恢复与最终规则](../docs/v7-final-checkin-2026-10-08.md)。
+
 ## V7 品牌签到门牌（2026-09-28）
 
 [#31](https://github.com/arthurxbwang/roombeacon/issues/31) 用户确认方案 A 并授权上线；PR #32 已合入，生产 `9f21d96`、W9TW7S 回执 8/8，5+5 规则已应用。见[V7 说明](../docs/v7-brand-checkin.md)和[上线记录](../docs/production-v7-2026-09-28.md)。真实签到／释放及长稳仍沿原有业务与硬件事项验收，本次不操作真实预约补造结果。

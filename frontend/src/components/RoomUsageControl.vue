@@ -43,7 +43,7 @@ onUnmounted(() => abort.abort())
       <label>运行模式<select v-model="policy.mode"><option value="off">关闭</option><option value="observe">观察 · 不释放</option><option value="auto">自动释放 · 仅已核验实例</option></select></label>
       <label>提前开放确认（分钟）<input v-model.number="policy.early_minutes" type="number" min="1" max="30" /></label>
       <label>开始后宽限（分钟）<input v-model.number="policy.grace_minutes" type="number" min="1" max="30" /></label>
-      <label>待释放补确认（秒）<input v-model.number="policy.release_delay_seconds" type="number" min="30" max="300" /></label>
+      <label>待释放补确认（秒）<input v-model.number="policy.release_delay_seconds" type="number" min="0" max="300" /></label>
       </fieldset><label><input :disabled="readOnly" v-model="policy.native_policy_cleared" type="checkbox" />已关闭本房间飞书未签到自动释放</label>
       <label><input :disabled="readOnly" v-model="policy.release_verified" type="checkbox" />已在专用预约验证公开释放接口及影响范围</label>
       <button v-if="!readOnly" :disabled="busy">{{templateManaged?'保存房间核验':'保存房间规则'}}</button>

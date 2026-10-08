@@ -133,7 +133,7 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <p v-else-if="preview && !record">有预约且进入签到窗口后，才会显示签到按钮</p>
       <p v-else-if="preview && record?.state === 'confirmed'">服务器已保存本次签到</p>
       <p v-else-if="preview">当前预约不可签到，请核对下方状态</p>
-      <p v-else-if="record?.state === 'blocked'" class="notice">{{ t('本次预约受保护，不会自动释放') }}</p>
+      <template v-else-if="record?.state === 'blocked'" />
       <p v-else-if="record?.state === 'confirmed'" class="notice">{{ t('本场预约已保留') }}</p>
       <p v-else-if="state?.policy.mode === 'observe'" class="notice">{{ t('观察模式 · 仅记录，不自动释放') }}</p>
       <p v-else-if="state?.paused" class="notice">{{ t('自动释放已由管理员暂停') }}</p>

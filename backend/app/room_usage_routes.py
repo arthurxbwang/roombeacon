@@ -104,7 +104,7 @@ def usage_router(require_admin, require_reader=None):
 
     @router.put('/api/room-control/usage-pause')
     async def pause(body: PauseCommand, admin=Depends(require_admin), store=Depends(store_dep)):
-        # Expiry deliberately returns to paused=True.
+        # The administrator's choice is durable; missing state defaults to paused.
         old = await store.get('paused')
         if not await store.cas('paused', old, body.paused, 'global', action='pause'):
             raise conflict('全局开关已变化，请刷新')

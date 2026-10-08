@@ -14,7 +14,7 @@ class UsagePolicy(BaseModel):
     mode: Literal['off', 'observe', 'auto'] = 'off'
     early_minutes: int = Field(default=5, ge=1, le=30)
     grace_minutes: int = Field(default=10, ge=1, le=30)
-    release_delay_seconds: int = Field(default=60, ge=30, le=300)
+    release_delay_seconds: int = Field(default=60, ge=0, le=300)
     native_policy_cleared: bool = False
     release_verified: bool = False
     revision: str = ''

@@ -12,7 +12,7 @@ from ..core.response import ok
 from ..core.room_devices import room_cache
 from ..schemas.room_usage import UsagePolicy
 from ..services.room_usage import policy_for, save_policy
-from ..services.room_usage_store import UsageStore
+from ..services.room_usage_store import PREFIX, UsageStore
 from .catalog_models import Qualification
 from .security import actor
 from .store import audit, database
@@ -59,6 +59,8 @@ async def reconcile_room(store, room_id):
                 device['room_id'] != room_id or device['error'] or device['revision'] != device['reported_revision']):
             state, error, revision = 'pending', '等待业务主控设备应用配置', current['revision']
         elif same:
+            # Upgrade pre-fix policies without changing the revision or booking history.
+            await store.cache.persist(PREFIX + 'policy:' + room_id)
             state, error, revision = 'applied', '', current['revision']
         else:
             if desired['mode'] == 'auto' and not (current['native_policy_cleared'] and current['release_verified']):
@@ -81,6 +83,7 @@ async def configuration_loop():
                     rooms = [row[0] for row in db.execute('SELECT room_id FROM room_configurations')]
                 async with room_cache() as cache:
                     store = UsageStore(cache)
+                    await cache.persist(PREFIX + 'paused')
                     for room_id in rooms:
                         await reconcile_room(store, room_id)
         except asyncio.CancelledError:

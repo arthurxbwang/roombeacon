@@ -178,8 +178,10 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
         if policy['mode'] == 'observe' and old['state'] == 'pending':
             await store.cas(key, old, {**old, 'state': 'observed', 'reason': 'would_release'}, room_id, policy=policy)
         elif old['verified'] and await write_allowed(store, policy, room_id):
+            release_at = (datetime.fromisoformat(old['deadline']) if policy['release_delay_seconds'] == 0
+                          else now + timedelta(seconds=policy['release_delay_seconds']))
             waiting = {**old, 'state': 'waiting', 'reason': 'grace_before_release', 'last_seen': now.timestamp(),
-                       'release_at': min(occurrence.end_time, now + timedelta(seconds=policy['release_delay_seconds'])).isoformat()}
+                       'release_at': min(occurrence.end_time, release_at).isoformat()}
             await store.cas(key, old, waiting, room_id, policy=policy)
         else:
             await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'release_not_enabled'}, room_id, policy=policy)
