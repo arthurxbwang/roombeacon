@@ -1,0 +1,27 @@
+[Unit]
+Description=RoomBeacon first-install ADB transport
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/data/roombeacon
+
+[Service]
+User=roombeacon-adb
+Group=roombeacon-adb
+WorkingDirectory=/data/roombeacon/shared/installation
+ExecStart=/data/roombeacon/tools/installation/adb -L tcp:127.0.0.1:5041 nodaemon server
+Environment=ADB_MDNS_AUTO_CONNECT=0
+Environment=ADB_LOCAL_TRANSPORT_MAX_PORT=0
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/roombeacon/shared/installation
+# ADB auth diagnostics can contain key fingerprints; retain only module-level errors.
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
