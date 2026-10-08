@@ -116,7 +116,7 @@ python scripts/roombeacon_installer.py run \
 
 ## 发布与回退
 
-用户授权后，后台已从 GitHub 部署 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`（PR #44）；生产 383 项后端、140 项浏览器、真实页面与权限验证通过，详见[发布回执](production-installation-2026-10-08.md)。正式装机前仍须明确正式 APK 签名／摘要、助手脚本版本、单台试点和窗口；首台真实通过后再扩批。
+原现场助手版本从 GitHub 部署 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`（PR #44），历史验证见[首次发布回执](production-installation-2026-10-08.md)。IP 流程对应 [PR #46](https://github.com/arthurxbwang/roombeacon/pull/46)，专用 ADB 服务参数修正见 [PR #47](https://github.com/arthurxbwang/roombeacon/pull/47)；生产切换须记录准确合并 SHA，回退应用为上述 `3d0542d`，不恢复旧数据库或 Redis。首次配置时仅放行样机 `10.0.51.221/32`；新设备交付前由运维扩展批准网段。正式装机前仍须明确正式 APK 签名／摘要、助手脚本版本、单台试点和窗口；首台真实通过后再扩批。
 
 应用回退前停止现场助手、撤销凭证、核实在途任务并备份当前 SQLite（含 WAL 的一致性备份）。旧应用可忽略新增表，但不得恢复旧库覆盖新设备身份和配置。APK 首装不自动回退：失败设备保留现场状态，按批准的恢复方式处理，不能以卸载清数据实现默认回退。
 
