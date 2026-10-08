@@ -1,6 +1,6 @@
 # RoomBeacon 项目交接
 
-> 2026-10-08：W9TW7S/IT灯塔-Test 无签到入口因策略 7 天 TTL 到期，按用户要求已恢复原资格/5+5 配置与真实会话，并取消策略 TTL。生产应用仍 `9f21d96`、自动释放暂停。用户确认最终 V7 5+5、零补签到；源码/回归已准备，待远程提交与最终发布授权，接续 [Issue #34](https://github.com/arthurxbwang/roombeacon/issues/34) 和 [本次记录](v7-final-checkin-2026-10-08.md)。
+> 2026-10-08：W9TW7S/IT灯塔-Test 无签到入口因策略 7 天 TTL 到期，按用户要求已恢复原资格/5+5 配置与真实会话，并取消策略 TTL。生产应用仍 `9f21d96`、自动释放暂停。用户确认最终 V7 5+5、零补签到；源码/回归已准备，用户已另行授权删除保护说明并经 PR 发布 1.0.0 正式版，接续 [Issue #34](https://github.com/arthurxbwang/roombeacon/issues/34) 和 [本次记录](v7-final-checkin-2026-10-08.md)。
 
 > 2026-09-28：V7 经 PR #32 合入并部署生产 `9f21d96`；W9TW7S 已应用专用 V7 模板与 5+5 分钟规则，回执 8/8，APK 0.7.0 不变。14:15 旧预约继续受保护。先读[上线及回退记录](production-v7-2026-09-28.md)和[V7 说明](v7-brand-checkin.md)。
 

@@ -93,7 +93,6 @@ const english:Record<string,string>={
   "状态待核实": "Status unverified",
   "当前没有可签到的预约": "No booking available for check-in",
   "等待下一场确认窗口": "Waiting for next check-in window",
-  "本次预约受保护，不会自动释放": "This booking is protected from automatic release",
   "本场预约已保留": "This booking has been retained",
   "观察模式 · 仅记录，不自动释放": "Observation mode · no automatic release",
   "自动释放已由管理员暂停": "Automatic release paused by administrator",

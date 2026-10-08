@@ -89,7 +89,11 @@ test('补签到使用服务器 release_at，成功后清除倒计时', async ({ 
 for (const options of [{ releaseEnabled: false }, { paused: true }, { verified: false }, { mode: 'observe' }, { phase: 'blocked' }]) test(`保护状态不承诺自动释放 ${JSON.stringify(options)}`, async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:16:00Z', ...options })
   await expect(page.getByLabel('未签到将释放 · 剩余', { exact: true })).toHaveCount(0)
-  await expect(page.locator('.v7-protection')).toBeVisible()
+  if (options.phase === 'blocked') {
+    await expect(page.getByText('本次预约受保护，不会自动释放', { exact: true })).toHaveCount(0)
+    await expect(page.locator('.v7-protection')).toHaveCount(0)
+    await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('04:00')
+  } else await expect(page.locator('.v7-protection')).toBeVisible()
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toBeEnabled()
 })
 
@@ -181,4 +185,12 @@ test('无补签到窗口在五分钟截止时隐藏按钮，等待核验结果',
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
   await expect(page.getByText('释放前补签到 · 剩余', { exact: true })).toHaveCount(0)
   await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
+})
+
+test('正式版不显示保护说明，截止后也不误报释放', async ({ page }) => {
+  await scene(page, { time: '2026-09-28T06:20:00Z', phase: 'blocked', buffer: 0 })
+  await expect(page.getByText('本次预约受保护，不会自动释放', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('签到窗口已结束', { exact: true })).toBeVisible()
+  await expect(page.getByText('正在同步释放状态', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
 })
