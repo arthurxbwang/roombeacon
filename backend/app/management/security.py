@@ -117,3 +117,19 @@ def authenticate_web(token):
                                         for key, default in [('theme_mode', 'auto'), ('language', 'zh-CN')]}
                                         | config.get('presentation', {}) | {'usage_control': config.get('usage_control', True)}),
                 'digest': digest(f"v6:{row['id']}:{row['revision']}")}
+
+
+def current_usage_actor(room_id, fingerprint):
+    """Revalidate a previously authenticated managed heartbeat against its binding."""
+    if not settings.ROOM_DISPLAY_V6_DB:
+        return False
+    with database() as db:
+        controller = db.execute('SELECT controller_id FROM room_configurations WHERE room_id=?',
+                                (room_id,)).fetchone()
+        rows = db.execute("SELECT id,revision,config FROM devices WHERE room_id=? AND status='active' "
+                          "AND revision=reported_revision AND error=''",
+                          (room_id,)).fetchall()
+        return any((not controller or controller['controller_id'] == row['id'])
+                   and json.loads(row['config']).get('usage_control', True)
+                   and hmac.compare_digest(fingerprint, digest(f"v6:{row['id']}:{row['revision']}"))
+                   for row in rows)

@@ -5,10 +5,20 @@ from datetime import UTC, datetime
 PREFIX = 'rooms:usage:v1:'
 TTL = 7 * 86400
 AUDIT_TTL = 30 * 86400
+
+
+def persistent(name):
+    return name.startswith('policy:') or name == 'paused'
+
+
 CAS = """
 if (redis.call('get', KEYS[1]) or '') ~= ARGV[1] then return 0 end
 if KEYS[3] ~= '' and (redis.call('get', KEYS[3]) or '') ~= ARGV[4] then return 0 end
-redis.call('set', KEYS[1], ARGV[2], 'EX', ARGV[3])
+if ARGV[8] == 'persistent' then
+ redis.call('set', KEYS[1], ARGV[2])
+else
+ redis.call('set', KEYS[1], ARGV[2], 'EX', ARGV[3])
+end
 if ARGV[7] ~= 'monitor' then
  redis.call('lpush', KEYS[2], ARGV[5])
  redis.call('ltrim', KEYS[2], 0, 999)
@@ -31,7 +41,7 @@ class UsageStore:
         return json.loads(raw) if raw else default
 
     async def put(self, name, value, ttl=TTL):
-        await self.cache.set(PREFIX + name, encoded(value), ex=ttl)
+        await self.cache.set(PREFIX + name, encoded(value), ex=None if persistent(name) else ttl)
 
     async def cas(self, name, old, new, room_id, *, policy=None, action='state'):
         values = new if isinstance(new, dict) else {'paused': new}
@@ -43,7 +53,8 @@ class UsageStore:
                                          PREFIX + 'policy:' + room_id if policy is not None else '',
                                          encoded(old) if old is not None else '', encoded(new), TTL,
                                          encoded(policy) if policy is not None else '',
-                                         encoded(audit), AUDIT_TTL, action))
+                                         encoded(audit), AUDIT_TTL, action,
+                                         'persistent' if persistent(name) else 'bounded'))
 
     async def audit(self, room_id):
         return [json.loads(row) for row in await self.cache.lrange(PREFIX + 'audit:' + room_id, 0, 99)]

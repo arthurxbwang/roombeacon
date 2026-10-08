@@ -43,7 +43,7 @@ class Rules(StrictModel):
     mode: Literal['off', 'observe', 'auto'] = 'off'
     early_minutes: int = Field(default=5, ge=1, le=30)
     grace_minutes: int = Field(default=10, ge=1, le=30)
-    release_delay_seconds: int = Field(default=60, ge=30, le=300)
+    release_delay_seconds: int = Field(default=60, ge=0, le=300)
 
     @model_validator(mode='after')
     def official_off(self):

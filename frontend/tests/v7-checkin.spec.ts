@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { fixture } from './configuration.fixture'
 
-async function scene(page: Page, options: { time?: string; phase?: string; height?: number; dark?: boolean; mode?: string; paused?: boolean; verified?: boolean; managed?: boolean; control?: boolean; owner?: string; deadline?: string; releaseEnabled?: boolean } = {}) {
+async function scene(page: Page, options: { time?: string; phase?: string; height?: number; dark?: boolean; mode?: string; paused?: boolean; verified?: boolean; managed?: boolean; control?: boolean; owner?: string; deadline?: string; releaseEnabled?: boolean; buffer?: number } = {}) {
   const time = options.time || '2026-09-28T06:10:00Z'
   await page.clock.install({ time: new Date(Date.parse(time) - 1000) })
   await page.clock.pauseAt(new Date(time))
@@ -12,9 +12,9 @@ async function scene(page: Page, options: { time?: string; phase?: string; heigh
   })
   const occurrence = { uid: 'fixture', original_time: 0, start_time: '2026-09-28T06:15:00Z', end_time: '2026-09-28T06:30:00Z' }
   const state = { room_id: 'omm_fixture', enabled: true, release_enabled: options.releaseEnabled ?? true, paused: options.paused ?? false, target_id: 'a'.repeat(64), can_confirm: true, can_end: false,
-    policy: { owner: options.owner || 'v5', mode: options.mode || 'auto', early_minutes: 5, grace_minutes: 5, release_delay_seconds: 60, native_policy_cleared: true, release_verified: true, revision: 'fixture' },
+    policy: { owner: options.owner || 'v5', mode: options.mode || 'auto', early_minutes: 5, grace_minutes: 5, release_delay_seconds: options.buffer ?? 60, native_policy_cleared: true, release_verified: true, revision: 'fixture' },
     record: { id: 'a'.repeat(64), state: options.phase || 'pending', verified: options.verified ?? true, deadline: options.deadline || '2026-09-28T06:20:00Z', occurrence,
-      ...(options.phase === 'waiting' ? { release_at: '2026-09-28T06:21:00Z' } : {}) } }
+      ...(options.phase === 'waiting' ? { release_at: options.buffer === 0 ? '2026-09-28T06:20:00Z' : '2026-09-28T06:21:00Z' } : {}) } }
   const currentTime = () => page.evaluate(() => Date.now())
   await page.route('**/api/meeting-rooms/display', async route => route.fulfill({ json: { data: {
     room: { room_id: 'omm_fixture', name: 'V7 模拟会议室', capacity: 4, enabled: true },
@@ -129,10 +129,11 @@ test('V7 软件模板预设仅修改草稿，页面切换不改业务规则', as
   await expect(page.getByLabel('开始后宽限（分钟）')).toHaveValue('10')
   await page.getByRole('button', { name: '使用会前 5 分钟／会后 5 分钟预设' }).click()
   await expect(page.getByLabel('开始后宽限（分钟）')).toHaveValue('5')
+  await expect(page.getByLabel('待释放补确认（秒）')).toHaveValue('0')
   await expect(page.getByLabel('运行模式', { exact: true })).toHaveValue('off')
   expect(state.writes).toHaveLength(0)
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
-  expect(state.writes.at(-1)?.body.spec).toMatchObject({ display_version: 'v7', rules: { early_minutes: 5, grace_minutes: 5, mode: 'off' } })
+  expect(state.writes.at(-1)?.body.spec).toMatchObject({ display_version: 'v7', rules: { early_minutes: 5, grace_minutes: 5, release_delay_seconds: 0, mode: 'off' } })
   expect(state.configuration.deployments).toHaveLength(0)
 })
 
@@ -167,4 +168,17 @@ test('凭证撤销后隐藏动作和倒计时', async ({ page }) => {
   await expect(page.getByText('签到暂不可用', { exact: true })).toBeVisible()
   await expect(page.getByRole('timer')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+test('无补签到窗口在五分钟截止时隐藏按钮，等待核验结果', async ({ page }) => {
+  const state = await scene(page, { time: '2026-09-28T06:19:59Z', buffer: 0 })
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toBeEnabled()
+  await page.clock.fastForward(1000)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+  state.record.state = 'waiting'
+  state.can_confirm = false
+  await page.clock.fastForward(10000)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+  await expect(page.getByText('释放前补签到 · 剩余', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
 })

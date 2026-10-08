@@ -26,7 +26,9 @@ async def healthy_terminal(store, room_id, now, record=None, policy=None):
     if not 0 <= now.timestamp() - hb['time'] < 45:
         return False
     if hb['actor'] != await store.cache.get(KEY + room_id):
-        return False
+        from ..management.security import current_usage_actor
+        if not current_usage_actor(room_id, hb['actor']):
+            return False
     if policy and hb['policy_revision'] != policy['revision']:
         return False
     return not record or (hb['session_id'] == record.get('session_id') and covers_occurrence(hb, record['id']))

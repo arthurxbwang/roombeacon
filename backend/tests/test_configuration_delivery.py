@@ -102,6 +102,7 @@ async def test_matching_room_policy_is_not_rewritten(client, monkeypatch):
     save.assert_not_called()
     with database() as db:
         assert db.execute('SELECT policy_revision FROM room_configurations').fetchone()[0] == 'keep-this-revision'
+    store.cache.persist.assert_awaited_once_with('rooms:usage:v1:policy:' + v6.ROOM)
 
 
 def test_legacy_devices_in_same_room_can_adopt_without_revision_change(client, monkeypatch):
