@@ -37,3 +37,13 @@ export function usageError(error: unknown) {
   }
   return '操作结果待核实，请等待重新同步'
 }
+
+export function usageDisplayError(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status
+    if (status === 503 || status === 404) return '签到服务暂不可用'
+    if (status === 401 || status === 403) return '签到暂不可用，请联系管理员'
+    if (status === 409) return '签到未完成，请稍后重试'
+  }
+  return '签到状态暂不可用，请稍后重试'
+}

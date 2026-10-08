@@ -124,14 +124,18 @@ async def command(store, room_id, actor, request, action, now=None):
     old = await store.get('record:' + record['id'])
     if old is None or old['state'] != record['state']:
         raise conflict('操作状态已变化，请刷新')
-    if request.session_id != old.get('session_id'):
-        raise conflict('操作页面会话已变化，请等待下一场完整确认窗口')
     if action == 'confirm' and record['state'] == 'confirmed':
         return state
     if not state['can_' + action]:
         raise conflict('当前不可执行该操作，请核对确认窗口与释放开关')
+    if request.session_id != old.get('session_id'):
+        from .room_usage_health import confirmation_session_current
+        if (old['state'] != 'blocked' or not await confirmation_session_current(
+                store, room_id, actor, request, policy, now)):
+            raise conflict('操作页面会话已变化，请等待重新同步')
     updated = {**old, 'state': 'confirmed',
-               'actor': actor, 'updated_at': now.isoformat(), 'last_seen': now.timestamp(), 'reason': action}
+               'actor': actor, 'session_id': request.session_id,
+               'updated_at': now.isoformat(), 'last_seen': now.timestamp(), 'reason': action}
     if not await store.cas('record:' + old['id'], old, updated, room_id, policy=policy, action=action):
         raise conflict('预约状态或规则已变化，请重新查询')
     return await view(store, room_id, now)

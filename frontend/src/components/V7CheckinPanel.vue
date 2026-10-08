@@ -9,16 +9,6 @@ const emit = defineEmits<{ confirm: [] }>()
 const t = useDisplayText()
 const ready = computed(() => props.available && props.fresh && props.state?.enabled && props.state.policy.owner === 'v5' && props.state.policy.mode !== 'off')
 const record = computed(() => ready.value ? props.state?.record : null)
-const protectedBooking = computed(() => record.value?.state === 'blocked')
-const protection = computed(() => {
-  if (!record.value || !['pending', 'waiting', 'blocked'].includes(record.value.state)) return ''
-  if (protectedBooking.value) return ''
-  if (props.state?.policy.mode === 'observe') return '观察模式 · 仅记录，不自动释放'
-  if (props.state?.paused) return '自动释放已由管理员暂停'
-  if (!record.value.verified || !props.state?.policy.native_policy_cleared || !props.state.policy.release_verified) return '正在核验预约，暂不自动释放'
-  if (props.state?.release_enabled !== true) return '自动释放尚未启用'
-  return ''
-})
 const countdown = computed(() => {
   const item = record.value
   if (!item || !props.canConfirm || !['pending', 'waiting', 'blocked'].includes(item.state)) return null
@@ -30,15 +20,22 @@ const countdown = computed(() => {
   if (!Number.isFinite(seconds) || seconds <= 0) return null
   const duration = before ? props.state!.policy.early_minutes * 60 : item.state === 'waiting' ? props.state!.policy.release_delay_seconds : props.state!.policy.grace_minutes * 60
   return { phase: before ? 'before' : 'after',
-    label: before ? '距离会议开始' : protectedBooking.value || protection.value ? '签到剩余时间' : item.state === 'waiting' ? '释放前补签到 · 剩余' : '未签到将释放 · 剩余',
+    label: before ? '距离会议开始' : '签到剩余时间',
     text: `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`,
     progress: Math.min(100, Math.max(0, seconds / Math.max(1, duration) * 100)) }
 })
 const status = computed(() => {
+  if (!props.available) return props.label
+  if (!props.fresh) return '签到状态暂不可用'
+  if (!ready.value) return '签到暂不可用'
   if (record.value?.state === 'confirmed') return '已签到'
-  if (record.value && ['pending', 'waiting', 'blocked'].includes(record.value.state) && props.now >= Date.parse(record.value.release_at || record.value.deadline)) return protectedBooking.value || protection.value ? '签到窗口已结束' : '正在同步释放状态'
-  if (protection.value && record.value?.state === 'waiting') return '确认状态待同步'
-  return props.label
+  if (record.value?.state === 'released') return '预约已释放'
+  if (record.value && ['uncertain', 'failed'].includes(record.value.state)) return '会议状态待确认'
+  if (record.value && ['checking', 'releasing', 'end_requested'].includes(record.value.state)) return '签到已截止'
+  if (record.value && props.now >= Date.parse(record.value.release_at || record.value.deadline)) return '签到已截止'
+  if (!props.state?.target_id) return '暂无可签到的会议'
+  if (!record.value || props.now < Date.parse(record.value.occurrence.start_time) - props.state!.policy.early_minutes * 60000) return '签到尚未开放'
+  return '签到暂不可用'
 })
 </script>
 
@@ -51,7 +48,6 @@ const status = computed(() => {
       <div class="v7-progress" aria-hidden="true"><span :style="{ width: `${countdown.progress}%` }" /></div>
     </div>
     <h4 v-else class="v7-status" role="status">{{ t(status) }}</h4>
-    <p v-if="protection" class="v7-protection">{{ t(protection) }}</p>
     <button v-if="countdown" type="button" class="v7-button" :disabled="pending || !canConfirm" @click="emit('confirm')">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
       <span>{{ t(pending ? '正在提交…' : '立即签到') }}</span>
@@ -73,7 +69,7 @@ const status = computed(() => {
 .v7-button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:66px;border:0;border-radius:999px;padding:14px 18px;background:#cb1932;color:#fff;box-shadow:0 6px 18px #c9203120;font-size:clamp(22px,2.1cqw,28px);font-weight:650;line-height:1.2;cursor:pointer}
 .v7-button svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .v7-button:disabled{opacity:.65;cursor:wait;box-shadow:none}.v7-button:not(:disabled):active{background:#a71428}.v7-button:focus-visible{outline:3px solid var(--checkin-bar);outline-offset:4px}
-.v7-status{font-size:clamp(18px,2cqw,26px);line-height:1.4}.v7-protection{font-size:14px;line-height:1.5;color:var(--muted)}
+.v7-status{font-size:clamp(18px,2cqw,26px);line-height:1.4}
 :global(.theme-dark .v7-brand){mix-blend-mode:screen}:global(.theme-dark .v7-brand img){filter:invert(1) hue-rotate(180deg) saturate(.4)}
 :global(.theme-dark .v7-checkin){--checkin-tone:#edc967}:global(.theme-dark .v7-checkin[data-phase=after]){--checkin-tone:#f4ac68}
 @media(max-height:700px) and (orientation:landscape){.v7-checkin{gap:10px}.v7-brand{max-width:180px}.v7-button{min-height:54px}.v7-countdown strong{font-size:44px}}

@@ -104,7 +104,7 @@ async function refresh() {
     if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
       if (!props.controlRoom && !managed) { token.value = ''; localStorage.removeItem(storageKey) }
       snapshot.value = null
-      message.value = '凭证已失效，请重新绑定'
+      message.value = managed ? '设备连接已失效，请联系管理员' : '凭证已失效，请重新绑定'
     }
     console.warn('Room display sync failed', axios.isAxiosError(err) ? err.response?.status : 'invalid response')
   } finally { pending.value = false }
@@ -140,7 +140,7 @@ onUnmounted(() => {
         <div class="room-identity"><p class="eyebrow">{{ isV7 ? 'ROOMBEACON' : 'ARGUS' }} / MEETING ROOM </p>
           <h1 :title="snapshot?.room.name">{{ snapshot?.room.name || t('正在获取会议室') }}</h1>
           <p class="capacity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a6 6 0 0 1 3 5v2"/></svg>{{ snapshot ? (language==='en' ? `Capacity ${snapshot.room.capacity}` : `可容纳 ${snapshot.room.capacity} 人`) : t('正在同步') }}</p></div>
-        <div class="clock"><strong>{{ time(now) }}</strong><p>{{ date }}</p><span class="theme-control">{{ themeLabel }}</span></div>
+        <div class="clock"><strong>{{ time(now) }}</strong><p>{{ date }}</p><span v-if="!isV7 || controlRoom" class="theme-control">{{ themeLabel }}</span></div>
       </header>
       <p v-if="snapshot && !fresh" class="history-warning" role="status">{{ t('历史日程 · 最后同步') }} {{ lastSynced }} {{ t('· 正在重试，当前状态待确认') }}</p>
       <div class="content">
@@ -162,7 +162,7 @@ onUnmounted(() => {
                 <p class="detail-label">{{ current ? t('当前会议') : t('下一场会议') }}</p>
                 <h2 :title="title(active)">{{ title(active) }}</h2>
                 <p class="meeting-time">{{ time(active.start_time) }} — {{ time(active.end_time) }}</p>
-                <p class="organizer">{{ t('组织者 ·') }} {{ active.organizer || t('信息不可见') }}</p>
+                <p v-if="!isV7 || active.organizer" class="organizer">{{ t('组织者 ·') }} {{ active.organizer || t('信息不可见') }}</p>
               </div>
               <div v-if="current" class="meeting-progress" role="progressbar" :aria-label="t('本场会议进度')" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100"><span :style="{ width: `${progress}%` }" /></div>
               <div v-else-if="fresh && !isV3" class="booking-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6m10-6v6M3 11h18m-13 5h8"/></svg><div><strong>{{ t('扫码预订') }}</strong><p>{{ t('预约入口待接入') }}</p></div></div>
@@ -180,12 +180,12 @@ onUnmounted(() => {
           <div class="agenda-body">
             <article v-for="event in agendaEvents" :key="`${event.uid}:${event.original_time}:${event.start_time}`" :class="{ active: fresh && event === current, upcoming: fresh && event === next && state === '即将开始' }">
               <div class="event-top"><p><small v-if="isV3" class="event-day">{{ dateKey(Date.parse(event.start_time)) === dateKey(now) ? t('今天') : new Date(event.start_time).toLocaleDateString(language, { timeZone: timezone, month: 'numeric', day: 'numeric' }) }}</small>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><span class="tag">{{ !fresh ? t('预约') : event === current ? t('进行中') : event === next ? t('下一场') : t('待开始') }}</span></div>
-              <h4 :title="title(event)">{{ title(event) }}</h4><p class="event-organizer">{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</p>
+              <h4 :title="title(event)">{{ title(event) }}</h4><p v-if="!isV7 || event.organizer" class="event-organizer">{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</p>
             </article>
             <div v-if="fresh && (isV3 ? !agendaEvents.length : !remainingEvents.length)" class="agenda-empty">
               <svg class="empty-art" viewBox="0 0 160 120" fill="none" aria-hidden="true"><rect x="38" y="23" width="84" height="78" rx="12" stroke="currentColor" stroke-width="2"/><path d="M38 46h84M58 14v18m44-18v18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m62 73 12 12 25-26" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <h4>{{ disabled ? t('会议室已停用') : isV3 ? t('暂无后续会议') : !events.length ? t('今日全天空闲') : t('今日会议已结束') }}</h4><p>{{ disabled ? t('会议室当前已停用') : t('为下一次交流，留出空间') }}</p>
-              <div class="room-fact"><strong>{{ snapshot?.room.capacity || 0 }}</strong><span>{{ t('人 · 会议空间') }}</span></div>
+              <h4>{{ disabled ? t('会议室已停用') : isV3 ? t('暂无后续会议') : !events.length ? t('今日全天空闲') : t('今日会议已结束') }}</h4><p v-if="!isV7 || disabled">{{ disabled ? t('会议室当前已停用') : t('为下一次交流，留出空间') }}</p>
+              <div v-if="!isV7" class="room-fact"><strong>{{ snapshot?.room.capacity || 0 }}</strong><span>{{ t('人 · 会议空间') }}</span></div>
             </div>
             <p v-else-if="!agendaEvents.length" class="pending-message">{{ t('等待获取日程') }}</p>
             <details v-if="!isV2 && fresh && pastEvents.length" class="history"><summary>已结束 · {{ pastEvents.length }} 场</summary><div v-for="event in pastEvents" :key="`${event.uid}:${event.start_time}`"><p>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><h4>{{ title(event) }}</h4><small>{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</small></div></details>
@@ -198,7 +198,7 @@ onUnmounted(() => {
         <div class="track" :class="{ unknown: isV2 && (!fresh || disabled) }"><span v-for="event in timelineEvents" :key="`${event.uid}:${event.start_time}`" :style="bar(event)" :class="{ elapsed: Date.parse(event.end_time) <= now }" /><i :style="{ left: `${position(now)}%` }" /></div>
         <div class="ticks"><span v-for="value in ticks" :key="value">{{ tickLabel(value) }}</span></div>
       </section>
-      <footer :class="{ stale: !fresh }"><span>{{ fresh ? t('● 日程已同步') : t('● 日程待更新') }} {{ t('· 飞书预约日程') }}{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="snapshot && !snapshot.titles_available">{{ t('部分会议主题不可见') }}</span></footer>
+      <footer v-if="!isV7" :class="{ stale: !fresh }"><span>{{ fresh ? t('● 日程已同步') : t('● 日程待更新') }} {{ t('· 飞书预约日程') }}{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="snapshot && !snapshot.titles_available">{{ t('部分会议主题不可见') }}</span></footer>
     </template>
   </main>
 </template>
