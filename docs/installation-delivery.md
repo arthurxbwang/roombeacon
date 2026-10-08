@@ -1,6 +1,6 @@
 # 首装助手与交付后台（#43）
 
-更新：2026-10-08。本地实现，尚未部署或完成实机首装验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
+更新：2026-10-08。后台已部署，真实首装仍待验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
 
 ## 当前可以做什么
 
@@ -84,7 +84,7 @@ python scripts/roombeacon_installer.py run \
 
 ## 发布与回退
 
-本轮仅本地开发。正式上线前明确服务器 SHA、前端构建、正式 APK 签名与 SHA-256、助手脚本版本、首台试点及窗口；服务端从 GitHub 发布，不能把开发机源码直接复制上生产。首台真实通过后再扩批。
+用户授权后，后台已从 GitHub 部署 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`（PR #44）；生产 383 项后端、140 项浏览器、真实页面与权限验证通过，详见[发布回执](production-installation-2026-10-08.md)。正式装机前仍须明确正式 APK 签名／摘要、助手脚本版本、单台试点和窗口；首台真实通过后再扩批。
 
 应用回退前停止现场助手、撤销凭证、核实在途任务并备份当前 SQLite（含 WAL 的一致性备份）。旧应用可忽略新增表，但不得恢复旧库覆盖新设备身份和配置。APK 首装不自动回退：失败设备保留现场状态，按批准的恢复方式处理，不能以卸载清数据实现默认回退。
 
