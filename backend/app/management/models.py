@@ -6,6 +6,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictInt,
     field_validator,
     model_validator,
 )
@@ -30,6 +31,18 @@ class Screen(StrictModel):
     dpr: float = Field(default=0, ge=0, le=16, allow_inf_nan=False)
 
 
+class RuntimeHealth(StrictModel):
+    protocol: Literal[1] = 1
+    page_state: Literal['waiting', 'loading', 'ready', 'failed', 'paused'] = 'waiting'
+    page_error: Literal['', 'network', 'http', 'tls', 'renderer', 'timeout', 'unresponsive',
+                        'initialization', 'blocked'] = ''
+    page_age_seconds: StrictInt | None = Field(default=None, ge=0, le=86400)
+    page_release: str = Field(default='', max_length=100, pattern=r'^[A-Za-z0-9._-]*$')
+    terminal_state: Literal['free', 'busy', 'soon', 'unknown'] = 'unknown'
+    webview: str = Field(default='', max_length=100, pattern=r'^[A-Za-z0-9._-]*$')
+    light_state: Literal['disabled', 'unknown', 'ok', 'failed'] = 'unknown'
+
+
 class Metadata(StrictModel):
     model: str = Field(default='', max_length=100)
     serial: str = Field(default='', max_length=100)
@@ -42,6 +55,7 @@ class Metadata(StrictModel):
     firmware: str = Field(default="", max_length=160)
     config_schema: Literal[1, 2, 3] = 1
     screen: Screen = Field(default_factory=Screen)
+    runtime: RuntimeHealth | None = None
 
 
 class Sync(StrictModel):

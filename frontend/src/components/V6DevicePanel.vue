@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import V6RoomFilter from './V6RoomFilter.vue'
+import V6DeviceHealth from './V6DeviceHealth.vue'
 import {emptyScope,matchesScope,roomMatches,type RoomScope} from '@/composables/roomScope'
 import type {ConfigTemplate} from '@/api/management'
 import { defaultConfig, confirmModelOverride, profileNotice, profileCapabilityNotice, profileMismatch, type DeviceProfile, management, managementError, networkLabel, statusLabel, type ManagedDevice, type Room, type DeviceConfig } from '@/api/management'
@@ -58,6 +59,7 @@ onUnmounted(() => abort.abort())
     <div class="v6-interfaces" v-for="nic in device.metadata.interfaces || []" :key="nic.name"><strong>{{ nic.name }}</strong><span>MAC {{ nic.mac || '系统未提供' }}</span><span>{{ nic.addresses.join(' · ') }}</span></div>
     <p class="v6-muted">设备固件：{{ device.metadata.firmware || '未上报' }}</p>
     <p class="v6-muted">期望版本 {{ device.revision }} · 已应用 {{ device.reported_revision }} · {{ device.online ? '在线' : '离线' }}</p>
+    <V6DeviceHealth :device="device" />
     <p v-if="device.error" class="v6-error">设备回执：{{ device.error }}</p>
     <form @submit.prevent="save"><fieldset :disabled="!editable || busy">
       <label>设备状态<select v-model="status"><option value="pending">待激活</option><option value="active">已激活</option><option value="revoked">已撤销</option></select></label>

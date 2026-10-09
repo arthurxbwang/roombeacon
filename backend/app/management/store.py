@@ -13,6 +13,7 @@ from .catalog_consolidation import consolidate
 from .catalog_store import SCHEMA as CATALOG_SCHEMA
 from .catalog_store import initialize
 from .installation_store import SCHEMA as INSTALLATION_SCHEMA
+from .runtime_health import management_online, page_health
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
@@ -121,7 +122,9 @@ def device_view(row):
     value.pop('secret_hash', None)
     value['metadata'] = json.loads(value['metadata'])
     value['config'] = DEFAULT_CONFIG | json.loads(value['config'])
-    value['online'] = time.time() - value['last_seen'] < 60
+    now = time.time()
+    value['online'] = management_online(value['last_seen'], now)
+    value['page_health'] = page_health(value['metadata'], value['last_seen'], now)
     return value
 
 

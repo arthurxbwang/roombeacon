@@ -5,6 +5,7 @@ import {management,type ManagedDevice} from '@/api/management'
 import {installationBase as base,installationError,installState,installError,type InstallJob,type InstallOverview} from '@/api/installation'
 import V6InstallAcceptance from './V6InstallAcceptance.vue'
 import V6QuickInstall from './V6QuickInstall.vue'
+import V6DeviceHealth from './V6DeviceHealth.vue'
 const props=defineProps<{editable:boolean;devices:ManagedDevice[]}>()
 const emit=defineEmits<{device:[string];changed:[]}>()
 const abort=new AbortController(),data=ref<InstallOverview>({executors:[],releases:[],jobs:[]})
@@ -19,6 +20,7 @@ const targets=computed(()=>targetText.value.trim().split('\n').filter(Boolean).m
 const targetsValid=computed(()=>targets.value.length>0&&targets.value.length<=100&&targets.value.every(t=>/^\d{1,3}(\.\d{1,3}){3}$/.test(t.ip)&&/^[A-Za-z0-9._-]{1,100}$/.test(t.serial||'')&&Number.isInteger(t.port)&&t.port>0&&t.port<=65535&&!t.extra.length))
 const selectedAccept=computed(()=>data.value.jobs.find(j=>j.id===acceptJob.value?.id))
 const acceptanceDevice=computed(()=>props.devices.find(d=>d.id===selectedAccept.value?.device_id))
+const jobDevice=(id:string)=>props.devices.find(d=>d.id===id)
 const releaseName=(id:string)=>{const r=data.value.releases.find(r=>r.id===id);return r?`${r.manifest.version_name} (${r.manifest.version_code})`:'版本未找到'}
 async function load(){
  if(loading.value||abort.signal.aborted)return
@@ -55,8 +57,8 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);credential.value=''})
    <div v-else class="install-preview"><h3>确认安装 {{targets.length}} 台</h3><p>助手：{{data.executors.find(e=>e.id===executorId)?.name}} · APK：{{releaseName(releaseId)}}</p><p class="hash">文件 SHA-256：{{release?.manifest.sha256}}<br />签名 SHA-256：{{release?.manifest.certificate_sha256}}</p><ul><li v-for="t in targets" :key="t.serial">{{t.ip}}:{{t.port}} · {{t.serial}}</li></ul><p>助手只对序列号和型号核对一致的设备执行首装。已有其他 APK 时停止，保留数据。</p><button type="button" :disabled="busy" @click="submit">确认创建安装任务</button><button type="button" class="secondary" :disabled="busy" @click="preview=false">返回修改</button></div>
   </form>
   </details>
-  <section class="install-records"><h3>安装任务与交付记录</h3><p class="records-description">显示最近 1000 条；现场验收为人工记录，当前在线与配置回执单独展示。</p>
-  <div class="v6-table-wrap"><table><thead><tr><th>连接目标 / SN</th><th>APK / 助手</th><th>进度</th><th>设备 / 交付</th><th>操作</th></tr></thead><tbody><tr v-for="job in data.jobs" :key="job.id"><td>{{job.ip}}:{{job.port}}<small>{{job.serial}}</small></td><td>{{releaseName(job.release_id)}}<small>{{job.executor_id==='server'?'后台直接安装':data.executors.find(e=>e.id===job.executor_id)?.name}}</small></td><td>{{installState(job.state)}}<small v-if="job.error" class="v6-error">{{installError(job.error)}}</small></td><td>{{job.device_code||'等待关联短码'}}<small v-if="job.device_id">{{job.device_ready?'当前在线且配置已应用':'当前离线、未配置或待处理'}}</small><small v-if="job.state==='accepted'">{{job.acceptance_current?'已保存此配置的现场验收':'配置或身份已变化，须重新验收'}}</small><small v-if="job.acceptance.location">{{job.acceptance.location}} · {{job.acceptance.switch_port}}</small></td><td>
+  <section class="install-records"><h3>安装任务与交付记录</h3><p class="records-description">显示最近 1000 条；人工现场验收、配置回执和页面运行状态分别展示。</p>
+  <div class="v6-table-wrap"><table><thead><tr><th>连接目标 / SN</th><th>APK / 助手</th><th>进度</th><th>设备 / 交付</th><th>操作</th></tr></thead><tbody><tr v-for="job in data.jobs" :key="job.id"><td>{{job.ip}}:{{job.port}}<small>{{job.serial}}</small></td><td>{{releaseName(job.release_id)}}<small>{{job.executor_id==='server'?'后台直接安装':data.executors.find(e=>e.id===job.executor_id)?.name}}</small></td><td>{{installState(job.state)}}<small v-if="job.error" class="v6-error">{{installError(job.error)}}</small></td><td>{{job.device_code||'等待关联短码'}}<small v-if="job.device_id">{{job.device_ready?'当前设备满足配置验收条件':'当前离线、未配置或待处理'}}</small><V6DeviceHealth v-if="job.device_id" :device="jobDevice(job.device_id)" compact /><small v-if="job.state==='accepted'">{{job.acceptance_current?'已保存此配置的现场验收':'配置或身份已变化，须重新验收'}}</small><small v-if="job.acceptance.location">{{job.acceptance.location}} · {{job.acceptance.switch_port}}</small></td><td>
    <button v-if="job.device_id" class="secondary" @click="emit('device',job.device_id)">{{editable?'房间配置':'查看配置'}}</button>
    <template v-if="editable"><button v-if="job.state==='queued'" class="secondary" :disabled="busy" @click="act(()=>management('POST',`${base}/jobs/${job.id}/cancel`,abort.signal,{revision:job.revision}))">取消排队</button>
     <button v-if="job.state==='installed'" class="secondary" :disabled="busy" @click="associateJob=job;code='';identityChecked=false">关联屏幕短码</button>
