@@ -1,5 +1,7 @@
 # RoomBeacon 架构与接口
 
+> 2026-10-09 已上线 `3d0b1e1`：#56 收敛两类软硬件日常选择；软件增加默认 true 的 `roombeacon_checkin`，未签到版保留飞书官方签到二维码，不启用 RoomBeacon 按钮签到与自动释放。新增管理员 `DELETE /api/v6/admin/devices/{id}`，校验 CSRF、来源、短码及修订号，以 `deleted` 身份占位防止旧设备重新纳管，保留审计与历史。Nginx 仅为有效设备记录路径放行 DELETE。见[操作及兼容边界](catalog-device-cleanup.md)与[上线回执](production-catalog-cleanup-2026-10-09.md)。
+
 > 2026-10-08首装实施（PR #44 / `3d0542d` 已上线）：新增 `/api/v6/admin/installation` 管理批准清单、助手和任务，`/api/v6/installer` 仅供独立可撤销助手凭证领取及回执。SQLite 新表持久化、事务领取、超时人工核实；现场电脑执行固定 ADB 命令，后台不接收任意命令或直接连设备。APK 留在现场校验，短码关联后复用配置部署，交付为独立人工证据。见[首装架构、接口与边界](installation-delivery.md)。
 
 > 2026-10-08 12:31：用户明确授权生产写入后，仅IT灯塔-Test配置一个已验证来源日历，实际API auto_verify_enabled=true。新预约在5+5窗口内仍需真实心跳、日历逐实例核验及释放前二次读取；旧保护/签到保持，其他来源不自动获得资格。配置与回退见 [整体核查](production-readiness-2026-10-08.md)。

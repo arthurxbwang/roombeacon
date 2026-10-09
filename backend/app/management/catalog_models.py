@@ -54,6 +54,7 @@ class Rules(StrictModel):
 
 class SoftwareSpec(StrictModel):
     display_version: Literal['v6', 'v7'] = 'v6'
+    roombeacon_checkin: bool = True
     layout: Literal['standard', 'compact'] = 'standard'
     orientation: Literal['any', 'landscape', 'portrait'] = 'any'
     min_width: int = Field(default=0, ge=0, le=8192)
@@ -64,6 +65,12 @@ class SoftwareSpec(StrictModel):
     background_night: str = Field(default='', pattern=r'^(|[a-f0-9]{64})$')
     background_fit: Literal['cover', 'contain'] = 'cover'
     rules: Rules = Field(default_factory=Rules)
+
+    @model_validator(mode='after')
+    def display_only(self):
+        if not self.roombeacon_checkin and (self.rules.owner != 'official' or self.rules.mode != 'off'):
+            raise ValueError('未签到版必须关闭 RoomBeacon 签到与自动释放')
+        return self
 
 
 class CatalogDraft(StrictModel):
@@ -124,6 +131,11 @@ class Qualification(StrictModel):
 class DeviceStatus(StrictModel):
     expected_revision: int = Field(ge=1)
     status: Literal['pending', 'revoked']
+
+
+class DeviceDelete(StrictModel):
+    expected_revision: int = Field(ge=1)
+    confirm_code: str = Field(pattern=r'^[A-Z0-9]{6}$')
 
 
 class DeploymentBatch(StrictModel):

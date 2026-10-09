@@ -7,6 +7,7 @@ from .catalog_models import HardwareSpec, SoftwareSpec
 from .profiles import PROFILES
 
 SCHEMA = '''
+CREATE TABLE IF NOT EXISTS catalog_retirements (template_id TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS config_catalog (
  id TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, spec TEXT NOT NULL,
  revision INTEGER NOT NULL, published_version INTEGER NOT NULL DEFAULT 0,
@@ -98,6 +99,7 @@ def version_row(db, identity, version, kind=None):
 
 def template_view(db, row):
     value = dict(row) | {'spec': json.loads(row['spec'])}
+    value['retired'] = bool(db.execute('SELECT 1 FROM catalog_retirements WHERE template_id=?', (row['id'],)).fetchone())
     value['versions'] = [dict(v) | {'spec': json.loads(v['spec'])} for v in db.execute(
         'SELECT * FROM config_versions WHERE template_id=? ORDER BY version DESC', (row['id'],))]
     value['tests'] = [dict(t) | {'value': json.loads(t['value'])} for t in db.execute(

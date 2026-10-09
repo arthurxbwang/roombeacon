@@ -41,7 +41,7 @@ const english:Record<string,string>={
   "距下场开始还有": "Next meeting in",
   "当前可用至": "Available until",
   "历史预约空档至": "Previously available until",
-  "全天无后续预约": "No more meetings today",
+  "无后续预约": "No more meetings today",
   "暂无可参考的后续预约": "No upcoming schedule available",
   "当前会议": "Current meeting",
   "下一场会议": "Next meeting",

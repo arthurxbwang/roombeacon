@@ -63,7 +63,8 @@ async def test_release_hint_requires_server_write_authority(monkeypatch):
     assert not (await room_usage.view(store, 'omm_test'))['release_enabled']
 
 
-def test_deployed_v7_reaches_authenticated_device_and_control_preview(client, monkeypatch):
+@pytest.mark.parametrize('enabled', [True, False])
+def test_deployed_v7_reaches_authenticated_device_and_control_preview(client, monkeypatch, enabled):
     from datetime import UTC, datetime, timedelta
     from unittest.mock import AsyncMock
 
@@ -82,7 +83,7 @@ def test_deployed_v7_reaches_authenticated_device_and_control_preview(client, mo
     monkeypatch.setattr(room_display_main, 'schedule_for', AsyncMock(return_value=snapshot))
     token, device = v6.enroll(client)
     hardware = publish(client, create(client, 'hardware'))
-    software = publish(client, create(client, spec={'display_version': 'v7'}))
+    software = publish(client, create(client, spec={'display_version': 'v7', 'roombeacon_checkin': enabled}))
     body = {'device_id': device['id'], 'expected_revision': 1, 'room_id': v6.ROOM,
             'hardware_id': hardware['id'], 'hardware_version': 1,
             'software_id': software['id'], 'software_version': 1, 'expected_room_revision': 0}
@@ -91,8 +92,10 @@ def test_deployed_v7_reaches_authenticated_device_and_control_preview(client, mo
     client.cookies.set(DEVICE_COOKIE, session['web_session'])
     data = client.get('/api/meeting-rooms/display').json()['data']
     assert data['display_preferences']['display_version'] == 'v7'
+    assert data['display_preferences']['roombeacon_checkin'] is enabled
     assert snapshot.display_preferences is None
     data = client.get('/api/room-control/preview', headers=v6.admin(), params={'room_id': v6.ROOM}).json()['data']
     assert data['display_preferences']['display_version'] == 'v7'
+    assert data['display_preferences']['roombeacon_checkin'] is enabled
     client.cookies.delete(DEVICE_COOKIE)
     assert client.get('/api/meeting-rooms/display').status_code == 401

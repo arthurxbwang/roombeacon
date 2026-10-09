@@ -9,6 +9,7 @@ import V6BatchDeployment from '@/components/V6BatchDeployment.vue'
 import V6DeploymentPanel from '@/components/V6DeploymentPanel.vue'
 import V6RoomsTable from '@/components/V6RoomsTable.vue'
 import V6Audit,{type AuditEntry} from '@/components/V6Audit.vue'
+import V6DeleteDevice from '@/components/V6DeleteDevice.vue'
 import RoomUsageControl from '@/components/RoomUsageControl.vue'
 import {emptyScope,matchesScope,normalized} from '@/composables/roomScope'
 import {emptyConfiguration,stateLabel,templateName,type CatalogTemplate,type Configuration} from '@/api/configuration'
@@ -20,6 +21,7 @@ const user=ref<Manager|null>(null),error=ref(''),info=ref(''),busy=ref(false),ch
 const awaitingPermission=ref(false),usageRoom=ref<Room|null>(null)
 const devices=ref<ManagedDevice[]>([]),rooms=ref<Room[]>([]),selectedId=ref('')
 const selected=computed(()=>devices.value.find(d=>d.id===selectedId.value))
+const deleting=ref<ManagedDevice|null>(null)
 const search=ref(''),filter=ref('all'),tab=ref('devices'),feishu=ref(false),preview=ref(''),roomFocus=ref('')
 const users=ref<{subject:string;name:string;role:string}[]>([]),logs=ref<AuditEntry[]>([])
 const catalog=ref<CatalogTemplate[]>([]),configuration=ref<Configuration>(emptyConfiguration())
@@ -60,9 +62,10 @@ async function identify(){
  catch(e){if(axios.isAxiosError(e)&&e.response?.status===403){awaitingPermission.value=true;error.value='飞书身份已识别，等待管理员授予管理员或只读权限。授权后请重新登录。'}}
  finally{checking.value=false}
 }
-async function logout(){try{await management('POST','/api/v6/auth/logout',abort.signal,{}, {'X-RB-Logout':'1'});user.value=null;awaitingPermission.value=false;devices.value=[];selectedId.value='';preview.value='';error.value='';delete axios.defaults.headers.common['X-RB-CSRF']}catch(e){error.value=managementError(e)}}
+async function logout(){try{await management('POST','/api/v6/auth/logout',abort.signal,{}, {'X-RB-Logout':'1'});user.value=null;awaitingPermission.value=false;devices.value=[];selectedId.value='';deleting.value=null;preview.value='';error.value='';delete axios.defaults.headers.common['X-RB-CSRF']}catch(e){error.value=managementError(e)}}
 async function operate(action:()=>Promise<unknown>){busy.value=true;error.value='';info.value='';try{await action();info.value='操作已保存。';await load()}catch(e){error.value=managementError(e)}finally{busy.value=false}}
 async function switchTab(value:string){tab.value=value;roomFocus.value='';await load()}
+function deleted(){selectedId.value='';deleting.value=null;info.value='设备已删除，旧凭证已失效。';load()}
 function inspectRoom(id:string){roomFocus.value=id;tab.value='rooms'}
 onMounted(async()=>{
  if(new URLSearchParams(location.search).has('login_error'))error.value='飞书登录未完成，请重试；首次登录请确认员工在应用与通讯录可用范围内。'
@@ -82,7 +85,7 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);delete axios.defaults.header
    <nav class="v6-tabs"><button v-for="t in [{id:'devices',label:'设备台账'},{id:'installation',label:'首装与交付'},{id:'rooms',label:'会议室'},{id:'software',label:'软件模板'},{id:'hardware',label:'硬件安装模板'},...(editable?[{id:'users',label:'账号权限'}]:[]),{id:'audit',label:'操作记录'}]" :key="t.id" :class="{active:tab===t.id}" @click="switchTab(t.id)">{{t.label}}</button></nav>
    <p v-if="error" class="v6-error" role="alert">{{error}}</p><p v-if="info" class="v6-info" role="status">{{info}}</p>
    <section v-if="tab==='devices'" class="v6-card"><div class="v6-toolbar"><input v-model="search" aria-label="搜索设备" placeholder="搜索设备、型号、地区、会议室或模板" /><select v-model="filter" aria-label="设备状态"><option value="all">全部设备</option><option value="pending">待激活</option><option value="active">已激活</option><option value="revoked">已撤销</option></select></div><V6RoomFilter :rooms="rooms" v-model="scope" unassigned />
-    <div class="v6-table-wrap"><table><thead><tr><th v-if="editable">选择</th><th>设备 / 型号</th><th>硬件安装模板</th><th>软件模板</th><th>会议室</th><th>状态 / 管理连接</th><th>页面 / 灯控</th><th>部署回执</th><th>操作</th></tr></thead><tbody><tr v-for="d in filtered" :key="d.id"><td v-if="editable"><input v-model="checked" type="checkbox" :value="d.id" :disabled="d.status!=='active'" :aria-label="'选择 '+d.code" /></td><td><strong class="v6-code">{{d.code.slice(0,3)}} {{d.code.slice(3)}}</strong><small>{{d.metadata.model||'型号未上报'}} · SN {{d.metadata.serial||'未上报'}}</small><small v-for="nic in d.metadata.interfaces?.filter(n=>n.mac)" :key="nic.name">{{nic.name}} {{nic.mac}}</small></td><td>{{templateName(catalog,configuration.devices[d.id]?.hardware_id,configuration.devices[d.id]?.hardware_version)}}</td><td>{{templateName(catalog,configuration.rooms[d.room_id]?.software_id,configuration.rooms[d.room_id]?.software_version)}}</td><td>{{roomName(d.room_id)}}<small>{{rooms.find(r=>r.room_id===d.room_id)?.location}}</small></td><td><span class="v6-badge" :class="{online:d.online}">{{statusLabel(d.status)}} · {{d.online?'在线':'离线'}}</span><small>{{networkLabel(d.metadata.network)}}</small></td><td><V6DeviceHealth :device="d" compact /></td><td><span :class="{'v6-error':!!d.error}">{{deployment(d.id)?stateLabel(deployment(d.id)!.state):d.error?'应用异常':d.reported_revision===d.revision?'当前配置已应用 · 待关联模板':'等待设备应用'}}</span><small>{{d.reported_revision}} / {{d.revision}}</small></td><td><button class="secondary" @click="selectedId=d.id">{{editable?'配置与部署':'查看'}}</button></td></tr></tbody></table></div>
+    <div class="v6-table-wrap"><table><thead><tr><th v-if="editable">选择</th><th>设备 / 型号</th><th>硬件安装模板</th><th>软件模板</th><th>会议室</th><th>状态 / 管理连接</th><th>页面 / 灯控</th><th>部署回执</th><th>操作</th></tr></thead><tbody><tr v-for="d in filtered" :key="d.id"><td v-if="editable"><input v-model="checked" type="checkbox" :value="d.id" :disabled="d.status!=='active'" :aria-label="'选择 '+d.code" /></td><td><strong class="v6-code">{{d.code.slice(0,3)}} {{d.code.slice(3)}}</strong><small>{{d.metadata.model||'型号未上报'}} · SN {{d.metadata.serial||'未上报'}}</small><small v-for="nic in d.metadata.interfaces?.filter(n=>n.mac)" :key="nic.name">{{nic.name}} {{nic.mac}}</small></td><td>{{templateName(catalog,configuration.devices[d.id]?.hardware_id,configuration.devices[d.id]?.hardware_version)}}</td><td>{{templateName(catalog,configuration.rooms[d.room_id]?.software_id,configuration.rooms[d.room_id]?.software_version)}}</td><td>{{roomName(d.room_id)}}<small>{{rooms.find(r=>r.room_id===d.room_id)?.location}}</small></td><td><span class="v6-badge" :class="{online:d.online}">{{statusLabel(d.status)}} · {{d.online?'在线':'离线'}}</span><small>{{networkLabel(d.metadata.network)}}</small></td><td><V6DeviceHealth :device="d" compact /></td><td><span :class="{'v6-error':!!d.error}">{{deployment(d.id)?stateLabel(deployment(d.id)!.state):d.error?'应用异常':d.reported_revision===d.revision?'当前配置已应用 · 待关联模板':'等待设备应用'}}</span><small>{{d.reported_revision}} / {{d.revision}}</small></td><td><button class="secondary" @click="selectedId=d.id">{{editable?'配置与部署':'查看'}}</button><button v-if="editable" class="secondary v6-danger" :aria-label="'删除设备 '+d.code" @click="deleting=d">删除</button></td></tr></tbody></table></div>
     <V6BatchDeployment v-if="editable&&checked.length" :devices="batchDevices" :catalog="catalog" :configuration="configuration" @changed="checked=[];load()" /><div v-if="!filtered.length" class="v6-empty"><h3>{{devices.length?'没有匹配的设备':'等待设备连接'}}</h3><p>{{devices.length?'请调整地区、位置或搜索条件。':'门牌联网后会自动出现在这里，使用屏幕上的唯一码核对设备。'}}</p></div>
    </section>
    <template v-if="tab==='rooms'"><button v-if="roomFocus" class="secondary" @click="roomFocus=''">查看全部会议室</button><V6RoomsTable :rooms="rooms" :devices="devices" :catalog="catalog" :configuration="configuration" :focus="roomFocus" @device="selectedId=$event" @preview="preview=$event" @qualification="usageRoom=$event" /></template>
@@ -94,6 +97,7 @@ onUnmounted(()=>{abort.abort();clearInterval(timer);delete axios.defaults.header
    <footer class="v6-footer">RoomBeacon · 模板版本与部署结果可追溯</footer>
   </template>
   <div v-if="usageRoom" class="v6-backdrop" @click.self="usageRoom=null"><section class="v6-panel" role="dialog" aria-modal="true" aria-label="会议室规则"><button class="secondary" @click="usageRoom=null">关闭</button><RoomUsageControl :key="usageRoom.room_id" :room-id="usageRoom.room_id" :room-name="usageRoom.name" token="@session" :read-only="!editable" :template-managed="!!configuration.rooms[usageRoom.room_id]" /></section></div>
-  <V6DeploymentPanel v-if="selected" :device="selected" :rooms="rooms" :catalog="catalog" :configuration="configuration" :initial-scope="scope" :editable="editable" @close="selectedId=''" @changed="load" />
+  <V6DeleteDevice v-if="editable&&deleting" :device="deleting" :room-name="roomName(deleting.room_id)" @close="deleting=null" @deleted="deleted" />
+   <V6DeploymentPanel v-if="selected" :device="selected" :rooms="rooms" :catalog="catalog" :configuration="configuration" :initial-scope="scope" :editable="editable" @close="selectedId=''" @changed="load" />
  </main>
 </template>

@@ -82,7 +82,7 @@ def parse_device(token):
 def device(db, token, active=False):
     identity = parse_device(token)
     row = db.execute('SELECT * FROM devices WHERE id=?', (identity,)).fetchone()
-    if not row or not hmac.compare_digest(row['secret_hash'], digest(token)):
+    if not row or row['status'] == 'deleted' or not hmac.compare_digest(row['secret_hash'], digest(token)):
         raise UnauthorizedError('设备凭证无效')
     if active and row['status'] != 'active':
         raise UnauthorizedError('设备尚未激活或已撤销')
