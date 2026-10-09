@@ -157,7 +157,7 @@ onUnmounted(() => {
               </div>
               <div v-else class="hero">
                 <template v-if="next"><p class="hero-label">{{ fresh ? t('当前可用至') : t('历史预约空档至') }}</p><p class="available-until">{{ time(next.start_time) }}</p></template>
-                <h2 v-else class="all-free">{{ fresh ? t('全天无后续预约') : t('暂无可参考的后续预约') }}</h2>
+                <h2 v-else class="all-free">{{ fresh ? t('无后续预约') : t('暂无可参考的后续预约') }}</h2>
               </div>
               <div v-if="active" class="meeting-detail">
                 <p class="detail-label">{{ current ? t('当前会议') : t('下一场会议') }}</p>
