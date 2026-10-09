@@ -35,7 +35,7 @@ test('日常模板只显示两个硬件与两个软件，历史仍可查阅',asy
  const copy=(id:string,name:string,source=state.catalog[0])=>({...structuredClone(source),id,name})
  state.catalog[0].name='BX68 · 13.3 寸 · 1920×1080 · 横屏';state.catalog[1].name='签到版'
  state.catalog.push(copy('hw-old','RK3568_R · 10.1 寸 · 1280×800 · 横屏'),
-  {...copy('sw-display','未签到版',state.catalog[1]),spec:{...state.catalog[1].spec,checkin_enabled:false}},
+  {...copy('sw-display','未签到版',state.catalog[1]),spec:{...state.catalog[1].spec,roombeacon_checkin:false}},
   {...copy('hw-duplicate','重复 BX68'),retired:true},{...copy('hw-generic','通用屏幕'),retired:true},
   {...copy('sw-old','旧测试签到软件',state.catalog[1]),retired:true})
  await page.goto('/control');await page.getByRole('button',{name:'配置与部署',exact:true}).first().click()
@@ -45,17 +45,19 @@ test('日常模板只显示两个硬件与两个软件，历史仍可查阅',asy
  await expect(page.locator('.v6-template-grid:visible > article')).toHaveCount(2);await page.locator('.v6-presets:visible').getByLabel('包含历史与已归档').check();await expect(page.locator('.v6-template-grid:visible > article')).toHaveCount(4)
 })
 
-test('未签到版即使缓存带官方签到二维码也只展示日程',async({page})=>{
+test('未签到版保留飞书二维码，不启用 RoomBeacon 签到或保活',async({page})=>{
  const now=Date.now();const calls:string[]=[]
  await page.route('**/api/**',route=>{
   calls.push(new URL(route.request().url()).pathname)
   return route.fulfill({json:{data:{room:{room_id:'omm_test',name:'测试会议室',capacity:12,enabled:true},events:[],
    synced_at:new Date(now).toISOString(),server_time:new Date(now).toISOString(),valid_until:new Date(now+60000).toISOString(),
    usage_owner:'official',checkin_qr:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',
-   display_preferences:{display_version:'v7',checkin_enabled:false,theme_mode:'light',language:'zh-CN'}}}})
+   display_preferences:{display_version:'v7',roombeacon_checkin:false,theme_mode:'light',language:'zh-CN'}}}})
  })
  await page.goto('/?managed=1&version=v6');await expect(page.getByText('测试会议室',{exact:true})).toBeVisible()
- await expect(page.locator('.checkin-card,.room-usage,.v7-checkin')).toHaveCount(0)
+ await expect(page.locator('.checkin-card')).toHaveCount(1)
+ await expect(page.getByText('飞书扫码签到',{exact:true})).toBeVisible()
+ await expect(page.locator('.room-usage,.v7-checkin')).toHaveCount(0)
  await expect(page.getByRole('button',{name:'签到',exact:true})).toHaveCount(0)
  expect(calls.some(path=>path.includes('/usage'))).toBe(false)
 })

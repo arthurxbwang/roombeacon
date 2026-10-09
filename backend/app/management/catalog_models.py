@@ -54,7 +54,7 @@ class Rules(StrictModel):
 
 class SoftwareSpec(StrictModel):
     display_version: Literal['v6', 'v7'] = 'v6'
-    checkin_enabled: bool = True
+    roombeacon_checkin: bool = True
     layout: Literal['standard', 'compact'] = 'standard'
     orientation: Literal['any', 'landscape', 'portrait'] = 'any'
     min_width: int = Field(default=0, ge=0, le=8192)
@@ -68,7 +68,7 @@ class SoftwareSpec(StrictModel):
 
     @model_validator(mode='after')
     def display_only(self):
-        if not self.checkin_enabled and (self.rules.owner != 'official' or self.rules.mode != 'off'):
+        if not self.roombeacon_checkin and (self.rules.owner != 'official' or self.rules.mode != 'off'):
             raise ValueError('未签到版必须关闭 RoomBeacon 签到与自动释放')
         return self
 

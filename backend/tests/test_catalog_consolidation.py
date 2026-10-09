@@ -18,7 +18,7 @@ def test_catalog_has_two_hardware_and_two_software_choices(client):
     assert {r['name'] for r in visible} == {
         'BX68 · 13.3 寸 · 1920×1080 · 横屏', 'RK3568_R · 10.1 寸 · 1280×800 · 横屏', '签到版', '未签到版'}
     display = next(r for r in visible if r['name'] == '未签到版')
-    assert display['spec']['checkin_enabled'] is False
+    assert display['spec']['roombeacon_checkin'] is False
     assert display['spec']['rules']['mode'] == 'off'
 
 
@@ -31,7 +31,7 @@ def test_existing_used_templates_selected_without_overwriting_versions_or_device
         hw = db.execute("SELECT spec FROM config_versions WHERE template_id='builtin-bx68'").fetchone()[0]
         sw = json.dumps(SoftwareSpec(display_version='v7', rules={
             'owner': 'v5', 'mode': 'auto', 'early_minutes': 5, 'grace_minutes': 5,
-            'release_delay_seconds': 0}).model_dump(exclude={'checkin_enabled'}))
+            'release_delay_seconds': 0}).model_dump(exclude={'roombeacon_checkin'}))
         for identity, kind, spec in [('used-hardware', 'hardware', hw), ('used-software', 'software', sw)]:
             db.execute('INSERT INTO config_catalog VALUES (?,?,?,?,1,2,0,?)',
                        (identity, kind, '原模板名称', spec, 'manual'))
@@ -56,5 +56,5 @@ def test_existing_used_templates_selected_without_overwriting_versions_or_device
 @pytest.mark.parametrize('rules', [{'owner': 'v5', 'mode': 'auto'}, {'owner': 'v5', 'mode': 'off'}])
 def test_display_only_rejects_checkin_rules(client, rules):
     assert client.post('/api/v6/admin/catalog', headers=v6.admin(), json={
-        'kind': 'software', 'name': '非法未签到版', 'spec': {'checkin_enabled': False, 'rules': rules}}
+        'kind': 'software', 'name': '非法未签到版', 'spec': {'roombeacon_checkin': False, 'rules': rules}}
     ).status_code == 422

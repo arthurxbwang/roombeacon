@@ -38,7 +38,7 @@ def consolidate(db):
         keep.append(identity)
     for enabled, name, identity in [(True, '签到版', 'builtin-software-checkin'),
                                     (False, '未签到版', 'builtin-software-display')]:
-        spec = SoftwareSpec(display_version='v7', checkin_enabled=enabled,
+        spec = SoftwareSpec(display_version='v7', roombeacon_checkin=enabled,
                             rules={'owner': 'v5' if enabled else 'official',
                                    'mode': 'auto' if enabled else 'off',
                                    'early_minutes': 5, 'grace_minutes': 5,

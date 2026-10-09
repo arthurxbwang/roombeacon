@@ -7,7 +7,7 @@ export interface RoomEvent {
   organizer: string | null; summary: string | null
 }
 export interface RoomSchedule {
-  display_preferences?: {display_version?:'v6'|'v7';checkin_enabled?:boolean;theme_mode:'auto'|'light'|'dark';language:'zh-CN'|'en';layout?:'standard'|'compact';background_day?:string;background_night?:string;background_fit?:'cover'|'contain';usage_control?:boolean} | null
+  display_preferences?: {display_version?:'v6'|'v7';roombeacon_checkin?:boolean;theme_mode:'auto'|'light'|'dark';language:'zh-CN'|'en';layout?:'standard'|'compact';background_day?:string;background_night?:string;background_fit?:'cover'|'contain';usage_control?:boolean} | null
   room: MeetingRoom; events: RoomEvent[]; synced_at: string; valid_until: string
   checkin_qr?: string | null
   usage_owner?: 'official' | 'v5'
