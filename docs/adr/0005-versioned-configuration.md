@@ -2,7 +2,7 @@
 
 2026-09-24；已采纳。需求与实施跟踪：[Issue #27](https://github.com/arthurxbwang/roombeacon/issues/27)。
 
-2026-10-09 增补（#56，本地未部署）：日常选择收敛为两款硬件与签到／未签到两类软件，新增兼容默认 true 的 `roombeacon_checkin`。`catalog_retirements` 将历史项从日常选择移除，发布版本及现有部署不改写。管理员删除设备使用持久 `deleted` 身份占位，清理安装与房间主控关联、拒绝旧凭证和重新纳管，历史保留。规则、接口与回退见[说明](../catalog-device-cleanup.md)。
+2026-10-09 增补（#56，已上线 `3d0b1e1`）：日常选择收敛为两款硬件与签到／未签到两类软件，新增兼容默认 true 的 `roombeacon_checkin`。`catalog_retirements` 将历史项从日常选择移除，发布版本及现有部署不改写。管理员删除设备使用持久 `deleted` 身份占位，清理安装与房间主控关联、拒绝旧凭证和重新纳管，历史保留。规则、接口与回退见[说明](../catalog-device-cleanup.md)，实际验证见[上线回执](../production-catalog-cleanup-2026-10-09.md)。
 
 ## 决策
 

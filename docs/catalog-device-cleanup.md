@@ -1,6 +1,6 @@
 # 软硬件模板收敛与设备删除
 
-2026-10-09；需求 [#56](https://github.com/arthurxbwang/roombeacon/issues/56)。本次为本地实现，生产仅做只读核对，尚未推送、部署或删除线上设备。
+2026-10-09；需求 [#56](https://github.com/arthurxbwang/roombeacon/issues/56)。用户授权后已经 PR #57／#58 推送、合入并上线；最终应用 `3d0b1e1958c4961b55ecc3ed8910f901f073cfe3`，没有删除真实设备。真实核对及分支盘点见[上线回执](production-catalog-cleanup-2026-10-09.md)。下方初始生产快照用于追溯。
 
 ## 当前生产核对
 
