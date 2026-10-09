@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ..core.config import settings
 from ..core.exceptions import AppError
+from .catalog_consolidation import consolidate
 from .catalog_store import SCHEMA as CATALOG_SCHEMA
 from .catalog_store import initialize
 from .installation_store import SCHEMA as INSTALLATION_SCHEMA
@@ -81,6 +82,7 @@ def database():
         db.commit()
         db.execute('BEGIN IMMEDIATE')
         initialize(db)
+        consolidate(db)
         yield db
         db.commit()
     except sqlite3.Error as exc:

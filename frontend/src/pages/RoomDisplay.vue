@@ -9,14 +9,15 @@ import { displayLanguage, translateDisplayText } from '@/utils/displayLanguage'
 import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
-const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {display_version?:'v6'|'v7';language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
+const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {display_version?:'v6'|'v7';roombeacon_checkin?:boolean;language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
 const route = useRoute()
 const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
 const isV3 = computed(() => ['v3', 'v4', 'v5', 'v6', 'v7'].includes(version.value))
 const isV4 = computed(() => ['v4', 'v5', 'v6', 'v7'].includes(version.value))
 const isV7 = computed(() => version.value === 'v7' || (version.value === 'v6' && preferences.value?.display_version === 'v7'))
-const isV5 = computed(() => version.value === 'v5' || (['v6', 'v7'].includes(version.value) && snapshot.value?.usage_owner === 'v5'))
+const roombeaconCheckin=computed(()=>preferences.value?.roombeacon_checkin!==false)
+const isV5 = computed(() => roombeaconCheckin.value && (version.value === 'v5' || (['v6', 'v7'].includes(version.value) && snapshot.value?.usage_owner === 'v5')))
 const managed = route.query.managed === '1' && !props.controlRoom
 const storageKey = 'argus_room_display'
 const token = ref(managed ? '@managed' : localStorage.getItem(storageKey) || '')
@@ -156,7 +157,7 @@ onUnmounted(() => {
               </div>
               <div v-else class="hero">
                 <template v-if="next"><p class="hero-label">{{ fresh ? t('当前可用至') : t('历史预约空档至') }}</p><p class="available-until">{{ time(next.start_time) }}</p></template>
-                <h2 v-else class="all-free">{{ fresh ? t('全天无后续预约') : t('暂无可参考的后续预约') }}</h2>
+                <h2 v-else class="all-free">{{ fresh ? t('无后续预约') : t('暂无可参考的后续预约') }}</h2>
               </div>
               <div v-if="active" class="meeting-detail">
                 <p class="detail-label">{{ current ? t('当前会议') : t('下一场会议') }}</p>
@@ -172,7 +173,7 @@ onUnmounted(() => {
           </div>
           <RoomUsageCard :branded="isV7" :read-only="!!templatePreferences" v-if="isV5 && snapshot && !disabled && snapshot.display_preferences?.usage_control!==false" :key="snapshot.room.room_id" :room-id="snapshot.room.room_id" :room-name="snapshot.room.name" :timezone="timezone" :event="active" :now="now" :fresh="!!fresh" :preview="!!controlRoom" :control-token="controlToken" :managed="managed" @changed="refresh" />
           <p v-else-if="isV5&&snapshot?.display_preferences?.usage_control===false" class="organizer">{{language==='en'?'Please check in on the primary display':'请在本会议室主控门牌签到'}}</p>
-          <p v-else-if="snapshot?.usage_owner === 'v5' && !disabled" role="status">{{ t('本房间使用 V5 确认，请切换到 V5 页面') }}</p>
+          <p v-else-if="roombeaconCheckin && snapshot?.usage_owner === 'v5' && !disabled" role="status">{{ t('本房间使用 V5 确认，请切换到 V5 页面') }}</p>
           <RoomCheckinCard v-else-if="isV3 && snapshot?.checkin_qr && !disabled" :dark="!isLight" :qr="snapshot.checkin_qr" :room-name="snapshot.room.name" />
         </section>
         <section class="agenda">

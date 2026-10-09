@@ -179,6 +179,18 @@ def test_association_and_acceptance_are_separate_and_staleness_visible(client):
         assert saved['device_revision'] == 2
 
 
+def test_deleted_device_cannot_be_associated_to_installation(client):
+    _, job = installed(client)
+    token, device = enroll(client)
+    web_cookie(client, token, metadata={'model': 'BX68', 'apk': '0.7.0'})
+    response = client.request('DELETE', '/api/v6/admin/devices/' + device['id'], headers=admin(),
+                              json={'expected_revision': 1, 'confirm_code': device['code']})
+    assert response.status_code == 200
+    value = overview(client)['jobs'][0]
+    assert post(client, '/jobs/' + job['id'] + '/associate', {
+        'revision': value['revision'], 'code': device['code'], 'physical_identity_confirmed': True}).status_code == 409
+
+
 @pytest.mark.parametrize('state', ['queued', 'failed', 'cancelled', 'uncertain'])
 def test_cannot_associate_before_success(client, state):
     setup_job(client)

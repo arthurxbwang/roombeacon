@@ -53,7 +53,7 @@ def installation_config(device, hardware, software, confirmed=False):
 
 def deployment_view(db, row):
     result = dict(row) | {'value': json.loads(row['value'])}
-    device = get_row(db, row['device_id'])
+    device = db.execute('SELECT * FROM devices WHERE id=?', (row['device_id'],)).fetchone()
     room = db.execute('SELECT * FROM room_configurations WHERE room_id=?', (row['room_id'],)).fetchone()
     installation = db.execute('SELECT * FROM device_installations WHERE device_id=?', (row['device_id'],)).fetchone()
     actual = json.loads(device['config'])
