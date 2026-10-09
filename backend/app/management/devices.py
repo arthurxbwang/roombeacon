@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 from ..core.exceptions import AppError, UnauthorizedError
 from ..core.response import ok
 from ..services.room_display_collector import cached_directory
+from .catalog_models import DeviceDelete
 from .models import (
     Batch,
     Configure,
@@ -40,7 +41,7 @@ def conflict():
 
 
 def get_row(db, identity):
-    row = db.execute('SELECT * FROM devices WHERE id=?', (identity,)).fetchone()
+    row = db.execute("SELECT * FROM devices WHERE id=? AND status<>'deleted'", (identity,)).fetchone()
     if not row:
         raise AppError(404, '设备不存在', 404)
     return row
@@ -77,7 +78,7 @@ def enroll(body: Sync, request: Request):
         row = db.execute('SELECT * FROM devices WHERE id=?', (identity,)).fetchone()
         if row:
             row = device(db, token)
-            if row['status'] == 'revoked':
+            if row['status'] in ('revoked', 'deleted'):
                 raise UnauthorizedError('设备已撤销，请联系管理员')
         else:
             count = db.execute("SELECT COUNT(*) FROM devices WHERE status='pending'").fetchone()[0]
@@ -126,7 +127,27 @@ def sync(body: Sync, request: Request):
 def devices(request: Request):
     actor(request)
     with database() as db:
-        return ok([device_view(row) for row in db.execute('SELECT * FROM devices ORDER BY created_at DESC LIMIT 5000')])
+        return ok([device_view(row) for row in db.execute(
+            "SELECT * FROM devices WHERE status<>'deleted' ORDER BY created_at DESC LIMIT 5000")])
+
+
+@router.delete('/admin/devices/{identity}')
+def delete_device(identity: str, body: DeviceDelete, request: Request):
+    user = actor(request, write=True)
+    with database() as db:
+        row = get_row(db, identity)
+        if row['revision'] != body.expected_revision:
+            raise conflict()
+        if body.confirm_code != row['code']:
+            raise AppError(422, '设备短码确认不匹配，请重新核对', 422)
+        audit(db, user['subject'], 'device-delete', identity,
+              {'device_code': row['code'], 'room_id': row['room_id'], 'status': row['status']})
+        db.execute("UPDATE devices SET status='deleted',revision=revision+1 WHERE id=?", (identity,))
+        save_history(db, db.execute('SELECT * FROM devices WHERE id=?', (identity,)).fetchone())
+        db.execute('DELETE FROM device_installations WHERE device_id=?', (identity,))
+        db.execute("UPDATE room_configurations SET controller_id='',revision=revision+1,policy_state='pending',"
+                   "error='业务主控设备已删除，请选择新的主控设备' WHERE controller_id=?", (identity,))
+    return ok({'deleted': True})
 
 
 @router.put('/admin/devices/{identity}')

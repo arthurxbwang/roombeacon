@@ -34,6 +34,7 @@ class DaylightPlan(BaseModel):
 
 class DisplayPreferences(BaseModel):
     display_version: Literal['v6', 'v7'] = 'v6'
+    checkin_enabled: bool = True
     theme_mode: Literal["auto", "light", "dark"] = "auto"
     language: Literal["zh-CN", "en"] = "zh-CN"
     layout: Literal['standard', 'compact'] = 'standard'
