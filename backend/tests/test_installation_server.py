@@ -1,4 +1,5 @@
 """IP-first delivery: permission, probe snapshots and execution failure boundaries."""
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -11,6 +12,7 @@ from tests.test_v6_management import client as management_client
 
 client = management_client
 DEVICE = {'serial': 'SERIAL-1', 'model': 'BX68', 'android': '11', 'existing': False}
+ORIGINAL_DEFAULT_APK = runtime.default_apk
 
 
 @pytest.fixture
@@ -238,3 +240,27 @@ def test_missing_default_apk_does_not_direct_operator_to_field_assistant(monkeyp
     assert '后台' in error.value.message
     assert '高级设置' not in error.value.message
     assert '无需登记现场助手' in error.value.message
+
+
+@pytest.mark.parametrize(('model', 'supported'), [('RK3568', True), ('rk3568_r', True), ('rk3568', False), ('OTHER', False)])
+def test_production_model_template_covers_both_verified_devices(client, configured, tmp_path, monkeypatch, model, supported):
+    template = Path(__file__).parents[2] / 'scripts/production/installation-models.conf'
+    line = next(line for line in template.read_text().splitlines() if line.startswith('ROOM_DISPLAY_INSTALL_MODELS='))
+    models = line.split('=', 1)[1]
+    assert models.split(',') == ['RK3568', 'rk3568_r']
+    apk = tmp_path / 'test-only.apk'
+    apk.write_bytes(b'isolated-test-artifact')
+    for name, value in {'MODELS': models, 'APK': str(apk), 'CERT_SHA256': MANIFEST['certificate_sha256']}.items():
+        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_' + name, value)
+    monkeypatch.setattr(runtime, 'default_apk', ORIGINAL_DEFAULT_APK)
+    monkeypatch.setattr(runtime.installer, 'inspect_apk', lambda path, aapt, apksigner, allowed: MANIFEST | {'models': allowed})
+    configured[0].return_value = DEVICE | {'model': model}
+    value = probe(client)
+    assert value['can_initialize'] == supported
+    if supported:
+        assert initialize(client, value).status_code == 200
+        assert configured[1].call_args.args[0]['manifest']['models'] == ['RK3568', 'rk3568_r']
+    else:
+        assert '型号不适用' in value['blocker']
+        assert initialize(client, value).status_code == 409
+        configured[1].assert_not_called()

@@ -1,5 +1,9 @@
 # RoomBeacon 当前状态
 
+## 旧10.1寸测试机首装型号修复（2026-10-10，#73已授权实施）
+
+旧机硬件／固件未变，APK0.7.0保留支持；后台首装私有型号值遗漏 `rk3568_r`，卸载后才触发拒绝。`codex/73-legacy-install-models`增加两款公开型号声明和API回归，生产通过GitHub对私有环境单键修正，沿用准确应用／H5 `35ca0d9`。用户已授权PR及上线，实际安装由用户后台确认；准确验证和回退见[说明](legacy-device-first-install.md)。
+
 ## 首装取消网段白名单（2026-10-10，PR #71已上线）
 
 用户授权后，需求[#70](https://github.com/arthurxbwang/roombeacon/issues/70)经[PR #71](https://github.com/arthurxbwang/roombeacon/pull/71)合入并从GitHub上线准确应用 **`35ca0d9fb5954308f008932fb94cd02bd3776882`**。后台与新版现场助手取消固定IP／CIDR名单，旧值／参数兼容但不再拦截，任意站点RFC1918内网IPv4可检测；后台无法直达时使用当地现场助手。原管理员、ADB端口、正式APK和设备身份核验保持。
