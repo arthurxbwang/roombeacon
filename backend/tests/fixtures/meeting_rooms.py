@@ -38,12 +38,13 @@ def world(monkeypatch):
         for key in keys:
             state.values.pop(key, None)
 
-    async def evaluate(script, count, key, expected, value, ttl):
+    async def evaluate(script, count, key, source_key, expected, value, ttl, sources):
         from app.services.room_schedule_cache import SNAPSHOT_CAS
-        assert script == SNAPSHOT_CAS and count == 1
+        assert script == SNAPSHOT_CAS and count == 2
         if state.values.get(key, "") != expected:
             return 0
         state.values[key] = value
+        state.values[source_key] = sources
         return 1
 
     cache.eval.side_effect = evaluate

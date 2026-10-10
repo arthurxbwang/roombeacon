@@ -49,6 +49,8 @@ class UsageStore:
                  'room_id': room_id, 'occurrence_id': values.get('id'),
                  'state': values.get('state'), 'reason': values.get('reason')}
         audit.update({k: values[k] for k in ('mode', 'revision', 'paused') if k in values})
+        audit.update({k: values[k] for k in ('verification_error', 'verification_http_status', 'verification_code')
+                      if values.get(k) is not None})
         return bool(await self.cache.eval(CAS, 3, PREFIX + name, PREFIX + 'audit:' + room_id,
                                          PREFIX + 'policy:' + room_id if policy is not None else '',
                                          encoded(old) if old is not None else '', encoded(new), TTL,

@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { usageError, usageLabels, usageRequest, type UsageState, type UsagePolicy } from '@/api/roomUsage'
+import { usageError, usageLabels, usageRequest, type UsageState, type UsagePolicy, type UsageRecord } from '@/api/roomUsage'
+import RoomVerificationStatus from './RoomVerificationStatus.vue'
 const props = defineProps<{ roomId: string; roomName: string; token: string; readOnly?:boolean; templateManaged?:boolean }>()
 const abort = new AbortController()
 const usage = ref<UsageState | null>(null), audit = ref<{ time: string; action: string; state?: string; reason?: string; paused?: boolean; mode?: string }[]>([])
 const policy = ref<UsagePolicy | null>(null)
 const error = ref(''), notice = ref(''), busy = ref(false), verified = ref(false), writes = ref(false)
+const issues = ref<UsageRecord[]>([])
+let timer: ReturnType<typeof setInterval> | undefined
 const path = `/api/room-control/usage/${props.roomId}`
-async function load() {
-  const result = await usageRequest<{ usage: UsageState; audit: typeof audit.value; global_audit: typeof audit.value; writes_enabled: boolean }>('GET', path, props.token, abort.signal)
-  usage.value = result.usage; policy.value = { ...result.usage.policy }
+async function load(refreshPolicy = false) {
+  const result = await usageRequest<{ usage: UsageState; audit: typeof audit.value; global_audit: typeof audit.value; writes_enabled: boolean; verification_issues?: UsageRecord[] }>('GET', path, props.token, abort.signal)
+  if (usage.value?.record?.id !== result.usage.record?.id) verified.value = false
+  usage.value = result.usage
+  if (refreshPolicy || !policy.value || policy.value.revision !== result.usage.policy.revision) policy.value = { ...result.usage.policy }
+  issues.value = result.verification_issues || []
   audit.value = [...result.audit, ...(result.global_audit || [])].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 100)
   writes.value = result.writes_enabled
 }
@@ -25,13 +31,13 @@ async function run(action: 'load' | 'save' | 'verify' | 'pause' | 'resume') {
     if (action === 'verify' && usage.value?.record && verified.value) await usageRequest('POST', path + '/verify', props.token, abort.signal,
       { occurrence_id: usage.value.record.id, policy_revision: usage.value.policy.revision, non_recurring_verified: true })
     if (action === 'pause' || action === 'resume') await usageRequest('PUT', '/api/room-control/usage-pause', props.token, abort.signal, { paused: action === 'pause' })
-    await load(); verified.value = false
+    await load(action === 'save'); if (action !== 'load') verified.value = false
     if (action !== 'load') notice.value = '已保存，请核对当前状态'
   } catch (err) { if (!abort.signal.aborted) error.value = usageError(err) }
   finally { busy.value = false }
 }
-onMounted(() => run('load'))
-onUnmounted(() => abort.abort())
+onMounted(() => { run('load'); timer = setInterval(() => { if (!busy.value) run('load') }, 10000) })
+onUnmounted(() => { abort.abort(); if (timer) clearInterval(timer) })
 </script>
 <template>
   <section class="usage-control" aria-label="V5 使用规则">
@@ -50,6 +56,7 @@ onUnmounted(() => abort.abort())
     </form>
     <template v-if="usage">
       <p>服务端写入：{{ writes ? '已开放' : '未开放' }} · 全局释放：{{ usage.paused ? '已暂停' : '未暂停' }}</p>
+      <RoomVerificationStatus :usage="usage" :issues="issues" />
       <div v-if="!readOnly" class="buttons"><button :disabled="busy" @click="run('pause')">暂停所有房间释放</button><button :disabled="busy || !writes" @click="run('resume')">解除全局暂停</button></div>
       <div v-if="usage.record&&!readOnly" class="verify">
         <p>目标时间：{{ new Date(usage.record.occurrence.start_time).toLocaleString() }} — {{ new Date(usage.record.occurrence.end_time).toLocaleTimeString() }}</p>

@@ -1,5 +1,7 @@
 # RoomBeacon 架构与接口
 
+> 2026-10-10 本地#2修复：采集器把组织者证据与公共日程原子写入Redis；按组织者查询主日历候选并核对权威来源，私有版本2来源依据不进入公共响应。发送前固定原来源重读并核对实时组织者；新房间列表默认空，旧固定配置兼容。中控已认证查询增加近期核验异常，既有路径、预约identity和截止不变。见[来源设计与回退](calendar-source-qualification.md)，尚未部署及真实验收。
+
 > 2026-10-09 已上线 `3d0b1e1`：#56 收敛两类软硬件日常选择；软件增加默认 true 的 `roombeacon_checkin`，未签到版保留飞书官方签到二维码，不启用 RoomBeacon 按钮签到与自动释放。新增管理员 `DELETE /api/v6/admin/devices/{id}`，校验 CSRF、来源、短码及修订号，以 `deleted` 身份占位防止旧设备重新纳管，保留审计与历史。Nginx 仅为有效设备记录路径放行 DELETE。见[操作及兼容边界](catalog-device-cleanup.md)与[上线回执](production-catalog-cleanup-2026-10-09.md)。
 
 > 2026-10-08首装实施（PR #44 / `3d0542d` 已上线）：新增 `/api/v6/admin/installation` 管理批准清单、助手和任务，`/api/v6/installer` 仅供独立可撤销助手凭证领取及回执。SQLite 新表持久化、事务领取、超时人工核实；现场电脑执行固定 ADB 命令，后台不接收任意命令或直接连设备。APK 留在现场校验，短码关联后复用配置部署，交付为独立人工证据。见[首装架构、接口与边界](installation-delivery.md)。

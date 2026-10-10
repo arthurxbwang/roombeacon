@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from app.connectors.feishu.calendar_errors import CalendarEvidenceError
 from app.connectors.feishu.room_release import FeishuRoomReleaseClient
 from app.services.room_usage_test_driver import (
     CALENDAR_NAME,
@@ -115,8 +116,10 @@ async def test_calendar_connector_failure_boundaries(condition, monkeypatch):
     try:
         if condition == 'ok': assert await client.calendar_instances('calendar/id', 'uid_0', now, now + timedelta(hours=1)) == []
         else:
-            with pytest.raises((httpx.HTTPError, ValueError)):
+            with pytest.raises((CalendarEvidenceError, ValueError)) as failure:
                 await client.calendar_instances('calendar/id', 'uid_0', now, now + timedelta(hours=1))
+            if condition in {'denied', 'timeout'}:
+                assert failure.value.reason == ('access_denied' if condition == 'denied' else 'read_timeout')
         assert len(requests) == 1
         assert requests[0].headers['authorization'] == 'Bearer fixture-token'
         assert 'calendar%2Fid' in str(requests[0].url)
