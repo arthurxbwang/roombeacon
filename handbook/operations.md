@@ -1,5 +1,7 @@
 # RoomBeacon 运维与仓库切换
 
+> 2026-10-10 #76／PR #77已实施：默认首装包0.7.1，两款型号保持；6QVB94同签名覆盖成功，身份／UID／首次安装时间／3/3保持、实际页面／灯控正常。清单源 `1a5698f`、应用／H5 `35ca0d9`，私有备份 `/data/roombeacon/backups/default-runtime-apk-76-20261010`；默认配置回退和保留数据的APK恢复边界见[回执](../docs/default-runtime-apk.md#生产与实际apk升级回执2026-10-10)。
+
 > 2026-10-10 #73／PR #74配置已生效：从GitHub准确提交 `287fd48` 读取公开模板，仅将私有 `ROOM_DISPLAY_INSTALL_MODELS` 补为 `RK3568,rk3568_r`；实际旧机检测200且可初始化。应用／H5保持 `35ca0d9`、默认APK0.7.0，本地／生产594后端通过，原设备3/3及业务保持。备份 `/data/roombeacon/backups/legacy-install-models-73-20261010`，配置回退恢复其中原环境并重启，不整库回退；实际验收见[回执](../docs/legacy-device-first-install.md#生产配置回执2026-10-10)。
 
 > 2026-10-10 #70／PR #71已上线准确应用 `35ca0d9`：后台与新版现场助手取消固定IP／网段名单，旧环境值保留但不再拦截，真实检测 `10.0.51.170` 返回200且已有门牌应用。本地／生产590后端、181Chromium及准确页面／资源检查通过；仍使用内网IPv4，跨站点不可达时由当地助手安装。配置保持及回退至 `27b4b30` 见[本次回执](../docs/production-install-no-allowlist-2026-10-10.md)。
