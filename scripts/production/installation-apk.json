@@ -1,0 +1,9 @@
+{
+  "package": "com.roombeacon.shell",
+  "version_code": 11,
+  "version_name": "0.7.1",
+  "sha256": "326790124fb239893ee35cf638b8ce519470e775ada9fe6bfebaac8d1ccc25c4",
+  "certificate_sha256": "25507df796edaf177caafac66c3b88842fe423b002234a7cc8afa89ad54e687a",
+  "size": 652808,
+  "models": ["RK3568", "rk3568_r"]
+}
