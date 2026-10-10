@@ -98,7 +98,7 @@ async def refresh_batch(cache, client, rooms: list[Room], now: datetime, *,
             valid_until=min(now + timedelta(seconds=fresh_seconds), start + timedelta(days=2)),
             titles_available=titles_available,
         )
-        await save_snapshot(cache, schedule, snapshot_ttl)
+        await save_snapshot(cache, schedule, snapshot_ttl, source_rows=busy[room.room_id])
     return len(parsed)
 
 

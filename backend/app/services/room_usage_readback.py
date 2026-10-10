@@ -52,7 +52,7 @@ async def read_after_release(cache, client, room_id, occurrence, *, expected_fut
                 valid_until=min(now + timedelta(seconds=settings.ROOM_DISPLAY_SYNC_SECONDS + 60), day + timedelta(days=2)),
                 titles_available=False,
             )
-            await save_snapshot(cache, snapshot, 7 * 86400)
+            await save_snapshot(cache, snapshot, 7 * 86400, source_rows=data['free_busy'][room_id])
         return remaining
     except Exception:
         await expire_older_snapshot(cache, room_id, now)

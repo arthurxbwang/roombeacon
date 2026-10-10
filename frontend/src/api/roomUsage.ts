@@ -9,6 +9,8 @@ export interface UsageRecord {
   id: string; state: string; reason: string; deadline: string; verified: boolean
   occurrence: { uid: string; original_time: number; start_time: string; end_time: string }
   release_at?: string; challenge_id?: string
+  verification_error?: string | null; verification_http_status?: number | null; verification_code?: number | null
+  verification_failures?: number; verification_failed_at?: string; verification_succeeded_at?: string
 }
 export interface UsageState {
   room_id: string; enabled: boolean; policy: UsagePolicy; paused: boolean

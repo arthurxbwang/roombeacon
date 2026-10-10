@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from ..core.config import settings
 from ..core.exceptions import AppError
 from ..schemas.room_usage import Occurrence, UsagePolicy, VerifiedRecurringOccurrence
+from .room_calendar_sources import auto_verify_enabled
 from .room_display_collector import cached_schedule
 from .room_usage_recurrence import is_recurring, recurring_time
 
@@ -82,7 +83,7 @@ async def view(store, room_id, now=None):
     policy = await policy_for(store, room_id)
     result = {'room_id': room_id, 'enabled': settings.ROOM_DISPLAY_USAGE_ENABLED,
               'auto_verify_enabled': bool(room_writes_enabled(room_id)
-                                          and settings.ROOM_DISPLAY_USAGE_AUTO_VERIFY_CALENDARS.get(room_id)
+                                          and auto_verify_enabled(room_id)
                                           and policy.get('owner') == 'v5' and policy['mode'] == 'auto'),
               'policy': policy, 'paused': await store.get('paused', True),
               'server_time': now.isoformat(), 'valid_until': (now + timedelta(seconds=30)).isoformat(),
@@ -104,7 +105,8 @@ async def view(store, room_id, now=None):
     record = await store.get('record:' + key)
     if not record:
         return result
-    result['record'] = {k: v for k, v in record.items() if k not in {'actor', 'session_id'}}
+    result['record'] = {k: v for k, v in record.items()
+                        if k not in {'actor', 'session_id'} and not k.startswith('_')}
     valid = record['policy_revision'] == policy['revision']
     limit = record.get('release_at', record['deadline'])
     inside = datetime.fromisoformat(record['opens_at']) <= now < min(datetime.fromisoformat(limit), target.end_time)

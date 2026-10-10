@@ -5,10 +5,12 @@ from datetime import UTC, datetime, timedelta
 
 import structlog
 
+from ..connectors.feishu.calendar_errors import CalendarEvidenceError
 from ..connectors.feishu.room_release import FeishuRoomReleaseClient, ReleaseRejected
 from ..core.room_devices import room_cache
 from ..schemas.room_usage import Occurrence
 from . import room_usage
+from .room_calendar_evidence import organizers_for
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
 from .room_usage_arrivals import invalidate_observation, observe_arrivals
 from .room_usage_autoverify import auto_release_target, maybe_auto_verify
@@ -34,7 +36,8 @@ async def upstream_events(client, room_id, occurrence):
     data = await client.freebusy([room_id], start, end)
     if room_id in data.get('error_room_ids', []) or room_id not in data.get('free_busy', {}):
         raise ValueError('Incomplete freebusy result')
-    return [Occurrence.model_validate(row) for row in data['free_busy'][room_id]]
+    rows = data['free_busy'][room_id]
+    return [Occurrence.model_validate(row) for row in rows], organizers_for(room_id, rows)
 
 
 async def execute_release(store, client, room_id, record, policy, epoch):
@@ -50,7 +53,7 @@ async def execute_release(store, client, room_id, record, policy, epoch):
     final = {**claimed, 'state': 'blocked', 'reason': 'preflight_failed'}
     sent = False
     try:
-        events = await upstream_events(client, room_id, occurrence)
+        events, organizers = await upstream_events(client, room_id, occurrence)
         if sum(e.identity(room_id) == record['id'] for e in events) != 1:
             final['reason'] = 'upstream_changed'
         else:
@@ -63,7 +66,8 @@ async def execute_release(store, client, room_id, record, policy, epoch):
             current = await fresh_target(room_id, now)
             if safe and current and current.identity(room_id) == record['id'] and acknowledged(record, datetime.now(UTC)):
                 if record.get('verification_source') == 'calendar':
-                    target = await auto_release_target(client, room_id, record, occurrence)
+                    target = await auto_release_target(client, room_id, record, occurrence, store=store,
+                                                       live_organizer=organizers.get(record['id']))
                     if target.original_time == 0 and is_recurring(occurrence, events):
                         raise ValueError('Calendar and room recurrence evidence conflict')
                     at = datetime.now(UTC)
@@ -87,6 +91,12 @@ async def execute_release(store, client, room_id, record, policy, epoch):
                          'reason': 'verify_pending' if same_uid else 'verified_release'}
     except ReleaseRejected as exc:
         final = {**claimed, 'state': 'failed', 'reason': 'feishu_rejected', 'error_code': exc.code}
+    except CalendarEvidenceError as exc:
+        final = {**claimed, 'state': 'uncertain' if sent else 'blocked',
+                 'reason': 'verify_pending' if sent else 'calendar_verification_failed',
+                 'verification_error': exc.reason, 'verification_http_status': exc.http_status,
+                 'verification_failures': claimed.get('verification_failures', 0) + 1,
+                 'verification_code': exc.code, 'verification_failed_at': datetime.now(UTC).isoformat()}
     except Exception as exc:  # noqa: BLE001 — log type only; preserve ambiguous write state.
         logger.warning('room_usage_release_failed', error_type=type(exc).__name__)
         final = {**claimed, 'state': 'uncertain' if sent else 'blocked', 'reason': 'verify_pending' if sent else 'preflight_failed'}
@@ -201,7 +211,8 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
                        'release_at': min(occurrence.end_time, release_at).isoformat()}
             await store.cas(key, old, waiting, room_id, policy=policy)
         else:
-            await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'release_not_enabled'}, room_id, policy=policy)
+            reason = 'calendar_verification_failed' if old.get('verification_error') else 'release_not_enabled'
+            await store.cas(key, old, {**old, 'state': 'blocked', 'reason': reason}, room_id, policy=policy)
     else:
         await store.cas(key, old, {**old, 'last_seen': now.timestamp()}, room_id, policy=policy, action='monitor')
 

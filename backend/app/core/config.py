@@ -26,8 +26,10 @@ class Settings(BaseSettings):
     ROOM_DISPLAY_USAGE_ENABLED: bool = False
     ROOM_DISPLAY_USAGE_WRITES_ENABLED: bool = False
     ROOM_DISPLAY_USAGE_RELEASE_ROOM_IDS: set[str] = Field(default_factory=set)
-    # Exact room -> readable calendar mapping. Empty keeps the manual pilot behavior.
+    # Legacy fixed room -> readable calendar mapping; optional with organizer sources.
     ROOM_DISPLAY_USAGE_AUTO_VERIFY_CALENDARS: dict[str, str] = Field(default_factory=dict)
+    # Explicit per-room rollout, independent of the release write allowlist.
+    ROOM_DISPLAY_USAGE_ORGANIZER_SOURCE_ROOM_IDS: set[str] = Field(default_factory=set)
 
 
 settings = Settings()

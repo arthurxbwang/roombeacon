@@ -73,7 +73,10 @@ def usage_router(require_admin, require_reader=None):
     @router.get('/api/room-control/usage/{room_id}')
     async def inspect(room_id: str = Path(pattern=ROOM_PATTERN), admin=Depends(require_reader or require_admin),
                       store=Depends(store_dep)):
-        return ok({'usage': await view(store, room_id), 'audit': await store.audit(room_id),
+        from .services.room_usage_diagnostics import verification_issues
+        audit = await store.audit(room_id)
+        return ok({'usage': await view(store, room_id), 'audit': audit,
+                   'verification_issues': await verification_issues(store, room_id, audit),
                    'global_audit': await store.audit('global'),
                    'writes_enabled': room_writes_enabled(room_id),
                    'control_confirm_enabled': admin.get('role') != 'viewer' and

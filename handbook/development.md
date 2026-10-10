@@ -22,6 +22,8 @@ Python 3.13、Node 20。仓库根创建 .venv，执行 `.venv/bin/pip install -r
 
 ## 2. 检查
 
+跨组织者来源修复可用 `.venv/bin/python scripts/check_calendar_sources.py --output /tmp/calendar-source-run-01.json` 单独运行9项HTTP完整链路，输出逐项预期／结果及JUnit证据；任一跳过视为失败。它使用真实连接器、采集／状态机及隔离Redis，HTTP为fixture，不创建真实预约；完整检查仍执行下述全量命令，见[来源核验说明](../docs/calendar-source-qualification.md)。
+
 V5 的原子状态测试需要本地 `redis-server`（可通过 `ROOMBEACON_TEST_REDIS_SERVER` 指定可执行文件）。测试自行启动仅监听临时 Unix socket 的 Redis，不连接配置中的已有实例；没有该程序时这些用例会跳过，V5 验收不得把跳过算作通过。前端测试应在隔离构建目录运行，避免覆盖现有样机使用的 dist；非默认端口需同步调整测试副本中的页面发布 URL。
 
 ```bash
