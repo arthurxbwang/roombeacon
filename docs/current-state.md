@@ -1,5 +1,11 @@
 # RoomBeacon 当前状态
 
+## 静态发布检查（2026-10-10，PR #65已上线）
+
+当前准确应用为 **`e0e5926484489298f74635190e2eb530390b309b`**。发布过程在私有umask下验证公开dist权限自动处理，并通过本机Nginx和外网检查准确页面版本及JS／CSS资源；生产556项后端、162项Chromium通过。真实设备、开关恢复与准确回退见[本次回执](production-static-gate-2026-10-10.md)。本轮业务／前端／Android源码及配置与上一应用相同，日历解析仍只为IT灯塔-Test启用，真实业务矩阵和72小时观察继续#2／#3。
+
+13:45实际复核：BDC5ZS已自动加载新H5、页面／灯控健康、配置2/2，原18条预约与稳定配置保持；343份新鲜快照及来源配对，自动核验／释放均true、暂停false。无需ADB操作或APK更新。
+
 ## 跨组织者日历修复（2026-10-10，已上线）
 
 用户确认[PR #64](https://github.com/arthurxbwang/roombeacon/pull/64)合并并授权部署，准确应用 **`3a527efecd8d0fb86f2e4e269a266087489ba7ff`** 已从GitHub上线。只对IT灯塔-Test启用 `ROOM_DISPLAY_USAGE_ORGANIZER_SOURCE_ROOM_IDS`，按每场组织者解析日历并在发送前固定来源重查；原白名单及固定映射保持。生产543项后端及3项定向Chromium回归通过；343间完整采集失败0，18条原记录、身份、策略和配置保持。此前两场404／193001预约已由新代码通过真实只读核验，原blocked未改写。准确回执、开关恢复与回退见[发布记录](production-calendar-source-2026-10-10.md)。
