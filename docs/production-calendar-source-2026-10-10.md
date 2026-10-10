@@ -1,5 +1,7 @@
 # 跨组织者日历来源修复生产回执（2026-10-10）
 
+> 后续PR #65已部署准确应用 `e0e5926`，本页所述静态发布检查现已实际执行。当前运行版本、备份及回退以[后续上线回执](production-static-gate-2026-10-10.md)为准；下文保留PR #64当时的证据。
+
 用户确认 [PR #64](https://github.com/arthurxbwang/roombeacon/pull/64) 已合并并授权部署，接续 #2／#3。本轮准确应用为 **`3a527efecd8d0fb86f2e4e269a266087489ba7ff`**，发布前为 `ed90c9fea8c573414e1745ccb8689316af4517ea`。目标为独立生产 `roombeacon.thundersoft.com`、`/data/roombeacon`，主机 `tsm-eed-ts-bj`、SSH 8081。
 
 ## 发布与启用范围
