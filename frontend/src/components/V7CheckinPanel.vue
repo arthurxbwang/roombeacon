@@ -30,6 +30,7 @@ const status = computed(() => {
   if (!ready.value) return '签到暂不可用'
   if (record.value?.state === 'confirmed') return '已签到'
   if (record.value?.state === 'released') return '预约已释放'
+  if (record.value?.state === 'blocked') return '未签到，请联系管理员'
   if (record.value && ['uncertain', 'failed'].includes(record.value.state)) return '会议状态待确认'
   if (record.value && ['checking', 'releasing', 'end_requested'].includes(record.value.state)) return '签到已截止'
   if (record.value && props.now >= Date.parse(record.value.release_at || record.value.deadline)) return '签到已截止'

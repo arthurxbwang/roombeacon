@@ -187,12 +187,27 @@ test('无补签到窗口在五分钟截止时隐藏按钮，等待核验结果',
   await expect(page.getByText('本次预约已释放', { exact: true })).toHaveCount(0)
 })
 
-test('正式版不显示保护说明，截止后也不误报释放', async ({ page }) => {
+test('保护预约截止后明确未签到，并提示联系管理员', async ({ page }) => {
   await scene(page, { time: '2026-09-28T06:20:00Z', phase: 'blocked', buffer: 0 })
   await expect(page.getByText('本次预约受保护，不会自动释放', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('签到已截止', { exact: true })).toBeVisible()
+  await expect(page.getByText('未签到，请联系管理员', { exact: true })).toBeVisible()
   await expect(page.getByText('正在同步释放状态', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+})
+
+test('开始后新增预约按固定新期限签到，刷新不延长', async ({ page }) => {
+  await scene(page, { time: '2026-09-28T06:23:00Z', deadline: '2026-09-28T06:28:00Z', buffer: 0 })
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('05:00')
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toBeEnabled()
+  await page.clock.fastForward(60000)
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('04:00')
+  await page.reload()
+  await expect(page.getByLabel('签到剩余时间', { exact: true })).toHaveText('04:00')
+  await page.clock.fastForward(240000)
+  await expect(page.getByRole('button', { name: '立即签到', exact: true })).toHaveCount(0)
+  await expect(page.getByText('签到已截止', { exact: true })).toBeVisible()
+  await expect(page.getByText('已签到', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('预约已释放', { exact: true })).toHaveCount(0)
 })
 
 test('正式门牌隐藏正常态配置诊断，失联仍明确显示未知', async ({ page }) => {

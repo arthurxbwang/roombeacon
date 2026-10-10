@@ -29,6 +29,7 @@ async def test_all_rooms_are_warmed_without_visitors_and_reads_never_call_feishu
     world.requests.clear()
     results = await asyncio.gather(*[collector.cached_schedule('omm_one') for _ in range(50)])
     assert all(r.events[0].summary == '产品设计评审' for r in results)
+    assert all(r.query_start < r.synced_at < r.query_end for r in results)
     assert (await collector.cached_schedule('omm_two')).events == []
     assert len(await collector.cached_directory()) == 2
     assert world.requests == []

@@ -8,7 +8,9 @@ import structlog
 from ..connectors.feishu.room_release import FeishuRoomReleaseClient, ReleaseRejected
 from ..core.room_devices import room_cache
 from ..schemas.room_usage import Occurrence
+from . import room_usage
 from .room_usage import fresh_monitor_targets, fresh_target, policy_for, write_allowed
+from .room_usage_arrivals import invalidate_observation, observe_arrivals
 from .room_usage_autoverify import auto_release_target, maybe_auto_verify
 from .room_usage_health import covers_occurrence, healthy_terminal
 from .room_usage_readback import read_after_release
@@ -97,17 +99,25 @@ async def tick_room(store, client, room_id, epoch, now=None):
     policy = await policy_for(store, room_id)
     if policy.get('owner') != 'v5' or policy['mode'] == 'off':
         return
-    for index, occurrence in enumerate(await fresh_monitor_targets(room_id, now, policy)):
+    try:
+        snapshot = await room_usage.cached_schedule(room_id)
+        targets = await fresh_monitor_targets(room_id, now, policy, snapshot=snapshot)
+    except Exception:
+        await invalidate_observation(store, room_id)
+        raise
+    arrivals = await observe_arrivals(store, room_id, epoch, now, policy, snapshot, targets)
+    for index, occurrence in enumerate(targets):
         at = datetime.now(UTC) if live_clock else now
         if index:
             # An earlier release can invalidate the cache or cross a start boundary.
             eligible = await fresh_monitor_targets(room_id, at, policy)
             if not any(e.identity(room_id) == occurrence.identity(room_id) for e in eligible):
                 continue
-        await tick_occurrence(store, client, room_id, epoch, at, policy, occurrence)
+        await tick_occurrence(store, client, room_id, epoch, at, policy, occurrence,
+                              arrivals.get(occurrence.identity(room_id)))
 
 
-async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence):
+async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence, arrival=None):
     ident = occurrence.identity(room_id)
     key = 'record:' + ident
     old = await store.get(key)
@@ -117,7 +127,8 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
     if old is None:
         if now < opens:
             return
-        # Never backfill missed windows, including following data loss.
+        # Only a proven addition can open a window after start. Missing history
+        # and existing protection are never backfilled from a first sighting.
         epoch_start = await store.get('epoch-start:' + epoch)
         heartbeat = await store.get('heartbeat:' + room_id, {})
         before_start = now < occurrence.start_time
@@ -126,16 +137,21 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
         matching_page = covers_occurrence(heartbeat, ident)
         # New cache data can arrive before the page's next heartbeat. Do not enroll
         # against the previous booking and then immediately flag an interruption.
-        # Wait only before start; missing history/restarts retain fail-closed behavior.
-        if before_start and epoch_ready and not previously_seen and not (healthy and matching_page):
+        # Wait within a proven window; missing history/restarts remain protected.
+        if arrival:
+            deadline = datetime.fromisoformat(arrival['deadline'])
+        eligible = (before_start and epoch_ready) or (arrival is not None and now < deadline)
+        if eligible and not previously_seen and not (healthy and matching_page):
             return
         first_seen = await store.cache.set(PREFIX + 'seen:' + ident, '1', nx=True, ex=7 * 86400)
-        pending = before_start and healthy and matching_page and first_seen and epoch_ready
+        pending = eligible and healthy and matching_page and first_seen
         record = {'id': ident, 'room_id': room_id, 'occurrence': occurrence.model_dump(mode='json'),
                   'opens_at': opens.isoformat(), 'deadline': deadline.isoformat(), 'epoch': epoch,
                   'policy_revision': policy['revision'], 'state': 'pending' if pending else 'blocked',
                   'verified': False, 'session_id': heartbeat.get('session_id'), 'last_seen': now.timestamp(),
                   'reason': 'monitoring' if pending else 'missed_window'}
+        if pending and arrival:
+            record.update(admission='observed_addition', first_observed_at=arrival['first_observed_at'])
         await store.cas(key, None, record, room_id, policy=policy, action='enroll')
         return
     if old['state'] == 'releasing':
@@ -147,6 +163,7 @@ async def tick_occurrence(store, client, room_id, epoch, now, policy, occurrence
         return
     if old['state'] not in {'pending', 'waiting', 'checking'}:
         return
+    deadline = datetime.fromisoformat(old['deadline'])
     continuous = old['epoch'] == epoch and 0 <= now.timestamp() - old['last_seen'] < 45
     if not continuous or not healthy or old['policy_revision'] != policy['revision']:
         await store.cas(key, old, {**old, 'state': 'blocked', 'reason': 'monitoring_interrupted'}, room_id)

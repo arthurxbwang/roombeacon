@@ -83,6 +83,7 @@ async def test_readback_keeps_new_upstream_bookings_and_full_query_window(setup_
     assert [e.uid for e in saved.events] == ['created-during-release']
     day = saved.synced_at.astimezone(ZONE).replace(hour=0, minute=0, second=0, microsecond=0)
     assert client.freebusy.await_args.args == (['omm_one'], day - timedelta(days=1), day + timedelta(days=2))
+    assert (saved.query_start, saved.query_end) == (day - timedelta(days=1), day + timedelta(days=2))
     assert 0 < (saved.valid_until - saved.synced_at).total_seconds() <= 360
     assert not saved.titles_available
 
