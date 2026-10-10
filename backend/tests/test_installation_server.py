@@ -55,7 +55,7 @@ def test_probe_is_read_only_and_initialize_is_idempotent(client, configured):
 def test_probe_permissions_csrf_network_and_port_boundaries(client, configured):
     detect, install = configured
     assert client.post(BASE + '/probe', json={'ip': '10.0.1.2'}).status_code == 401
-    for ip in ['127.0.0.1', '169.254.169.254', '8.8.8.8', '::1', 'example.com', '10.0.1.2;id', '10.0.2.1']:
+    for ip in ['127.0.0.1', '169.254.169.254', '8.8.8.8', '::1', 'example.com', '10.0.1.2;id']:
         assert post(client, '/probe', {'ip': ip}).status_code == 422
     assert post(client, '/probe', {'ip': '10.0.1.2', 'port': 22}).status_code == 422
     me = session(client, 'viewer').json()['data']
@@ -77,7 +77,7 @@ def test_no_apk_still_probes_but_cannot_initialize(client, configured, monkeypat
     configured[1].assert_not_called()
 
 
-@pytest.mark.parametrize('change', ['expired', 'artifact', 'network', 'busy'])
+@pytest.mark.parametrize('change', ['expired', 'artifact', 'port', 'busy'])
 def test_stale_probe_and_concurrent_target_cannot_initialize(client, configured, monkeypatch, change):
     value = probe(client)
     if change == 'expired':
@@ -85,8 +85,8 @@ def test_stale_probe_and_concurrent_target_cannot_initialize(client, configured,
             db.execute('UPDATE install_probes SET expires=0')
     elif change == 'artifact':
         monkeypatch.setattr(runtime, 'default_apk', lambda: ('/new.apk', MANIFEST | {'sha256': 'c' * 64}))
-    elif change == 'network':
-        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_NETWORKS', '')
+    elif change == 'port':
+        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_PORT', '5556')
     else:
         with database() as db:
             db.execute("INSERT INTO install_jobs(id,batch_id,executor_id,release_id,ip,port,serial,state,created_at) "
@@ -142,8 +142,8 @@ def test_unusable_adb_never_probes_another_transport(monkeypatch, listing):
         runtime.detect('10.0.1.2', 5555)
 
 
-def test_missing_config_fails_closed(client, monkeypatch):
-    monkeypatch.delenv('ROOM_DISPLAY_INSTALL_NETWORKS', raising=False)
+def test_missing_adb_fails_closed(client, monkeypatch):
+    monkeypatch.setattr(runtime, 'tool_available', lambda _: False)
     value = client.get(BASE + '/server', headers=admin()).json()['data']
     assert not value['probe_ready']
     assert post(client, '/probe', {'ip': '10.0.1.2'}).status_code == 409
@@ -189,14 +189,37 @@ def test_parallel_confirmations_create_only_one_job(client, configured):
     assert configured[1].call_count == 1
 
 
-def test_no_tools_and_invalid_network_configuration_never_connect(client, configured, monkeypatch):
-    for networks in ['0.0.0.0/0', '127.0.0.0/8', 'bad', '10.0.1.1/24']:
-        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_NETWORKS', networks)
+def test_no_tools_and_invalid_port_configuration_never_connect(client, configured, monkeypatch):
+    for port in ['0', '65536', 'bad']:
+        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_PORT', port)
         assert post(client, '/probe', {'ip': '10.0.1.2'}).status_code == 409
-    monkeypatch.setenv('ROOM_DISPLAY_INSTALL_NETWORKS', '10.0.1.0/24')
+    monkeypatch.setenv('ROOM_DISPLAY_INSTALL_PORT', '5555')
     monkeypatch.setattr(runtime, 'tool_available', lambda _: False)
     assert post(client, '/probe', {'ip': '10.0.1.2'}).status_code == 409
     configured[0].assert_not_called()
+
+
+@pytest.mark.parametrize('ip', ['10.0.51.170', '10.99.3.4', '172.20.5.6', '192.168.8.9'])
+@pytest.mark.parametrize('networks', [None, '', '10.0.51.221/32', 'bad'])
+def test_other_sites_probe_and_initialize_without_allowlist(client, configured, monkeypatch, ip, networks):
+    if networks is None:
+        monkeypatch.delenv('ROOM_DISPLAY_INSTALL_NETWORKS', raising=False)
+    else:
+        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_NETWORKS', networks)
+    value = client.get(BASE + '/server', headers=admin()).json()['data']
+    assert value['probe_ready'] and value['networks'] == ''
+    response = post(client, '/probe', {'ip': ip})
+    assert response.status_code == 200, response.text
+    configured[0].assert_called_once_with(ip, 5555)
+    assert initialize(client, response.json()['data']).status_code == 200
+    assert configured[1].call_args.args[0]['ip'] == ip
+
+
+def test_adb_connection_failure_remains_visible_for_other_site(client, configured):
+    configured[0].side_effect = runtime.conflict('无法连接设备 ADB，请检查 IP、设备联网和网络 ADB 开关')
+    response = post(client, '/probe', {'ip': '172.20.5.6'})
+    assert response.status_code == 409 and '无法连接设备 ADB' in response.json()['message']
+    configured[1].assert_not_called()
 
 
 def test_unexpected_worker_failure_does_not_publish_success(client, configured):

@@ -1,6 +1,18 @@
 # 首装与交付：IP 检测和初始化（#43）
 
-更新：2026-10-08。本次简化日常安装流程；正式 APK 和真实首装仍待验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
+更新：2026-10-10。本次取消首装 IP／网段白名单（本地完成，尚未上线）；正式 APK 和首台真实安装已在下方 2026-10-08 回执验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
+
+## 跨网段与跨站点安装
+
+后台和新版现场助手不再要求登记允许网段；任意站点的 RFC1918 内网 IPv4（10/8、172.16/12、192.168/16）均可作为目标，不局限于原样机地址或北京站点。公网、回环、链路本地地址、域名和 IPv6 仍不属于首装协议范围。后台仍只连接配置的 ADB 端口，并保留管理员／CSRF、正式 APK 签名、型号、序列号及安装后核验。
+
+取消白名单不会建立跨站点路由。后台直连需服务器能够访问设备 IP／ADB 端口；无法直达时，在设备所在站点运行现场助手，由助手连接后台 HTTPS 和当地设备。首装后门牌自行通过 HTTPS 注册和取配置，长期运行不依赖后台连通 ADB。不同站点重复使用同一私网 IP 时，现有任务的 IP／SN 占用保护仍会要求顺序处理；本次不增加站点路由或命名空间。
+
+兼容迁移：旧 `ROOM_DISPLAY_INSTALL_NETWORKS` 环境值保留但不再读取，不需要逐台加名单；`GET /server` 保留 `networks` 字段并返回空字符串。新版助手不需要 `--allow-network`，旧命令仍接受该参数并明确提示已弃用、不再限制网段；旧版助手仍按旧规则执行，跨站点交付应使用与新后台匹配的脚本。
+
+本轮验证：先新增回归并在旧实现复现名单拦截，再修改实现；63 项首装相关回归、全量后端 590 项和 Chromium 181 项均通过、无跳过，Ruff 0.16.7、npm ci、隔离构建及 diff 检查通过。检查 1440px／390px 真实渲染截图的提示换行与边界；ADB 和外部系统全部隔离模拟，尚未真实检测／安装 `10.0.51.170`。Android 源码未变，本轮不构建或安装 APK。后端保留一条上游 Starlette／httpx 弃用提示。
+
+发布准备：远程 Issue／PR、合并与生产上线待授权。目标仅为独立生产 `roombeacon.thundersoft.com` 的 `/data/roombeacon`，从 GitHub 取得准确已审阅提交，沿用发布脚本的权限和页面／资源检查；不修改旧名单环境值、ADB 端口、默认 APK 或设备绑定。上线前记录当时实际 SHA、在途首装／释放任务和一致性备份；当前计划回退基线为已上线 `27b4b3009b7001238636de50d1dafad75107e11f`，实际发布前重新核对。回退仅切应用和对应 H5，保留数据库／预约／设备身份；旧应用会重新启用原 `/32` 名单，先停止新版现场助手并核实在途任务。
 
 ## 当前可以做什么
 
@@ -18,7 +30,7 @@
 
 | 变量 | 用途 |
 |---|---|
-| `ROOM_DISPLAY_INSTALL_NETWORKS` | 允许访问的 RFC1918 IPv4 CIDR，逗号分隔；默认空，禁止探测。初次可仅放行测试机 `/32`，批量交付前配置批准的实际设备网段 |
+| `ROOM_DISPLAY_INSTALL_NETWORKS` | 已弃用，新版忽略旧值；无需配置允许 IP／网段 |
 | `ROOM_DISPLAY_INSTALL_PORT` | ADB 端口，默认 5555；输入 IP 不可连接其他端口 |
 | `ROOM_DISPLAY_INSTALL_ADB` | 受控 ADB 工具路径，须支持 transport ID |
 | `ROOM_DISPLAY_INSTALL_APK` | 默认已批准的正式 APK 文件路径 |
@@ -30,7 +42,7 @@
 
 生产 ADB 建议采用仓库 `scripts/production/roombeacon-installation-adb.service`：专用无登录账号 `roombeacon-adb`，账号 home 为 `/data/roombeacon/shared/installation`，目录属该账号且 0700；受控 ADB 位于 `/data/roombeacon/tools/installation/adb`。服务只监听回环 5041，默认 ADB 密钥由这个独立账号在其 home 中生成，保留用于重启后连接，不复制开发机密钥。服务关闭 mDNS 自动连接与模拟器端口扫描。
 
-后台使用 `scripts/production/roombeacon-installation.conf` 作为 `80-installation.conf` drop-in，引用私有 `installation.env`，后者加 `ANDROID_ADB_SERVER_PORT=5041`。生产应用账号 home 为 `/nonexistent`；ADB 客户端也会创建 `.android`，因此另建属 `roombeacon` 的 0700 目录 `/data/roombeacon/shared/installation-client`，仅在此服务命名空间映射到 `/nonexistent`。不修改系统账号 home 或环境变量，客户端与 ADB 服务密钥目录分开。正常应用部署不会覆盖此 drop-in；ADB 进程独立于应用重启。只配置网段和 ADB 即可先检测，正式 APK 缺失会显示未就绪。系统不开放公网 ADB，也不提供任意命令接口。
+后台使用 `scripts/production/roombeacon-installation.conf` 作为 `80-installation.conf` drop-in，引用私有 `installation.env`，后者加 `ANDROID_ADB_SERVER_PORT=5041`。生产应用账号 home 为 `/nonexistent`；ADB 客户端也会创建 `.android`，因此另建属 `roombeacon` 的 0700 目录 `/data/roombeacon/shared/installation-client`，仅在此服务命名空间映射到 `/nonexistent`。不修改系统账号 home 或环境变量，客户端与 ADB 服务密钥目录分开。正常应用部署不会覆盖此 drop-in；ADB 进程独立于应用重启。只配置 ADB 工具和端口即可先检测，正式 APK 缺失会显示未就绪。系统不开放公网 ADB，也不提供任意命令接口。
 
 ## 直连任务和故障处理
 
@@ -64,13 +76,12 @@ python scripts/roombeacon_installer.py inspect-apk \
 1. 在后台登记电脑名称，生成一天有效的助手凭证。凭证只展示一次，离开页面即清除；丢失时撤销并重新登记。
 2. 在后台登记命令输出的清单。核对包名、版本、文件 SHA-256、证书 SHA-256 和适用型号；后台登记是管理员批准，实际签名验证由助手的 `apksigner verify` 完成。
 3. 选择助手和清单，粘贴每行 `IP 序列号 [端口]`。默认端口 5555，预览实际目标后提交。相同请求重放不创建重复任务；排队、执行中或待核实任务会占用 IP 和序列号。
-4. 在这台现场电脑启动助手，传入同一 APK 和允许访问的具体网段。按提示隐藏输入助手凭证；不要把凭证写入命令行、提交记录或截图。也支持受控环境变量 `ROOMBEACON_INSTALLER_TOKEN`，不会传给 ADB 子进程。
+4. 在设备所在站点的现场电脑启动新版助手，传入同一 APK，无需配置允许网段。按提示隐藏输入助手凭证；不要把凭证写入命令行、提交记录或截图。也支持受控环境变量 `ROOMBEACON_INSTALLER_TOKEN`，不会传给 ADB 子进程。
 
 ```bash
 python scripts/roombeacon_installer.py run \
   --server https://roombeacon.thundersoft.com \
   --apk /secure/releases/roombeacon-release.apk \
-  --allow-network 10.0.51.0/24 \
   --adb /opt/android/platform-tools/adb \
   --aapt /opt/android/build-tools/35.0.0/aapt \
   --apksigner /opt/android/build-tools/35.0.0/apksigner
@@ -116,7 +127,7 @@ python scripts/roombeacon_installer.py run \
 
 ## 发布与回退
 
-原现场助手版本从 GitHub 部署 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`（PR #44），历史验证见[首次发布回执](production-installation-2026-10-08.md)。IP 流程对应 [PR #46](https://github.com/arthurxbwang/roombeacon/pull/46)，专用 ADB 服务参数修正见 [PR #47](https://github.com/arthurxbwang/roombeacon/pull/47)；生产切换须记录准确合并 SHA，回退应用为上述 `3d0542d`，不恢复旧数据库或 Redis。首次配置时仅放行样机 `10.0.51.221/32`；新设备交付前由运维扩展批准网段。正式装机前仍须明确正式 APK 签名／摘要、助手脚本版本、单台试点和窗口；首台真实通过后再扩批。
+原现场助手版本从 GitHub 部署 `3d0542dde4677ed1c43ae09b90051379f1d9fc08`（PR #44），历史验证见[首次发布回执](production-installation-2026-10-08.md)。IP 流程对应 [PR #46](https://github.com/arthurxbwang/roombeacon/pull/46)，专用 ADB 服务参数修正见 [PR #47](https://github.com/arthurxbwang/roombeacon/pull/47)；生产切换须记录准确合并 SHA，回退应用为上述 `3d0542d`，不恢复旧数据库或 Redis。历史首次配置仅放行样机 `10.0.51.221/32`；新版取消该限制，上线后无需逐台或逐站点扩展名单。应用回退旧版时原环境值重新生效，仍需核对当时目标范围。正式装机前仍须明确正式 APK 签名／摘要、助手脚本版本、单台试点和窗口；首台真实通过后再扩批。
 
 应用回退前停止现场助手、撤销凭证、核实在途任务并备份当前 SQLite（含 WAL 的一致性备份）。旧应用可忽略新增表，但不得恢复旧库覆盖新设备身份和配置。APK 首装不自动回退：失败设备保留现场状态，按批准的恢复方式处理，不能以卸载清数据实现默认回退。
 
