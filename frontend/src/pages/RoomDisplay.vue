@@ -9,7 +9,7 @@ import { displayLanguage, translateDisplayText } from '@/utils/displayLanguage'
 import { watchPageRelease } from '@/utils/pageRelease'
 
 const emit = defineEmits<{ 'theme-change': [theme: string] }>()
-const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {display_version?:'v6'|'v7';roombeacon_checkin?:boolean;language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
+const props = defineProps<{ controlRoom?: string; controlToken?: string; controlTheme?: string; displayVersion?: string; templatePreferences?: {display_version?:'v6'|'v7';roombeacon_checkin?:boolean;show_meeting_titles?:boolean;language:'zh-CN'|'en';theme_mode:'auto'|'light'|'dark';layout?:string;background_day?:string;background_night?:string;background_fit?:string} }>()
 const route = useRoute()
 const version = computed(() => props.displayVersion || (['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'].includes(String(route.query.version)) ? String(route.query.version) : localStorage.getItem('argus_room_version')) || 'v4')
 const isV2 = computed(() => version.value !== 'v1')
@@ -79,7 +79,8 @@ const progress = computed(() => current.value ? Math.min(100, Math.max(0, (now.v
 const time = (value: string | number) => new Date(value).toLocaleTimeString(language.value, { timeZone: timezone.value, hour: '2-digit', minute: '2-digit', hour12: false })
 const date = computed(() => new Date(now.value).toLocaleDateString(language.value, { timeZone: timezone.value, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }))
 const lastSynced = computed(() => snapshot.value ? new Date(snapshot.value.synced_at).toLocaleString(language.value, { timeZone: timezone.value, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '')
-const title = (event: RoomEvent) => event.summary || t('已预约会议')
+const showMeetingTitles = computed(() => preferences.value?.show_meeting_titles !== false)
+const title = (event: RoomEvent) => showMeetingTitles.value ? event.summary || t('已预约会议') : ''
 function position(value: string | number) {
   return Math.min(100, Math.max(0, (new Date(value).getTime() - windowStart.value) / 43200000 * 100))
 }
@@ -128,7 +129,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5, v7: isV7,'layout-compact':preferences?.layout==='compact','with-custom-background':!!backgroundId&&!backgroundFailed }]" :style="{ '--accent': accent }">
+  <main class="door" :lang="language" data-terminal-protocol="1" :data-terminal-state="terminalState" :class="[isLight ? 'theme-light' : 'theme-dark', { v2: isV2, v3: isV3, v4: isV4, v5: isV5, v7: isV7,'private-meetings':!showMeetingTitles,'layout-compact':preferences?.layout==='compact','with-custom-background':!!backgroundId&&!backgroundFailed }]" :style="{ '--accent': accent }">
     <img v-if="backgroundId&&!backgroundFailed" class="template-background" :src="'/api/v6/assets/'+backgroundId" :style="{objectFit:preferences?.background_fit==='contain'?'contain':'cover'}" alt="" @error="backgroundFailed=true" />
     <form v-if="!bound" class="binding" @submit.prevent="bind">
       <p class="eyebrow">ARGUS / MEETING ROOM</p><h1>{{ t('绑定会议门牌') }}</h1>
@@ -161,7 +162,7 @@ onUnmounted(() => {
               </div>
               <div v-if="active" class="meeting-detail">
                 <p class="detail-label">{{ current ? t('当前会议') : t('下一场会议') }}</p>
-                <h2 :title="title(active)">{{ title(active) }}</h2>
+                <h2 v-if="showMeetingTitles" :title="title(active)">{{ title(active) }}</h2>
                 <p class="meeting-time">{{ time(active.start_time) }} — {{ time(active.end_time) }}</p>
                 <p v-if="!isV7 || active.organizer" class="organizer">{{ t('组织者 ·') }} {{ active.organizer || t('信息不可见') }}</p>
               </div>
@@ -181,7 +182,7 @@ onUnmounted(() => {
           <div class="agenda-body">
             <article v-for="event in agendaEvents" :key="`${event.uid}:${event.original_time}:${event.start_time}`" :class="{ active: fresh && event === current, upcoming: fresh && event === next && state === '即将开始' }">
               <div class="event-top"><p><small v-if="isV3" class="event-day">{{ dateKey(Date.parse(event.start_time)) === dateKey(now) ? t('今天') : new Date(event.start_time).toLocaleDateString(language, { timeZone: timezone, month: 'numeric', day: 'numeric' }) }}</small>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><span class="tag">{{ !fresh ? t('预约') : event === current ? t('进行中') : event === next ? t('下一场') : t('待开始') }}</span></div>
-              <h4 :title="title(event)">{{ title(event) }}</h4><p v-if="!isV7 || event.organizer" class="event-organizer">{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</p>
+              <h4 v-if="showMeetingTitles" :title="title(event)">{{ title(event) }}</h4><p v-if="!isV7 || event.organizer" class="event-organizer">{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</p>
             </article>
             <div v-if="fresh && (isV3 ? !agendaEvents.length : !remainingEvents.length)" class="agenda-empty">
               <svg class="empty-art" viewBox="0 0 160 120" fill="none" aria-hidden="true"><rect x="38" y="23" width="84" height="78" rx="12" stroke="currentColor" stroke-width="2"/><path d="M38 46h84M58 14v18m44-18v18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m62 73 12 12 25-26" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -189,7 +190,7 @@ onUnmounted(() => {
               <div v-if="!isV7" class="room-fact"><strong>{{ snapshot?.room.capacity || 0 }}</strong><span>{{ t('人 · 会议空间') }}</span></div>
             </div>
             <p v-else-if="!agendaEvents.length" class="pending-message">{{ t('等待获取日程') }}</p>
-            <details v-if="!isV2 && fresh && pastEvents.length" class="history"><summary>已结束 · {{ pastEvents.length }} 场</summary><div v-for="event in pastEvents" :key="`${event.uid}:${event.start_time}`"><p>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><h4>{{ title(event) }}</h4><small>{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</small></div></details>
+            <details v-if="!isV2 && fresh && pastEvents.length" class="history"><summary>已结束 · {{ pastEvents.length }} 场</summary><div v-for="event in pastEvents" :key="`${event.uid}:${event.start_time}`"><p>{{ time(event.start_time) }} — {{ time(event.end_time) }}</p><h4 v-if="showMeetingTitles">{{ title(event) }}</h4><small>{{ t('组织者 ·') }} {{ event.organizer || t('信息不可见') }}</small></div></details>
           </div>
 
         </section>
@@ -199,7 +200,7 @@ onUnmounted(() => {
         <div class="track" :class="{ unknown: isV2 && (!fresh || disabled) }"><span v-for="event in timelineEvents" :key="`${event.uid}:${event.start_time}`" :style="bar(event)" :class="{ elapsed: Date.parse(event.end_time) <= now }" /><i :style="{ left: `${position(now)}%` }" /></div>
         <div class="ticks"><span v-for="value in ticks" :key="value">{{ tickLabel(value) }}</span></div>
       </section>
-      <footer v-if="!isV7" :class="{ stale: !fresh }"><span>{{ fresh ? t('● 日程已同步') : t('● 日程待更新') }} {{ t('· 飞书预约日程') }}{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="snapshot && !snapshot.titles_available">{{ t('部分会议主题不可见') }}</span></footer>
+      <footer v-if="!isV7" :class="{ stale: !fresh }"><span>{{ fresh ? t('● 日程已同步') : t('● 日程待更新') }} {{ t('· 飞书预约日程') }}{{ snapshot ? ` · ${time(snapshot.synced_at)}` : '' }}</span><span v-if="showMeetingTitles && snapshot && !snapshot.titles_available">{{ t('部分会议主题不可见') }}</span></footer>
     </template>
   </main>
 </template>

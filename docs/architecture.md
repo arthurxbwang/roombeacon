@@ -1,5 +1,7 @@
 # RoomBeacon 架构与接口
 
+> 2026-10-10 本地新增签到保密模板：版本化 `show_meeting_titles` 默认 true，保密版 false；托管终端响应复制事件并置空名称，中央缓存及管理员读取不变。旧版本缺字段兼容，现有设备不自动切换。选择、验证和回退边界见[模板说明](private-software-template.md)，尚未上线。
+
 > 2026-10-10 #2修复经PR #64上线 `3a527ef`：采集器把组织者证据与公共日程原子写入Redis；按组织者查询主日历候选并核对权威来源，私有版本2来源依据不进入公共响应。发送前固定原来源重读并核对实时组织者；新房间列表仅启用IT灯塔-Test，旧固定配置兼容。中控已认证查询增加近期核验异常，既有路径、预约identity和截止不变。见[来源设计](calendar-source-qualification.md)及[生产回执](production-calendar-source-2026-10-10.md)，真实多组织者闭环及长稳仍待验收。
 
 > 2026-10-09 已上线 `3d0b1e1`：#56 收敛两类软硬件日常选择；软件增加默认 true 的 `roombeacon_checkin`，未签到版保留飞书官方签到二维码，不启用 RoomBeacon 按钮签到与自动释放。新增管理员 `DELETE /api/v6/admin/devices/{id}`，校验 CSRF、来源、短码及修订号，以 `deleted` 身份占位防止旧设备重新纳管，保留审计与历史。Nginx 仅为有效设备记录路径放行 DELETE。见[操作及兼容边界](catalog-device-cleanup.md)与[上线回执](production-catalog-cleanup-2026-10-09.md)。

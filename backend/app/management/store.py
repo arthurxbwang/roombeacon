@@ -13,6 +13,7 @@ from .catalog_consolidation import consolidate
 from .catalog_store import SCHEMA as CATALOG_SCHEMA
 from .catalog_store import initialize
 from .installation_store import SCHEMA as INSTALLATION_SCHEMA
+from .private_template import add_private_template
 from .runtime_health import management_online, page_health
 
 SCHEMA = """
@@ -84,6 +85,7 @@ def database():
         db.execute('BEGIN IMMEDIATE')
         initialize(db)
         consolidate(db)
+        add_private_template(db)
         yield db
         db.commit()
     except sqlite3.Error as exc:
