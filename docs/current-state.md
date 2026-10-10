@@ -1,5 +1,9 @@
 # RoomBeacon 当前状态
 
+## 门牌历史签到时间清理（2026-10-10，PR #80 已部署）
+
+#79 经 [PR #80](https://github.com/arthurxbwang/roombeacon/pull/80) 合入并上线准确应用 `398f03d382db4e9bea6e5522ff5e1fb25483ed6b`。V5／V7 门牌预览移除历史签到成功时间，当前预约状态和后台审计保持。生产 597 项后端和两项定向 Chromium 通过，发布前无活动监控／释放、原 17 条预约及配置保持；完整采集 343 间失败 0。BDC5ZS／6QVB94 均已自动加载新 H5，页面／灯控正常、配置 3/3；19:07 已认证 API 复核自动核验／释放 true、暂停 false。准确回退见[本轮回执](production-checkin-history-2026-10-10.md)。下方保留历史发布记录。
+
 ## 默认APK与页面回执配套（2026-10-10，PR #77已实施）
 
 #76经[PR #77](https://github.com/arthurxbwang/roombeacon/pull/77)合入准确清单 `1a5698f`。6QVB94已通过同签名0.7.0→0.7.1覆盖升级，实际runtime页面ready／灯控ok、H5 `35ca0d9`／WebView106；原身份、UID10119、首次安装时间和会议室／模板／3/3保持。默认首装包同步为0.7.1，两款型号及其他安装设置保持，真实服务账号首装清单已核验。应用／H5仍为准确 `35ca0d9`。
