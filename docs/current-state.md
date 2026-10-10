@@ -1,8 +1,8 @@
 # RoomBeacon 当前状态
 
-## 签到保密模板（2026-10-10，本地开发完成）
+## 签到保密模板（2026-10-10，PR #68已上线）
 
-`codex/confidential-software-template` 新增“签到保密版”：隐藏当前及后续会议名称，保留时间、组织者、状态和原有签到，已部署托管终端响应也移除名称。两款门牌网页尺寸的日夜／四种预约状态布局已检查；后端560项、Chromium全量181项及修正模拟场景后的48项、Ruff和隔离构建通过。尚未推送、上线或切换真实设备；需求现已登记为[#67](https://github.com/arthurxbwang/roombeacon/issues/67)，用户已授权上传与上线，由用户自行推送测试设备；见[使用与接续说明](private-software-template.md)。下方生产版本保持原状态。
+用户授权后，需求#67经[PR #68](https://github.com/arthurxbwang/roombeacon/pull/68)合入并上线准确应用 **`27b4b3009b7001238636de50d1dafad75107e11f`**。仅新增“签到保密版”v1；原模板、草稿、已发布版本、设备和会议室配置逐条保持，未下发新模板。后台三款软件目录已验证，由用户自行推送测试设备。生产560项后端／181项Chromium、构建及Ruff通过；343间完整采集失败0、15条原预约及策略保持。BDC5ZS自动更新H5、页面／灯控健康、2/2保持，15:15实际复核自动核验／释放true、暂停false。选择方式、准确备份和回退见[上线回执](production-private-template-2026-10-10.md)及[模板说明](private-software-template.md)。下方按日期保留历史生产记录。
 
 ## 静态发布检查（2026-10-10，PR #65已上线）
 
