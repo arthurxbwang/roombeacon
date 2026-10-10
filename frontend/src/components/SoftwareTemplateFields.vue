@@ -23,6 +23,8 @@ onUnmounted(()=>abort.abort())
 </script>
 <template>
  <h3>页面展示</h3>
+ <label class="v6-check"><input type="checkbox" :checked="modelValue.show_meeting_titles!==false" @change="modelValue.show_meeting_titles=($event.target as HTMLInputElement).checked" />显示会议名称</label>
+ <p class="v6-muted">关闭后隐藏当前、后续及历史会议名称；保留时间、组织者和签到。已部署设备的日程响应不携带会议名称。</p>
  <label>软件类型<select aria-label="软件类型" :value="modelValue.roombeacon_checkin!==false ? 'checkin' : 'display'" @change="modelValue.roombeacon_checkin=($event.target as HTMLSelectElement).value==='checkin';if(!modelValue.roombeacon_checkin){modelValue.rules.owner='official';modelValue.rules.mode='off'}"><option value="checkin">签到版</option><option value="display">未签到版 · 飞书官方签到</option></select></label>
  <label>门牌界面<select aria-label="门牌界面" :value="modelValue.display_version || 'v6'" @change="modelValue.display_version=($event.target as HTMLSelectElement).value as 'v6'|'v7'"><option value="v6">V6 现有门牌</option><option value="v7">V7 品牌签到门牌</option></select></label>
  <div class="v6-form-row"><label>页面布局<select aria-label="页面布局" v-model="modelValue.layout"><option value="standard">标准布局</option><option value="compact">紧凑布局</option></select></label><label>支持方向<select aria-label="支持方向" v-model="modelValue.orientation"><option value="any">横竖自适应</option><option value="landscape">仅横屏</option><option value="portrait">仅竖屏</option></select></label></div>

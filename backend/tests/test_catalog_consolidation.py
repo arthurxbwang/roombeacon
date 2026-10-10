@@ -12,11 +12,11 @@ from . import test_v6_management as v6
 client = v6.client
 
 
-def test_catalog_has_two_hardware_and_two_software_choices(client):
+def test_catalog_has_two_hardware_and_three_software_choices(client):
     values = client.get('/api/v6/admin/catalog', headers=v6.admin()).json()['data']
     visible = [r for r in values if not r['archived'] and not r['retired']]
     assert {r['name'] for r in visible} == {
-        'BX68 · 13.3 寸 · 1920×1080 · 横屏', 'RK3568_R · 10.1 寸 · 1280×800 · 横屏', '签到版', '未签到版'}
+        'BX68 · 13.3 寸 · 1920×1080 · 横屏', 'RK3568_R · 10.1 寸 · 1280×800 · 横屏', '签到版', '未签到版', '签到保密版'}
     display = next(r for r in visible if r['name'] == '未签到版')
     assert display['spec']['roombeacon_checkin'] is False
     assert display['spec']['rules']['mode'] == 'off'

@@ -75,8 +75,13 @@ async def decorate(snapshot):
 async def display(response: Response, user: dict = Depends(get_current_user)):
     response.headers["Cache-Control"] = "no-store"
     snapshot = await schedule_for(user["room_id"])
-    return ok((await decorate(snapshot)).model_copy(update={
-        "display_preferences": DisplayPreferences(**user["display_preferences"]) if "display_preferences" in user else None}))
+    preferences = DisplayPreferences(**user["display_preferences"]) if "display_preferences" in user else None
+    result = (await decorate(snapshot)).model_copy(update={'display_preferences': preferences})
+    if preferences and not preferences.show_meeting_titles:
+        result = result.model_copy(update={
+            'events': [event.model_copy(update={'summary': None}) for event in result.events],
+            'titles_available': False})
+    return ok(result)
 
 
 async def require_admin(request: Request, authorization: str = Header(default="")) -> dict:

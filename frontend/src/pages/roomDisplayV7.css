@@ -1,4 +1,7 @@
 /* V7 keeps the existing terminal/API contracts; this layer controls presentation only. */
+.private-meetings .meeting-detail{display:flex;flex-direction:column;gap:8px}
+.private-meetings .meeting-time,.private-meetings .meeting-detail .organizer{margin-top:0}
+.private-meetings .event-organizer{overflow-wrap:anywhere}
 @media(min-width:1000px) and (min-height:600px) and (orientation:landscape){
   .door.v7{gap:18px;padding:24px 36px 18px}
   .v7 .door-header{padding-bottom:16px}
@@ -27,4 +30,8 @@
   .v7 .timeline{padding-top:12px}.v7 .track{height:12px}
   .v7 :deep(.checkin-card){grid-column:2;grid-row:1;align-self:center}
   .v7 :deep(.checkin-card .brand-art){position:relative;bottom:auto;max-width:220px;margin:auto}
+  .v7.private-meetings .detail-label{display:block;margin:0;font-size:15px}
+  .v7.private-meetings .meeting-time{font-size:26px;font-weight:500}
+  .v7.private-meetings .agenda article{padding:20px 18px}
+  .v7.private-meetings .event-organizer{margin-top:12px}
 }
