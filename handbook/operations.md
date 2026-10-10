@@ -1,5 +1,7 @@
 # RoomBeacon 运维与仓库切换
 
+> 2026-10-10 #73已授权实施：旧机首装型号声明遗漏的修复仅迁移 `ROOM_DISPLAY_INSTALL_MODELS` 为 `RK3568,rk3568_r`，公开声明见 `scripts/production/installation-models.conf`；从准确GitHub提交读取并合并单键，不能覆盖私有安装环境。应用／H5及正式APK保持，配置回退保存原环境后重启；验收及准确回执见[说明](../docs/legacy-device-first-install.md)。
+
 > 2026-10-10 #70／PR #71已上线准确应用 `35ca0d9`：后台与新版现场助手取消固定IP／网段名单，旧环境值保留但不再拦截，真实检测 `10.0.51.170` 返回200且已有门牌应用。本地／生产590后端、181Chromium及准确页面／资源检查通过；仍使用内网IPv4，跨站点不可达时由当地助手安装。配置保持及回退至 `27b4b30` 见[本次回执](../docs/production-install-no-allowlist-2026-10-10.md)。
 
 > 2026-10-10 PR #65已上线准确应用 `e0e5926`，新静态权限与页面／资源检查已在生产私有umask环境实际通过。回退基线为 `3a527ef`，完整备份、设备回执和释放恢复见[本轮记录](../docs/production-static-gate-2026-10-10.md)；本次配置未变，日历来源仍仅启用IT灯塔-Test。
