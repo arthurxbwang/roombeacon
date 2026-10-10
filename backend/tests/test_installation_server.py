@@ -1,4 +1,6 @@
 """IP-first delivery: permission, probe snapshots and execution failure boundaries."""
+import json
+import re
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -264,3 +266,37 @@ def test_production_model_template_covers_both_verified_devices(client, configur
         assert '型号不适用' in value['blocker']
         assert initialize(client, value).status_code == 409
         configured[1].assert_not_called()
+
+
+def approved_default_apk():
+    root = Path(__file__).parents[2]
+    manifest = json.loads((root / 'scripts/production/installation-apk.json').read_text())
+    return root, manifest
+
+
+def test_default_apk_declaration_matches_current_native_runtime_release():
+    root, manifest = approved_default_apk()
+    from app.management.installation_models import Manifest
+    assert Manifest.model_validate(manifest).model_dump() == manifest
+    native = (root / 'android/app/build.gradle.kts').read_text()
+    assert manifest['version_code'] == int(re.search(r'versionCode = (\d+)', native)[1])
+    assert manifest['version_name'] == re.search(r'versionName = "([^"]+)"', native)[1]
+    assert manifest['models'] == ['RK3568', 'rk3568_r']
+
+
+@pytest.mark.parametrize('model', ['RK3568', 'rk3568_r'])
+def test_default_runtime_apk_is_used_for_first_install(client, configured, tmp_path, monkeypatch, model):
+    _, manifest = approved_default_apk()
+    apk = tmp_path / 'test-only.apk'
+    apk.write_bytes(b'isolated-mock-apk')
+    for name, value in {'APK': str(apk), 'CERT_SHA256': manifest['certificate_sha256'],
+                        'MODELS': ','.join(manifest['models'])}.items():
+        monkeypatch.setenv('ROOM_DISPLAY_INSTALL_' + name, value)
+    monkeypatch.setattr(runtime, 'default_apk', ORIGINAL_DEFAULT_APK)
+    monkeypatch.setattr(runtime.installer, 'inspect_apk', lambda *_: manifest)
+    configured[0].return_value = DEVICE | {'model': model}
+    value = probe(client)
+    assert value['can_initialize']
+    assert value['manifest']['version_name'] == '0.7.1' and value['manifest']['version_code'] == 11
+    assert initialize(client, value).status_code == 200
+    assert configured[1].call_args.args[0]['manifest'] == manifest
