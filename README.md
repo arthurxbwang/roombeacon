@@ -67,6 +67,8 @@ npm run dev
 
 ## 文档
 
+- [背景原图上传、比例裁切与预览（本地待发布）](docs/background-images.md)
+
 - [独立飞书应用：11项权限与迁移清单](docs/feishu-permissions.md)
 
 - [2026-09-22 全部分支整合与代码分析](docs/source-consolidation-2026-09-22.md)

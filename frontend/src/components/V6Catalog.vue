@@ -16,15 +16,17 @@ const visible=computed(()=>items.value.filter(t=>`${t.name} ${JSON.stringify(t.s
 const testDevice=ref(''),testVersion=ref(1),testResult=ref('passed'),testNotes=ref(''),colors=ref(false),off=ref(false),orientation=ref(false)
 const previewRoom=ref(''),previewTheme=ref('light'),previewing=ref(false)
 const abort=new AbortController()
+const backgroundUploading=ref(false),editingKey=ref(0)
 function draftChanged(t:CatalogTemplate){const v=t.versions[0];return !!v&&(t.name!==v.name||JSON.stringify(t.spec)!==JSON.stringify(v.spec))}
 function edit(t?:CatalogTemplate,copy=false){
+ editingKey.value++;backgroundUploading.value=false
  identity.value=copy?'':t?.id||'';revision.value=copy?0:t?.revision||0;name.value=t?`${t.name}${copy?' · 副本':''}`:''
  hardware.value=JSON.parse(JSON.stringify(t?.kind==='hardware'?t.spec:hardwareDefaults()))
  software.value=JSON.parse(JSON.stringify(t?.kind==='software'?{...softwareDefaults(),...t.spec}:softwareDefaults()))
  editing.value=true;error.value='';info.value='';previewing.value=false
 }
 async function run(action:()=>Promise<unknown>,message:string){if(busy.value)return;busy.value=true;error.value='';info.value='';try{await action();info.value=message;emit('changed')}catch(e){error.value=managementError(e)}finally{busy.value=false}}
-async function save(){await run(async()=>{const row=await management<CatalogTemplate>(identity.value?'PUT':'POST','/api/v6/admin/catalog'+(identity.value?'/'+identity.value:''),abort.signal,{kind:props.kind,name:name.value,spec:props.kind==='hardware'?hardware.value:software.value,expected_revision:revision.value});identity.value=row.id;revision.value=row.revision;editing.value=false;detail.value=row.id},'草稿已保存。发布版本后可在设备台账选择部署。')}
+async function save(){if(backgroundUploading.value)return;await run(async()=>{const row=await management<CatalogTemplate>(identity.value?'PUT':'POST','/api/v6/admin/catalog'+(identity.value?'/'+identity.value:''),abort.signal,{kind:props.kind,name:name.value,spec:props.kind==='hardware'?hardware.value:software.value,expected_revision:revision.value});identity.value=row.id;revision.value=row.revision;editing.value=false;detail.value=row.id},'草稿已保存。发布版本后可在设备台账选择部署。')}
 function publish(t:CatalogTemplate){run(()=>management('POST',`/api/v6/admin/catalog/${t.id}/publish`,abort.signal,{expected_revision:t.revision}),'模板版本已发布，现有设备保持原版本。请在设备台账选择部署。')}
 function archive(t:CatalogTemplate){if(window.confirm(`归档“${t.name}”？历史版本与记录会保留。`))run(()=>management('POST',`/api/v6/admin/catalog/${t.id}/archive`,abort.signal,{expected_revision:t.revision}),'模板已归档。')}
 function inspect(t:CatalogTemplate){detail.value=t.id;testVersion.value=t.published_version||1;testDevice.value='';testNotes.value='';colors.value=false;off.value=false;orientation.value=false}
@@ -36,7 +38,7 @@ onUnmounted(()=>abort.abort())
   <div class="v6-template-heading"><div><h2>{{label}}</h2><p class="v6-muted">{{kind==='hardware'?'管理型号、安装方向、接线及实测记录。':'管理页面样式、背景、语言和会议室业务规则。'}} 草稿 → 发布版本 → 选择设备部署。</p></div><button v-if="editable" @click="edit()">新建{{label}}</button></div>
   <p v-if="error" class="v6-error" role="alert">{{error}}</p><p v-if="info" class="v6-info" role="status">{{info}}</p>
   <div class="v6-toolbar"><input v-model="query" :aria-label="`搜索${label}`" placeholder="搜索名称、型号或参数" /><label class="v6-check"><input v-model="showArchived" type="checkbox" />包含历史与已归档</label></div>
-  <form v-if="editing" class="v6-template-editor" @submit.prevent="save"><h3>{{identity?'编辑草稿':'新建模板'}}</h3><fieldset :disabled="busy"><label>模板名称<input v-model="name" required maxlength="80" /></label><HardwareTemplateFields v-if="kind==='hardware'" v-model="hardware" /><SoftwareTemplateFields v-else v-model="software" /><div class="v6-actions"><button>保存草稿</button><button type="button" class="secondary" @click="editing=false">取消编辑</button></div></fieldset>
+  <form v-if="editing" class="v6-template-editor" @submit.prevent="save"><h3>{{identity?'编辑草稿':'新建模板'}}</h3><fieldset :disabled="busy"><label>模板名称<input v-model="name" required maxlength="80" /></label><HardwareTemplateFields v-if="kind==='hardware'" v-model="hardware" /><SoftwareTemplateFields v-else :key="editingKey" v-model="software" :devices="devices" @uploading="backgroundUploading=$event" /><div class="v6-actions"><button :disabled="backgroundUploading">保存草稿</button><button type="button" class="secondary" @click="editing=false">取消编辑</button></div></fieldset>
    <div v-if="kind==='software'" class="v6-preview-controls"><label>预览会议室<select aria-label="预览会议室" v-model="previewRoom"><option value="">选择真实会议室预览</option><option v-for="r in rooms" :key="r.room_id" :value="r.room_id">{{r.region}} · {{r.name}}</option></select></label><label>预览日夜<select aria-label="预览日夜" v-model="previewTheme"><option value="light">白天</option><option value="dark">夜间</option></select></label><button type="button" class="secondary" :disabled="!previewRoom" @click="previewing=!previewing">{{previewing?'收起预览':'预览当前草稿'}}</button><p class="v6-muted">预览读取缓存日程，操作按钮不可用；不保存房间规则。</p></div>
   </form>
   <div v-if="previewing&&editing" class="v6-template-live-preview"><RoomDisplay :key="previewRoom" :control-room="previewRoom" control-token="@session" :control-theme="previewTheme" :display-version="software.display_version==='v7'?'v7':software.rules.owner==='v5'?'v5':'v4'" :template-preferences="software" /></div>

@@ -1,4 +1,4 @@
-# Isolated subset of requirements.txt; no new package versions.
+# Isolated service dependencies with fixed package versions.
 fastapi==0.135.2
 uvicorn==0.42.0
 pydantic==2.12.5
@@ -13,3 +13,6 @@ astral==3.2
 
 # Offline QR generation for official room check-in links
 qrcode==8.2
+
+# Strict PNG/JPEG/WebP background validation; original files remain unchanged
+Pillow==12.3.0
