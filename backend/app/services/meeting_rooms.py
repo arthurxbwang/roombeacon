@@ -93,6 +93,7 @@ async def refresh_batch(cache, client, rooms: list[Room], now: datetime, *,
             continue
         schedule = RoomSchedule(
             room=room, events=parsed[room.room_id], synced_at=now,
+            query_start=start - timedelta(days=1), query_end=start + timedelta(days=2),
             # The upstream query already covers tomorrow; midnight is not a freshness boundary.
             valid_until=min(now + timedelta(seconds=fresh_seconds), start + timedelta(days=2)),
             titles_available=titles_available,

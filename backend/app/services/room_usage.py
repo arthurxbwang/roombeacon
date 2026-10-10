@@ -33,9 +33,9 @@ async def fresh_target(room_id, now):
     return Occurrence.model_validate(target.model_dump()) if target else None
 
 
-async def fresh_monitor_targets(room_id, now, policy):
+async def fresh_monitor_targets(room_id, now, policy, *, snapshot=None):
     """Only fresh, non-overlapping bookings whose advance windows have opened."""
-    snapshot = await cached_schedule(room_id)
+    snapshot = snapshot if snapshot is not None else await cached_schedule(room_id)
     if not snapshot.room.enabled or snapshot.valid_until <= now or snapshot.synced_at > now + timedelta(seconds=10):
         raise conflict('会议室状态待核实，请等待同步')
     limit = now + timedelta(minutes=policy['early_minutes'])

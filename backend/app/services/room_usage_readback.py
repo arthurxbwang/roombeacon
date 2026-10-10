@@ -48,6 +48,7 @@ async def read_after_release(cache, client, room_id, occurrence, *, expected_fut
             # periods, copy stale titles or extend freshness after a failed read.
             snapshot = RoomSchedule(
                 room=previous.room, events=events, synced_at=now,
+                query_start=day - timedelta(days=1), query_end=day + timedelta(days=2),
                 valid_until=min(now + timedelta(seconds=settings.ROOM_DISPLAY_SYNC_SECONDS + 60), day + timedelta(days=2)),
                 titles_available=False,
             )

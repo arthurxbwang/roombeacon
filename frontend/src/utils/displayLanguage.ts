@@ -10,6 +10,7 @@ const english:Record<string,string>={
   "立即签到": "Check in now",
   "已签到": "Checked in",
   "签到已截止": "Check-in has closed",
+  "未签到，请联系管理员": "Not checked in; contact administrator",
   "预约已释放": "Booking released",
   "会议状态待确认": "Meeting status unavailable",
   "签到状态暂不可用": "Check-in status unavailable",

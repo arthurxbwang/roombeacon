@@ -50,6 +50,8 @@ class RoomSchedule(BaseModel):
     events: list[RoomEvent]
     synced_at: datetime
     valid_until: datetime
+    query_start: datetime | None = None
+    query_end: datetime | None = None
     titles_available: bool = True
     server_time: datetime | None = None
     daylight: DaylightPlan | None = None
