@@ -1,12 +1,12 @@
 # RoomBeacon 当前状态
 
-## 跨组织者日历修复（2026-10-10，源码待审核）
+## 跨组织者日历修复（2026-10-10，已上线）
 
-用户授权后自已合入#61的main `ed90c9f`创建 `codex/2-calendar-source-qualification`：按预约组织者定位日历、权威来源校验、释放前锁定重查、私有来源缓存及中控异常提示已实现。新配置 `ROOM_DISPLAY_USAGE_ORGANIZER_SOURCE_ROOM_IDS` 默认空，仅与原写入白名单交集生效；原固定映射兼容。
+用户确认[PR #64](https://github.com/arthurxbwang/roombeacon/pull/64)合并并授权部署，准确应用 **`3a527efecd8d0fb86f2e4e269a266087489ba7ff`** 已从GitHub上线。只对IT灯塔-Test启用 `ROOM_DISPLAY_USAGE_ORGANIZER_SOURCE_ROOM_IDS`，按每场组织者解析日历并在发送前固定来源重查；原白名单及固定映射保持。生产543项后端及3项定向Chromium回归通过；343间完整采集失败0，18条原记录、身份、策略和配置保持。此前两场404／193001预约已由新代码通过真实只读核验，原blocked未改写。准确回执、开关恢复与回退见[发布记录](production-calendar-source-2026-10-10.md)。
 
-Ruff 0.16.7、后端543项、`npm ci`／隔离构建、Chromium162项通过，均无跳过；新增67项后端和3项浏览器回归，完整HTTP链路9项可由脚本单独复验。npm依赖审计仍报告已有17项（2中危、15高危），本修复未变更锁文件，需纳入正式发布依赖审查；后端另有一条Starlette弃用提示。Android源码未变，本轮未新增实机证据。
+Ruff 0.16.7、后端543项、`npm ci`／隔离构建、Chromium162项通过，均无跳过；新增67项后端和3项浏览器回归，完整HTTP链路9项可由脚本单独复验。生产另有2条上游弃用提示，npm依赖审计原有17项（2中危、15高危）仍待发布依赖审查。本轮修复公开静态产物权限后，BDC5ZS实际H5为 `3a527ef`、页面／灯控健康、配置2/2，13:14恢复释放；APK保持0.7.1。发布脚本权限及页面探针改进、13项新增回归随回执提交，尚不在该应用SHA中。
 
-本修复处于源码审核阶段，尚未部署，真实3人至少6场预约、正式来源类型矩阵及72小时观察仍待#2／#3。详见[实现／回退](calendar-source-qualification.md)及[原计划](../plan/calendar-source-release-readiness.md)。下方09:12生产核查是当时快照，不代替后续部署任务的运行版本回执。
+真实3人至少6场预约、正式来源类型矩阵及72小时观察仍待#2／#3；本轮只读核验不代替真实自动释放闭环。详见[实现／回退](calendar-source-qualification.md)及[原计划](../plan/calendar-source-release-readiness.md)。下方09:12生产核查是当时快照，以最新发布记录为准。
 
 ## 开始后新增预约窗口修复（2026-10-10，已上线）
 
@@ -108,7 +108,7 @@ PR #24 → #26 → #28 已依次合入 `main`，最终应用合并提交 `a91432
 
 | 工作 | 当前边界 | 入口 |
 |---|---|---|
-| 日历自动核验与改期 | IT灯塔-Test 已接入一个来源日历，真实释放/改期联调及其他来源覆盖待完成 | [2: 专用日历映射、自动核验启用与改期真实联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
+| 日历自动核验与改期 | IT灯塔-Test 已启用按组织者解析来源，两场历史失败只读核验通过；真实多组织者释放／改期及其他来源覆盖待完成 | [2: 专用日历映射、自动核验启用与改期真实联调](https://github.com/arthurxbwang/roombeacon/issues/2) |
 | V5 剩余验收及长稳 | 每日重复有历史通过记录；周／月重复、故障及跨日场景仍有缺口 | [3: V5 剩余场景验收、周月重复与长稳](https://github.com/arthurxbwang/roombeacon/issues/3) |
 | 飞书忙闲 504 诊断 | 已有限次只读重试；失败追踪与根因尚未闭环 | [4: 飞书忙闲 504 脱敏诊断与故障链路闭环](https://github.com/arthurxbwang/roombeacon/issues/4) |
 | V6 实机验收 | 旧北京201接入、PoE/有线切换、72小时/7天及跨昼夜长稳待完成；当前台账只有1台设备 | [10: V6 设备接入、PoE/有线切换与长稳验收](https://github.com/arthurxbwang/roombeacon/issues/10) |
