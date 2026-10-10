@@ -1,6 +1,6 @@
 # RoomBeacon 项目交接
 
-> 2026-10-10 本地新增“签到保密版”，分支 `codex/confidential-software-template`：会议名称从页面及已部署托管终端响应移除，其余内容和签到保持。560项后端／181项全量Chromium、模拟状态修正后的48项相关检查及布局截图通过，未推送或部署。Issue创建受GitHub权限／网络阻碍，接续见[模板使用、兼容与回退](private-software-template.md)。
+> 2026-10-10 本地新增“签到保密版”，分支 `codex/confidential-software-template`：会议名称从页面及已部署托管终端响应移除，其余内容和签到保持。560项后端／181项全量Chromium、模拟状态修正后的48项相关检查及布局截图通过，未推送或部署。需求[#67](https://github.com/arthurxbwang/roombeacon/issues/67)现已建立，用户已授权上线并保留现有设备选择；接续见[模板使用、兼容与回退](private-software-template.md)。
 
 > 2026-10-10 PR #65后续：用户确认合并并授权部署，当前准确应用 `e0e5926`，公开产物权限及内外网页面／资源检查已实际执行通过；生产556项后端、162项Chromium通过。先读[本次实机、释放恢复与回退回执](production-static-gate-2026-10-10.md)。此回执只更新文档，合并它无需再次部署；真实多组织者闭环及长稳继续#2／#3。
 

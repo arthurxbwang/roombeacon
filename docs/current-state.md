@@ -2,7 +2,7 @@
 
 ## 签到保密模板（2026-10-10，本地开发完成）
 
-`codex/confidential-software-template` 新增“签到保密版”：隐藏当前及后续会议名称，保留时间、组织者、状态和原有签到，已部署托管终端响应也移除名称。两款门牌网页尺寸的日夜／四种预约状态布局已检查；后端560项、Chromium全量181项及修正模拟场景后的48项、Ruff和隔离构建通过。尚未推送、上线或切换真实设备；GitHub建Issue暂受权限／网络阻碍，见[使用与接续说明](private-software-template.md)。下方生产版本保持原状态。
+`codex/confidential-software-template` 新增“签到保密版”：隐藏当前及后续会议名称，保留时间、组织者、状态和原有签到，已部署托管终端响应也移除名称。两款门牌网页尺寸的日夜／四种预约状态布局已检查；后端560项、Chromium全量181项及修正模拟场景后的48项、Ruff和隔离构建通过。尚未推送、上线或切换真实设备；需求现已登记为[#67](https://github.com/arthurxbwang/roombeacon/issues/67)，用户已授权上传与上线，由用户自行推送测试设备；见[使用与接续说明](private-software-template.md)。下方生产版本保持原状态。
 
 ## 静态发布检查（2026-10-10，PR #65已上线）
 

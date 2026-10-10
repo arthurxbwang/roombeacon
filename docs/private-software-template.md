@@ -1,6 +1,6 @@
 # 签到保密软件模板
 
-2026-10-10，本地分支 `codex/confidential-software-template`，开发基线 `4a424bf`。本轮尚未推送、部署或切换真实设备。GitHub 连接器创建 Issue 返回 403，命令行无法解析 GitHub 地址；需求暂保存在本页，网络与权限恢复后补建 Issue / PR。
+2026-10-10，需求 [#67](https://github.com/arthurxbwang/roombeacon/issues/67)，分支 `codex/confidential-software-template`，实现基线 `4a424bf`，发布前接续最新 main `1eb8c9a`（仅新增上一轮发布回执的合并提交）。用户已授权上传 GitHub 与独立生产部署；原有模板保持，真实测试设备由用户在管理平台自行部署新模板。最初 GitHub 权限／网络阻碍已通过授权后的命令行连接解决。
 
 ## 显示与保密范围
 
