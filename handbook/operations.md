@@ -1,6 +1,6 @@
 # RoomBeacon 运维与仓库切换
 
-> 2026-10-10 本地首装调整：取消后台与新版现场助手的 IP／网段白名单，旧 `ROOM_DISPLAY_INSTALL_NETWORKS` 不再生效，助手旧 `--allow-network` 参数仅兼容并提示弃用；仍使用内网 IPv4 和既有 ADB 端口。跨站点不可达时由当地助手安装；上线／回退应用需核对该规则差异，见[首装说明](../docs/installation-delivery.md#跨网段与跨站点安装)。尚未推送或部署。
+> 2026-10-10 本地首装调整：取消后台与新版现场助手的 IP／网段白名单，旧 `ROOM_DISPLAY_INSTALL_NETWORKS` 不再生效，助手旧 `--allow-network` 参数仅兼容并提示弃用；仍使用内网 IPv4 和既有 ADB 端口。跨站点不可达时由当地助手安装；上线／回退应用需核对该规则差异，见[首装说明](../docs/installation-delivery.md#跨网段与跨站点安装)。需求#70已登记，用户已授权上传、PR及直接生产上线，尚未切换。
 
 > 2026-10-10 PR #65已上线准确应用 `e0e5926`，新静态权限与页面／资源检查已在生产私有umask环境实际通过。回退基线为 `3a527ef`，完整备份、设备回执和释放恢复见[本轮记录](../docs/production-static-gate-2026-10-10.md)；本次配置未变，日历来源仍仅启用IT灯塔-Test。
 

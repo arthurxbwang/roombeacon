@@ -2,7 +2,7 @@
 
 ## 取消首装网段白名单（2026-10-10，本地完成）
 
-`codex/install-without-network-allowlist` 取消后台和新版现场助手的固定 IP／CIDR 限制，旧名单值与助手参数保留兼容但不再拦截设备；任意站点的 RFC1918 内网 IPv4 可检测／首装。跨站点不可达时使用当地现场助手，原管理员、端口、正式 APK 和设备身份核验保持。首装63项、全量后端590项／Chromium181项、Ruff／npm ci／隔离构建及渲染检查通过。尚未推送、部署或安装 `10.0.51.170`，远程Issue／PR待授权；生产仍以以下最新发布为准。见[操作与兼容](installation-delivery.md#跨网段与跨站点安装)。
+`codex/install-without-network-allowlist` 取消后台和新版现场助手的固定 IP／CIDR 限制，旧名单值与助手参数保留兼容但不再拦截设备；任意站点的 RFC1918 内网 IPv4 可检测／首装。跨站点不可达时使用当地现场助手，原管理员、端口、正式 APK 和设备身份核验保持。首装63项、全量后端590项／Chromium181项、Ruff／npm ci／隔离构建及渲染检查通过。尚未推送、部署或安装 `10.0.51.170`，需求已登记为[#70](https://github.com/arthurxbwang/roombeacon/issues/70)，用户已授权上传、PR及直接生产上线；生产仍以以下最新发布为准。见[操作与兼容](installation-delivery.md#跨网段与跨站点安装)。
 
 ## 签到保密模板（2026-10-10，PR #68已上线）
 
