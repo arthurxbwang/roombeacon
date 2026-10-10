@@ -1,10 +1,10 @@
 """Mock the actual command boundary, including reconnect and hostile APK scenarios."""
 import hashlib
 import importlib.util
-import ipaddress
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -132,11 +132,7 @@ def test_launch_failure_is_not_success(equipment):
         perform(equipment)
 
 
-def test_network_scope_and_https_redirect_boundaries(equipment):
-    job = equipment[2]
-    installer.validate_job(job, [ipaddress.IPv4Network('10.0.1.0/24')])
-    with pytest.raises(installer.InstallError):
-        installer.validate_job(job, [ipaddress.IPv4Network('10.0.2.0/24')])
+def test_https_redirect_boundaries():
     token = 'rbi:' + 'a' * 32 + ':' + 'b' * 43
     for url in ['http://example.test', 'https://user:secret@example.test', 'https://example.test/private', 'https://example.test?token=1']:
         with pytest.raises(installer.InstallError):
@@ -155,11 +151,38 @@ def test_process_reports_only_fixed_evidence(equipment, capsys):
             requests.append((path, body))
 
     args = SimpleNamespace(apk=apk, adb='adb', aapt='aapt', apksigner='apksigner')
-    installer.process(Server(), job, args, [ipaddress.IPv4Network('10.0.1.0/24')])
+    installer.process(Server(), job, args)
     report = requests[-1][1]
     assert report == {'lease': job['lease'], 'result': 'failed', 'error': 'identity_mismatch'}
     assert job['lease'] not in capsys.readouterr().out
     assert 'WRONG' not in json.dumps(requests)
+
+
+@pytest.mark.parametrize('ip', ['10.0.51.170', '10.99.3.4', '172.20.5.6', '192.168.8.9'])
+def test_assistant_accepts_other_sites_without_local_allowlist(equipment, ip):
+    installer.validate_job(equipment[2] | {'ip': ip})
+
+
+@pytest.mark.parametrize('ip', ['127.0.0.1', '169.254.169.254', '8.8.8.8', '::1', 'example.com', '10.0.1.2;id'])
+def test_assistant_rejects_non_lan_and_malformed_targets(equipment, ip):
+    with pytest.raises(installer.InstallError, match='invalid_configuration'):
+        installer.validate_job(equipment[2] | {'ip': ip})
+
+
+@pytest.mark.parametrize('legacy_network', [None, '10.0.51.221/32', 'bad'])
+def test_assistant_cli_needs_no_network_flag_and_ignores_legacy_flag(equipment, monkeypatch, legacy_network):
+    _, apk, job = equipment
+    argv = ['installer', 'run', '--apk', str(apk)]
+    if legacy_network is not None:
+        argv += ['--allow-network', legacy_network]
+    monkeypatch.setattr('sys.argv', argv)
+    monkeypatch.setenv('ROOMBEACON_INSTALLER_TOKEN', 'test-only-token')
+    server = SimpleNamespace(post=Mock(side_effect=[job | {'ip': '172.20.5.6'}, None]))
+    monkeypatch.setattr(installer, 'Server', lambda *_: server)
+    process = Mock()
+    monkeypatch.setattr(installer, 'process', process)
+    assert installer.main() == 0
+    assert process.call_args.args[1]['ip'] == '172.20.5.6'
 
 
 def test_command_failures_sanitized_and_token_not_inherited(monkeypatch):

@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from ..core.exceptions import AppError
-from .installation_models import Manifest
+from .installation_models import Manifest, Target
 from .installation_store import conflict
 
 _spec = importlib.util.spec_from_file_location(
@@ -30,23 +30,16 @@ def tools():
 
 
 def status():
-    networks = setting('NETWORKS')
     blocker = ''
     try:
-        if not networks:
-            raise ValueError()
-        for value in networks.split(','):
-            network = ipaddress.IPv4Network(value.strip())
-            if not any(network.subnet_of(ipaddress.IPv4Network(n))
-                       for n in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
-                raise ValueError()
         if not 1 <= int(setting('PORT', '5555')) <= 65535:
             raise ValueError()
     except ValueError:
-        blocker = '请先由运维配置设备网段与 ADB 端口'
+        blocker = '请由运维配置有效的 ADB 端口（1—65535）'
     if not blocker and not tool_available(tools()[0]):
         blocker = '后台尚未配置 ADB 工具，请由运维完成一次性设置'
-    return {'probe_ready': not blocker, 'blocker': blocker, 'networks': networks,
+    # Retain the response field for old clients; NETWORKS is deprecated and ignored.
+    return {'probe_ready': not blocker, 'blocker': blocker, 'networks': '',
             'port': int(setting('PORT', '5555')) if not blocker else 5555,
             'apk_configured': bool(setting('APK') and setting('CERT_SHA256') and setting('MODELS'))}
 
@@ -55,10 +48,12 @@ def allowed(ip, port):
     state = status()
     if not state['probe_ready']:
         raise conflict(state['blocker'])
-    address = ipaddress.IPv4Address(ip)
-    if port != state['port'] or not any(address in ipaddress.IPv4Network(n.strip())
-                                        for n in state['networks'].split(',')):
-        raise AppError(422, 'IP 或端口不在已配置的设备网络范围内', 422)
+    try:
+        Target.lan_only(ipaddress.IPv4Address(ip))
+    except ValueError as exc:
+        raise AppError(422, '首装只接受内网 IPv4 地址', 422) from exc
+    if port != state['port']:
+        raise AppError(422, '端口与后台配置的 ADB 端口不一致', 422)
 
 
 def default_apk():

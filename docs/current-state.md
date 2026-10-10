@@ -1,5 +1,9 @@
 # RoomBeacon 当前状态
 
+## 取消首装网段白名单（2026-10-10，本地完成）
+
+`codex/install-without-network-allowlist` 取消后台和新版现场助手的固定 IP／CIDR 限制，旧名单值与助手参数保留兼容但不再拦截设备；任意站点的 RFC1918 内网 IPv4 可检测／首装。跨站点不可达时使用当地现场助手，原管理员、端口、正式 APK 和设备身份核验保持。首装63项、全量后端590项／Chromium181项、Ruff／npm ci／隔离构建及渲染检查通过。尚未推送、部署或安装 `10.0.51.170`，需求已登记为[#70](https://github.com/arthurxbwang/roombeacon/issues/70)，用户已授权上传、PR及直接生产上线；生产仍以以下最新发布为准。见[操作与兼容](installation-delivery.md#跨网段与跨站点安装)。
+
 ## 签到保密模板（2026-10-10，PR #68已上线）
 
 用户授权后，需求#67经[PR #68](https://github.com/arthurxbwang/roombeacon/pull/68)合入并上线准确应用 **`27b4b3009b7001238636de50d1dafad75107e11f`**。仅新增“签到保密版”v1；原模板、草稿、已发布版本、设备和会议室配置逐条保持，未下发新模板。后台三款软件目录已验证，由用户自行推送测试设备。生产560项后端／181项Chromium、构建及Ruff通过；343间完整采集失败0、15条原预约及策略保持。BDC5ZS自动更新H5、页面／灯控健康、2/2保持，15:15实际复核自动核验／释放true、暂停false。选择方式、准确备份和回退见[上线回执](production-private-template-2026-10-10.md)及[模板说明](private-software-template.md)。下方按日期保留历史生产记录。

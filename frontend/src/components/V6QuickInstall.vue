@@ -39,7 +39,7 @@ onUnmounted(()=>{abort.abort();clearInterval(timer)})
  <section class="quick-install" aria-label="设备初始化">
   <ol class="steps"><li>输入设备 IP</li><li>检测设备</li><li>确认初始化</li></ol>
   <form @submit.prevent="detect"><label for="install-ip">设备 IP</label><div class="ip-row"><input id="install-ip" v-model="ip" required maxlength="15" inputmode="decimal" autocomplete="off" placeholder="例如：10.0.51.221" :disabled="!!busy" /><button :disabled="!!busy||!ip.trim()">{{busy==='probe'?'正在检测…':'检测设备'}}</button></div></form>
-  <p class="hint">设备联网并开启网络 ADB 后，输入 IP 即可检测。</p>
+  <p class="hint">设备联网并开启网络 ADB 后，输入内网 IP 即可检测。跨站点须保证后台可连接设备；无法直连时使用现场助手。</p>
   <p v-if="server&&!server.probe_ready" class="v6-info" role="status">{{server.blocker}} <button class="secondary" @click="load">重新检查设置</button></p>
   <p v-if="server?.probe_ready&&!server.apk_configured" class="v6-error" role="alert">后台尚未准备默认安装包，设备检测仍可使用。无需登记现场助手，请联系后台维护人员准备安装包。</p>
   <p v-if="error" class="v6-error" role="alert">{{error}}</p>

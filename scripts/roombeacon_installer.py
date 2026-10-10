@@ -89,11 +89,12 @@ class Server:
             raise InstallError('server_failure') from exc
 
 
-def validate_job(job, networks):
+def validate_job(job):
     try:
         address = ipaddress.IPv4Address(job['ip'])
-        if not any(address in network for network in networks):
-            raise ValueError('outside locally approved network')
+        if not any(address in ipaddress.IPv4Network(n)
+                   for n in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
+            raise ValueError('not a LAN IPv4 address')
         if (not re.fullmatch(r'[a-f0-9]{32}', job['id']) or
                 not re.fullmatch(r'[A-Za-z0-9_-]{43}', job['lease']) or
                 not re.fullmatch(r'[A-Za-z0-9._-]{1,100}', job['serial']) or
@@ -196,8 +197,8 @@ def install(job, apk, adb, aapt, apksigner, authorize):
         return result
 
 
-def process(server, job, args, networks):
-    validate_job(job, networks)
+def process(server, job, args):
+    validate_job(job)
     started = time.monotonic()
     path = 'jobs/' + job['id']
 
@@ -227,20 +228,19 @@ def main():
     parser.add_argument('--apksigner', default='apksigner')
     parser.add_argument('--model', action='append', default=[])
     parser.add_argument('--server', default='https://roombeacon.thundersoft.com')
-    parser.add_argument('--allow-network', action='append', default=[])
+    parser.add_argument('--allow-network', action='append', default=[], help='已弃用；仅兼容旧命令，不再限制网段')
     args = parser.parse_args()
     try:
         if args.action == 'inspect-apk':
             print(json.dumps(inspect_apk(args.apk, args.aapt, args.apksigner, args.model), ensure_ascii=False, indent=2))
             return 0
-        if not args.allow_network:
-            raise InstallError('invalid_configuration')
-        networks = [ipaddress.IPv4Network(n) for n in args.allow_network]
+        if args.allow_network:
+            print('--allow-network 已弃用，不再限制设备网段。', file=sys.stderr)
         # No credential in argv, URL, config file, subprocess or progress output.
         token = os.environ.get('ROOMBEACON_INSTALLER_TOKEN') or getpass.getpass('安装助手凭证（隐藏输入）：')
         server = Server(args.server, token)
         while job := server.post('claim'):
-            process(server, job, args, networks)
+            process(server, job, args)
         print('本轮无可领取任务。待核实任务请到后台处理；新增任务后重新运行。')
         return 0
     except (InstallError, OSError, ValueError) as exc:
