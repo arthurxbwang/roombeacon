@@ -301,7 +301,7 @@ for (const scenario of ['success', 'denied', 'failed'] as const) {
   })
 }
 
-test('白名单主控单次点击就提交签到，并保留服务器回执', async ({ page }) => {
+for (const version of ['v5', 'v7']) test(`${version} 主控签到、换场和空态均不显示历史签到时间`, async ({ page }) => {
   await control(page)
   const usage = fixture()
   const receiptTime = '2026-09-20T08:02:00Z'
@@ -310,7 +310,7 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
   await page.route('**/api/room-control/preview*', route => route.fulfill({ json: { data: {
     room: { room_id: 'omm_fixture', name: 'IT灯塔-Test · 模拟', capacity: 4, enabled: true },
     server_time: '2026-09-20T08:01:00Z', synced_at: '2026-09-20T08:01:00Z', valid_until: '2026-09-20T08:20:00Z',
-    titles_available: true, events: ended ? [] : [{ ...usage.record.occurrence, summary: '测试会议' }],
+    titles_available: true, usage_owner: 'v5', events: ended ? [] : [{ ...usage.record.occurrence, summary: '测试会议' }],
   } } }))
   await page.route('**/api/room-control/usage/omm_fixture', route => route.fulfill({ json: { data: {
     usage: ended ? { ...usage, record: null, target_id: null, can_confirm: false } : usage,
@@ -323,18 +323,35 @@ test('白名单主控单次点击就提交签到，并保留服务器回执', as
   })
   await page.goto('/control/legacy')
   await page.getByRole('button', { name: '预览门牌', exact: true }).click()
-  await page.getByLabel('门牌版本').selectOption('v5')
+  await page.getByLabel('门牌版本').selectOption(version)
   await expect(page.getByRole('button', { name: '进入签到测试' })).toHaveCount(0)
-  await page.getByRole('button', { name: '签到', exact: true }).click()
-  await expect(page.getByText('已确认使用', { exact: true })).toBeVisible()
+  const signup = version === 'v7' ? '立即签到' : '签到'
+  const confirmed = version === 'v7' ? '已签到' : '已确认使用'
+  await page.getByRole('button', { name: signup, exact: true }).click()
+  await expect(page.getByText(confirmed, { exact: true })).toBeVisible()
   expect(confirmations).toBe(1)
+  await page.reload()
+  await page.getByRole('button', { name: '预览门牌', exact: true }).click()
+  await page.getByLabel('门牌版本').selectOption(version)
+  await expect(page.getByText(confirmed, { exact: true })).toBeVisible()
+  await expect(page.getByText(/最近一次签到成功/)).toHaveCount(0)
+  // A new occurrence must use its own state even while old success audit remains.
+  usage.record = { ...fixture().record, id: 'b'.repeat(64),
+    occurrence: { ...fixture().record.occurrence, uid: 'next' } }
+  usage.target_id = usage.record.id; usage.can_confirm = true
+  await page.reload()
+  await page.getByRole('button', { name: '预览门牌', exact: true }).click()
+  await page.getByLabel('门牌版本').selectOption(version)
+  await expect(page.getByRole('button', { name: signup, exact: true })).toBeEnabled()
+  await expect(page.getByText(confirmed, { exact: true })).toHaveCount(0)
+  await expect(page.getByText(/最近一次签到成功/)).toHaveCount(0)
   ended = true
   await page.reload()
   await page.getByRole('button', { name: '预览门牌', exact: true }).click()
-  await page.getByLabel('门牌版本').selectOption('v5')
-  await expect(page.getByText('当前没有可签到的预约', { exact: true })).toBeVisible()
-  await expect(page.getByText(/最近一次签到成功/)).toContainText('16:02')
-  await expect(page.getByRole('button', { name: '签到', exact: true })).toHaveCount(0)
+  await page.getByLabel('门牌版本').selectOption(version)
+  await expect(page.getByText(version === 'v7' ? '暂无可签到的会议' : '当前没有可签到的预约', { exact: true })).toBeVisible()
+  await expect(page.getByText(/最近一次签到成功/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: signup, exact: true })).toHaveCount(0)
   expect(confirmations).toBe(1)
 })
 

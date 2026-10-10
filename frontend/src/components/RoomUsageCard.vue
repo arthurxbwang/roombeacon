@@ -16,7 +16,7 @@ const sessionId = sessionStorage.getItem(sessionKey) || Array.from(crypto.getRan
 if (!props.preview) sessionStorage.setItem(sessionKey, sessionId)
 const unresolved = ref(localStorage.getItem(pendingKey) || '')
 const token = ref(props.preview ? props.controlToken || '' : props.managed ? '@managed' : localStorage.getItem(storageKey) || '')
-const testAllowed = ref(false), receipt = ref('')
+const testAllowed = ref(false)
 const testing = computed(() => props.preview && !props.readOnly && testAllowed.value)
 const input = ref(''), error = ref('')
 const describeError = (err: unknown) => props.branded && !props.preview ? usageDisplayError(err) : usageError(err)
@@ -75,8 +75,7 @@ async function refresh() {
   pending.value = true
   try {
     if (props.preview) {
-      const result = await usageRequest<{ usage: UsageState; control_confirm_enabled: boolean; audit?: { time: string; action: string; state: string }[] }>('GET', `/api/room-control/usage/${props.roomId}`, token.value, abort.signal)
-      receipt.value = result.audit?.find(item => ['control_confirm', 'confirm'].includes(item.action) && item.state === 'confirmed' && Number.isFinite(Date.parse(item.time)))?.time || ''
+      const result = await usageRequest<{ usage: UsageState; control_confirm_enabled: boolean }>('GET', `/api/room-control/usage/${props.roomId}`, token.value, abort.signal)
       accept(result.usage); testAllowed.value = result.control_confirm_enabled === true && result.usage.policy.owner === 'v5' && result.usage.policy.mode !== 'off'
     } else {
       const result = await usageRequest<UsageState>('GET', '/api/meeting-rooms/usage', token.value, abort.signal)
@@ -152,7 +151,6 @@ onUnmounted(() => { abort.abort(); clearInterval(timer) })
       <button v-if="record && ['pending', 'waiting', 'blocked'].includes(record.state) && now < Date.parse(record.release_at || record.deadline)" :disabled="!canConfirm || pending" class="checkin-button" @click="confirm()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg><span>{{ pending ? t('正在提交…') : t('签到') }}</span></button>
     </template>
     </template>
-    <p v-if="preview && testAllowed && receipt" class="receipt">最近一次签到成功：{{ new Date(receipt).toLocaleString('zh-CN', { timeZone: timezone, hour12: false }) }}</p>
     <p v-if="error" role="alert">{{ t(error) }}</p>
     <details v-if="!preview && !token"><summary>{{ t('设备设置') }}</summary><form @submit.prevent="bind">
       <input v-model="input" type="password" autocomplete="off" aria-label="V5 操作凭证" placeholder="本房间操作凭证" />
