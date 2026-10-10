@@ -21,7 +21,7 @@
 - `/api/v6/admin/deployments[/preview]`、`deployment-batches[/preview]`：单设备及批量部署。
 - `/api/v6/admin/devices/{id}/adopt`：将历史实际参数转换为明确模板关联，不改变设备身份、绑定、配置或修订号。
 - `/api/v6/admin/rooms/{room_id}/qualification`：仅更新该房间核验记录，有独立版本检查。
-- `/api/v6/admin/assets`、`/api/v6/assets/{id}`：有限大小同源背景；2026-10-10 本地修复支持原格式静态 PNG／JPEG／WebP（原图 3 MB、4096 像素），增加管理员元数据查询 `/api/v6/admin/assets/{id}`。管理员或绑定该资源的设备才能读取图片，旧 PNG 与 ID 保持兼容；比例预览不改变原图或配置，发布与验证见[背景说明](../background-images.md)。
+- `/api/v6/admin/assets`、`/api/v6/assets/{id}`：有限大小同源背景；2026-10-10 已上线 `3aaf5ee`，支持原格式静态 PNG／JPEG／WebP（原图 3 MB、4096 像素），增加管理员元数据查询 `/api/v6/admin/assets/{id}`。管理员或绑定该资源的设备才能读取图片，旧 PNG 与 ID 保持兼容；比例预览不改变原图或配置，发布与验证见[背景说明](../background-images.md)。
 
 新接口沿用管理员、只读及 CSRF 认证。已转换设备不再通过旧配置或旧回退接口写入；刷新仍可使用原接口。未转换设备维持兼容。旧房间规则入口不能覆盖已经由软件模板管理的参数。
 

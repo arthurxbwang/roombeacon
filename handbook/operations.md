@@ -1,5 +1,7 @@
 # RoomBeacon 运维与仓库切换
 
+> 2026-10-10 #82／PR #83 背景修复已上线准确应用 `3aaf5ee`；新独立 Python 环境保留原精确依赖并仅新增官方哈希核对的 Pillow，原环境未改。原图实际 HTTPS 上传／读回保持 1.76 MB，679 后端／21 Chromium、准确静态资源及两台新 H5 健康通过，配置3/3、17条预约及稳定配置保持，20:11:47 已恢复原暂停值。私有备份 `/data/roombeacon/backups/background-82-20261010` 和应用／环境／Nginx 回退至 `398f03d` 见[上线回执](../docs/production-background-images-2026-10-10.md)；保留 SQLite／Redis，不能整库覆盖。
+
 > 2026-10-10 #79／PR #80 已发布准确应用 `398f03d`。切换前核对无活动监控／释放及五分钟内开始的试点预约，构建期间旧服务保持运行；原 17 条预约和私有配置保持。备份、真实回执及回退至 `35ca0d9` 见[上线回执](../docs/production-checkin-history-2026-10-10.md)。
 
 > 2026-10-10 #76／PR #77已实施：默认首装包0.7.1，两款型号保持；6QVB94同签名覆盖成功，身份／UID／首次安装时间／3/3保持、实际页面／灯控正常。清单源 `1a5698f`、应用／H5 `35ca0d9`，私有备份 `/data/roombeacon/backups/default-runtime-apk-76-20261010`；默认配置回退和保留数据的APK恢复边界见[回执](../docs/default-runtime-apk.md#生产与实际apk升级回执2026-10-10)。
