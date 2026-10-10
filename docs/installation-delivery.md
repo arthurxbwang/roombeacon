@@ -1,6 +1,6 @@
 # 首装与交付：IP 检测和初始化（#43）
 
-更新：2026-10-10。本次取消首装 IP／网段白名单（本地完成，尚未上线）；正式 APK 和首台真实安装已在下方 2026-10-08 回执验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
+更新：2026-10-10。本次取消首装 IP／网段白名单已通过PR #71上线准确应用 `35ca0d9`；正式 APK 和首台真实安装已在下方 2026-10-08 回执验收。对应 [Issue #43](https://github.com/arthurxbwang/roombeacon/issues/43)，阶段边界见[完整计划](../plan/device-delivery-maintenance.md)。
 
 ## 跨网段与跨站点安装
 
@@ -12,7 +12,7 @@
 
 本轮验证：先新增回归并在旧实现复现名单拦截，再修改实现；63 项首装相关回归、全量后端 590 项和 Chromium 181 项均通过、无跳过，Ruff 0.16.7、npm ci、隔离构建及 diff 检查通过。检查 1440px／390px 真实渲染截图的提示换行与边界；ADB 和外部系统全部隔离模拟，尚未真实检测／安装 `10.0.51.170`。Android 源码未变，本轮不构建或安装 APK。后端保留一条上游 Starlette／httpx 弃用提示。
 
-发布准备：需求[#70](https://github.com/arthurxbwang/roombeacon/issues/70)已登记，用户已授权远程上传、PR、合并和直接生产上线。目标仅为独立生产 `roombeacon.thundersoft.com` 的 `/data/roombeacon`，从 GitHub 取得准确已审阅提交，沿用发布脚本的权限和页面／资源检查；不修改旧名单环境值、ADB 端口、默认 APK 或设备绑定。上线前记录当时实际 SHA、在途首装／释放任务和一致性备份；当前计划回退基线为已上线 `27b4b3009b7001238636de50d1dafad75107e11f`，实际发布前重新核对。回退仅切应用和对应 H5，保留数据库／预约／设备身份；旧应用会重新启用原 `/32` 名单，先停止新版现场助手并核实在途任务。
+发布回执：需求[#70](https://github.com/arthurxbwang/roombeacon/issues/70)经[PR #71](https://github.com/arthurxbwang/roombeacon/pull/71)合入并上线准确应用 `35ca0d9fb5954308f008932fb94cd02bd3776882`。实际检测 `10.0.51.170` 返回200，已装门牌应用，需到设备台账核对屏幕短码并配置会议室；本轮未安装该设备。生产590项后端／181项Chromium及准确页面／资源检查通过。目标、备份、现有配置／预约保持和回退至 `27b4b30` 的步骤见[本次上线回执](production-install-no-allowlist-2026-10-10.md)。
 
 ## 当前可以做什么
 
