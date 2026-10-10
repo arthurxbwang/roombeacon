@@ -1,5 +1,7 @@
 # 旧10.1寸测试机首装型号修复（#73）
 
+> 后续：#76／PR #77已将默认包同步为0.7.1，并覆盖升级6QVB94，身份3/3及页面／灯控正常；本页0.7.0为#73当时的配置回执。最新批准清单、默认包和恢复边界见[后续回执](default-runtime-apk.md#生产与实际apk升级回执2026-10-10)。
+
 更新：2026-10-10。用户已授权实施、GitHub PR和生产上线；需求[#73](https://github.com/arthurxbwang/roombeacon/issues/73)经[PR #74](https://github.com/arthurxbwang/roombeacon/pull/74)合入并完成生产单键配置迁移。
 
 ## 原因
@@ -12,7 +14,7 @@
 
 公开配置模板 [installation-models.conf](../scripts/production/installation-models.conf) 声明 `ROOM_DISPLAY_INSTALL_MODELS=RK3568,rk3568_r`。该文件仅含型号，不包含服务器私有配置或凭证。生产从GitHub获取准确已合并提交，将这一键合并进原私有 `installation.env`；不能整文件替换私有配置，不改APK路径、摘要、签名、ADB工具／端口及其他环境值。
 
-当前默认正式APK0.7.0及应用／H5 `35ca0d9fb5954308f008932fb94cd02bd3776882`保持。两款已验证设备均可通过首装型号检查，未知和近似型号仍拒绝，原正式签名／摘要、管理员／CSRF、型号／序列号、固定transport和安装后读回保持。旧机配置会议室时选择10.1寸硬件模板：高电平RGB、GPIO154红／148绿／147蓝；不能选择新机低电平接线。
+本次#73修复时默认正式APK0.7.0及应用／H5 `35ca0d9fb5954308f008932fb94cd02bd3776882`保持。两款已验证设备均可通过首装型号检查，未知和近似型号仍拒绝，原正式签名／摘要、管理员／CSRF、型号／序列号、固定transport和安装后读回保持。旧机配置会议室时选择10.1寸硬件模板：高电平RGB、GPIO154红／148绿／147蓝；不能选择新机低电平接线。
 
 ## 验证和上线
 
