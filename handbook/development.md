@@ -37,6 +37,8 @@ npm test
 
 Playwright 自动启动 127.0.0.1:4178 的构建预览，API 全部使用 fixture。依赖 mock 通过只证明代码行为，不能宣称服务器或硬件验收。
 
+生产静态发布门禁的回归在 `backend/tests/test_static_release.py`，随后端pytest执行；额外检查 `ruff check --config backend/pyproject.toml scripts/production/static_release.py` 和 `bash -n scripts/production/deploy-v6.sh`。覆盖私有umask产物的公开权限、私有文件隔离及入口／资源失效；真实部署仍须校验Nginx与外网页面、准确H5和实机回执。
+
 ## 3. 迁移测试边界
 
 首装交付测试见 `backend/tests/test_installation.py`、`backend/tests/test_installation_assistant.py` 与 `frontend/tests/v6-installation.spec.ts`。Python 助手在 `scripts/roombeacon_installer.py`，单独纳入 Ruff 检查；测试模拟外部 ADB，不接触真实门牌。助手操作与实机验收边界见[首装说明](../docs/installation-delivery.md)。

@@ -35,6 +35,8 @@ export ROOMBEACON_WEB_RELEASE="$release_sha"
 # Preserve old immutable assets for tabs that are still on the previous HTML.
 old_static=$(awk '/^[[:space:]]*root / {gsub(";", "", $2); print $2; exit}' "$backup/nginx.before")
 if [[ -d $old_static/assets ]]; then cp -n "$old_static"/assets/* "$release/frontend/dist/assets/"; fi
+# A private caller umask must not leave Nginx unable to read public artifacts.
+"$base/venv-current/bin/python" "$release/scripts/production/static_release.py" prepare "$release/frontend/dist"
 install -d -o roombeacon -g roombeacon -m 700 "$base/shared/management"
 if [[ ! -e $base/shared/config/v6.env ]]; then
 cat > "$base/shared/config/v6.env" <<'CONFIG'
@@ -70,6 +72,8 @@ bash "$release/scripts/production/wait-http.sh" http://127.0.0.1:8088/api/v6/aut
 systemctl reload nginx
 bash "$release/scripts/production/wait-http.sh" http://127.0.0.1:8080/api/v6/auth/options
 bash "$release/scripts/production/wait-http.sh" https://roombeacon.thundersoft.com/api/v6/auth/options
+"$base/venv-current/bin/python" "$release/scripts/production/static_release.py" verify http://127.0.0.1:8080 "$release_sha"
+"$base/venv-current/bin/python" "$release/scripts/production/static_release.py" verify https://roombeacon.thundersoft.com "$release_sha"
 systemctl is-active roombeacon nginx
 trap - ERR
 printf 'V6 deployed SHA=%s backup=%s\n' "$release_sha" "$backup"

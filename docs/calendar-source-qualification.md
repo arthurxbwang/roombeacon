@@ -1,6 +1,6 @@
 # 按预约定位日历来源（#2，2026-10-10）
 
-修复分支 `codex/2-calendar-source-qualification`，基于已包含 #61 的 main `ed90c9f`。本次修复固定来源查另一组织者预约时持续 404／193001 的缺陷。代码进入PR审核；尚未部署或修改生产配置；正式放行仍须完成[真实矩阵与72小时观察](../plan/calendar-source-release-readiness.md)。
+修复分支 `codex/2-calendar-source-qualification`，基于已包含 #61 的 main `ed90c9f`。本次修复固定来源查另一组织者预约时持续 404／193001 的缺陷。[PR #64](https://github.com/arthurxbwang/roombeacon/pull/64) 已合并，用户授权后上线准确应用 `3a527ef`，仅IT灯塔-Test启用新来源解析；两场历史失败预约真实只读核验通过，见[生产回执](production-calendar-source-2026-10-10.md)。正式放行仍须完成[真实矩阵与72小时观察](../plan/calendar-source-release-readiness.md)。
 
 ## 行为与兼容
 
