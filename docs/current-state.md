@@ -1,8 +1,10 @@
 # RoomBeacon 当前状态
 
-## 取消首装网段白名单（2026-10-10，本地完成）
+## 首装取消网段白名单（2026-10-10，PR #71已上线）
 
-`codex/install-without-network-allowlist` 取消后台和新版现场助手的固定 IP／CIDR 限制，旧名单值与助手参数保留兼容但不再拦截设备；任意站点的 RFC1918 内网 IPv4 可检测／首装。跨站点不可达时使用当地现场助手，原管理员、端口、正式 APK 和设备身份核验保持。首装63项、全量后端590项／Chromium181项、Ruff／npm ci／隔离构建及渲染检查通过。尚未推送、部署或安装 `10.0.51.170`，需求已登记为[#70](https://github.com/arthurxbwang/roombeacon/issues/70)，用户已授权上传、PR及直接生产上线；生产仍以以下最新发布为准。见[操作与兼容](installation-delivery.md#跨网段与跨站点安装)。
+用户授权后，需求[#70](https://github.com/arthurxbwang/roombeacon/issues/70)经[PR #71](https://github.com/arthurxbwang/roombeacon/pull/71)合入并从GitHub上线准确应用 **`35ca0d9fb5954308f008932fb94cd02bd3776882`**。后台与新版现场助手取消固定IP／CIDR名单，旧值／参数兼容但不再拦截，任意站点RFC1918内网IPv4可检测；后台无法直达时使用当地现场助手。原管理员、ADB端口、正式APK和设备身份核验保持。
+
+实际生产检测 `10.0.51.170` 返回200：`rk3568_r`／Android11，已有门牌应用，应到设备台账核对短码配置；未安装、启动或配置该设备。本地／生产590项后端、181项Chromium、构建／Ruff及准确页面资源检查通过。343间完整采集失败0，15条原预约、模板／设备／策略／来源及私有配置保持；BDC5ZS自动加载新H5、页面／灯控健康、2/2。15:45:57复核自动核验／释放true、暂停false。准确备份、回退至 `27b4b30` 和跨站点边界见[本次回执](production-install-no-allowlist-2026-10-10.md)及[操作说明](installation-delivery.md#跨网段与跨站点安装)。下方保留历史发布记录。
 
 ## 签到保密模板（2026-10-10，PR #68已上线）
 
