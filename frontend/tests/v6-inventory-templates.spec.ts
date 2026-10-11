@@ -17,7 +17,20 @@ test('硬件模板可编辑电平与 GPIO，方向只存在于硬件模板',asyn
 })
 test('模板编辑冲突保持草稿，切换页面也保留编辑',async({page})=>{const state=await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.locator('.v6-template-item:visible').getByRole('button',{name:'编辑',exact:true}).click();await page.getByLabel('模板名称').fill('保留草稿');await page.getByRole('button',{name:'设备台账',exact:true}).click();await page.getByRole('button',{name:'软件模板',exact:true}).click();await expect(page.getByLabel('模板名称')).toHaveValue('保留草稿');state.conflict=true;await page.getByRole('button',{name:'保存草稿'}).click();await expect(page.getByRole('alert')).toContainText('配置已变化');await expect(page.getByLabel('模板名称')).toHaveValue('保留草稿')})
 test('设备、会议室与软件模板使用范围可交叉查看',async({page})=>{const state=await fixture(page);await page.goto('/control');const panel=await selectDeployment(page);await panel.getByRole('button',{name:'检查兼容性与变更范围'}).click();await panel.getByRole('button',{name:'确认部署'}).click();await page.getByRole('button',{name:'会议室',exact:true}).click();await expect(page.locator('tbody tr')).toHaveCount(3);await expect(page.locator('tbody tr').first()).toContainText('测试中文软件 · v1');await expect(page.locator('tbody tr').first()).toContainText('测试横屏硬件 · v1');expect(state.configuration.devices[state.devices[0].id].hardware_id).toBe('hw')})
-test('会议室更换软件模板须明确确认影响范围',async({page})=>{const state=await fixture(page);state.configuration.rooms.omm_beijing={room_id:'omm_beijing',software_id:'other',software_version:1,revision:4,controller_id:state.devices[0].id,rules:{owner:'official',mode:'off',early_minutes:5,grace_minutes:10,release_delay_seconds:60},policy_state:'applied',error:'',room_name:'同名会议室',location:'北京'};await page.goto('/control');const panel=await selectDeployment(page);await expect(panel.getByText('更换该会议室软件模板，并更新其所有已关联设备')).toBeVisible();await panel.getByLabel('更换该会议室软件模板，并更新其所有已关联设备').check();await panel.getByRole('button',{name:'检查兼容性与变更范围'}).click();expect(state.writes.at(-1)?.body).toMatchObject({replace_room_software:true,expected_room_revision:4})})
+test('会议室更换软件模板须明确确认影响范围',async({page})=>{
+ const state=await fixture(page);state.configuration.rooms.omm_beijing={room_id:'omm_beijing',software_id:'other',software_version:1,revision:4,controller_id:state.devices[0].id,rules:{owner:'official',mode:'off',early_minutes:5,grace_minutes:10,release_delay_seconds:60},policy_state:'applied',error:'',room_name:'同名会议室',location:'北京'}
+ await page.goto('/control');const panel=await selectDeployment(page)
+ await expect(panel.getByText('当前有 3 间可选会议室；本次仅部署到所选会议室。')).toBeVisible()
+ await expect(panel.getByText('其他会议室的软件模板和版本不随本次部署更新。')).toBeVisible()
+ await panel.getByLabel('仅更换所选会议室的软件模板，并同步本设备及该会议室其他已激活门牌').check()
+ expect(state.writes.some(w=>w.path==='/api/v6/admin/deployments')).toBe(false)
+ await panel.getByRole('button',{name:'检查兼容性与变更范围'}).click()
+ expect(state.writes.at(-1)?.body).toMatchObject({room_id:'omm_beijing',replace_room_software:true,expected_room_revision:4})
+ await expect(panel.getByText('本次仅更新“同名会议室”的 1 台门牌设备；离线设备联网并回执后才确认生效。')).toBeVisible()
+ expect(state.writes.some(w=>w.path==='/api/v6/admin/deployments')).toBe(false)
+ await panel.getByRole('button',{name:'确认部署',exact:true}).click()
+ await expect.poll(()=>state.writes.at(-1)).toMatchObject({path:'/api/v6/admin/deployments',body:{room_id:'omm_beijing',replace_room_software:true}})
+})
 test('日志展示人名、设备、模板与字段差异',async({page})=>{await fixture(page);await page.goto('/control');await page.getByRole('button',{name:'操作记录'}).click();const row=page.locator('tbody tr');await expect(row).toContainText('测试管理员');await expect(row).toContainText('设备 ABC234');await expect(row).toContainText('测试中文软件');await row.getByText('变更明细').click();await expect(row).toContainText('语言：中文 → English')})
 test('窄屏模板编辑不会横向溢出',async({page})=>{await fixture(page);await page.setViewportSize({width:390,height:844});await page.goto('/control');await page.getByRole('button',{name:'软件模板',exact:true}).click();await page.getByRole('button',{name:'新建软件模板'}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'/tmp/roombeacon-configuration-mobile.png',fullPage:true})})
 test('批量部署在预览后提交固定版本和设备修订号',async({page})=>{
