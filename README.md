@@ -1,5 +1,9 @@
 # RoomBeacon · 会议灯塔
 
+**2026-10-11：13.3寸量产平板已提交采购，预计两周内到货，按不晚于10月25日准备。先首台完整交付，再少量试用与分批扩展；准确型号／内存／固件待到货核对。接续[采购上线计划](plan/procurement-rollout-20261011.md)、[阶段归档](docs/project-archive-2026-10-11.md)和[阶段任务 #88](https://github.com/arthurxbwang/roombeacon/issues/88)。**
+
+**2026-10-11：BDC5ZS／IT灯塔-Test核心首轮测试已完成，实际APK0.7.1、配置4/4。正常／晚预约签到、改期隔离和两次自然释放完成对应子项；37项、完整故障／重复、多组织者及72小时仍未全部验收。见[测试结果](docs/test-results/ita-bdc5zs-20261011.md)。**
+
 **2026-10-11：#85／PR #86 已发布单会议室部署范围提示，后台明确仅更新所选会议室的软件模板，并在预览列出房间与设备数量。准确 H5 `921536a`，后端继续 `3aaf5ee`、进程／环境保持；验证及仅网页回退见[回执](docs/production-deployment-scope-2026-10-11.md)。**
 
 **2026-10-10：#82／PR #83 背景修复已上线准确应用 `3aaf5ee`，保留 PNG／JPEG／WebP 原格式并按门牌比例预览裁切；原图真实上传／读回保持 1.76 MB。两台门牌自动加载新 H5、页面／灯控正常、3/3，原释放状态已恢复，APK 无需更新；验证与回退见[上线回执](docs/production-background-images-2026-10-10.md)。**
@@ -28,7 +32,7 @@
 
 **V6 集中管理已上线：飞书登录、管理员/只读权限、设备自动纳管、短码核对、远程配置及按型号模板（昼夜、语言、固定灯控接线）。使用及真实验收边界见 [V6 文档](docs/v6-device-management.md)。**
 
-首装与交付（#43）已部署到后台 `/control`：按 IP／序列号安排任务，现场助手核对正式 APK 后安装，关联短码并记录交付验收。生产页面与接口测试已通过，正式 APK 和真实装机仍待验收，见[发布回执](docs/production-installation-2026-10-08.md)及[操作说明](docs/installation-delivery.md)。
+首装与交付（#43）已部署到后台 `/control`：正式签名、真实首装与短码关联已有，默认包已同步0.7.1。完整交付仍须逐台验证画面／新鲜数据、冷启动、关闭ADB与关后真PoE恢复；首装工具不是不同版本APK的升级通道。见[操作与真实回执](docs/installation-delivery.md)及[量产交付清单](docs/13-inch-delivery-checklist.md)。
 
 维护入口：[当前状态](docs/current-state.md) · [下一阶段计划](plan/next-phase.md) · [GitHub 总规划](https://github.com/arthurxbwang/roombeacon/issues/6)。新任务从这些入口和最新 `main` 接续，历史会话用于追溯。
 
@@ -70,6 +74,11 @@ npm run dev
 打开 Vite 给出的本地地址 `/control`，输入已配置主控凭证。设备端 `/?version=v4`；未指定时采用已保存的版本选择，没有保存选择则默认 V4。首次采集完成前会提示等待。
 
 ## 文档
+
+- [量产平板试部署与上线计划](plan/procurement-rollout-20261011.md)
+- [2026-10-11项目阶段归档](docs/project-archive-2026-10-11.md)
+- [13.3寸量产机逐台交付记录](docs/13-inch-delivery-checklist.md)
+- [BDC5ZS首轮联合测试结果](docs/test-results/ita-bdc5zs-20261011.md)
 
 - [背景原图上传、比例裁切与预览](docs/background-images.md)
 
